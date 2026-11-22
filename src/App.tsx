@@ -3,7 +3,7 @@ import {
   Activity, ArrowDownToLine, Bell, BookOpen, ChartCandlestick, Check,
   ChevronLeft, ChevronRight, Command, Compass, Download, Home, Layers,
   Menu, Moon, MousePointer2, Plus, RotateCcw, Search, Settings2, Sun,
-  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Target, Film
+  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Target, Film, Magnet, MoveUpRight, ArrowUpRight
 } from "lucide-react";
 import { ChartCanvas } from "./ChartCanvas";
 import type { Drawing, DrawingTool } from "./drawing/types";
@@ -158,7 +158,7 @@ export default function App() {
     setDrawMode(false);
     const next = drawingTool === selected ? null : selected;
     setDrawingTool(next);
-    notify(next ? "Drag on the chart to create a " + next + "." : "Drawing tool dismissed.", "info");
+    notify(next ? "Drag or click two points to place a " + next + "." : "Drawing tool dismissed.", "info");
   };
   const startReplay=()=>{
     try{
@@ -203,7 +203,7 @@ export default function App() {
       const json: unknown = JSON.parse(await file.text());
       if (!json || typeof json !== "object" || Array.isArray(json) ||
         !("format" in json) || json.format !== "market-terminal-workspace" ||
-        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9) ||
+        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10) ||
         !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
       const workspace = parseWorkspace(json);
       setPrefs(workspace);
@@ -414,6 +414,17 @@ export default function App() {
               <button disabled={!currentCandles.length} title="Drag on the chart to draw a trendline" className={"compact-action " + (drawingTool === "trendline" ? "active" : "")} onClick={() => chooseDrawingTool("trendline")}><TrendingUp size={15}/> Trendline</button>
               <button disabled={!currentCandles.length} title="Drag on the chart to draw a rectangle" className={"compact-action " + (drawingTool === "rectangle" ? "active" : "")} onClick={() => chooseDrawingTool("rectangle")}><Square size={15}/> Rectangle</button>
               <button disabled={!currentCandles.length} title="Drag on the chart to draw Fibonacci levels" className={"compact-action " + (drawingTool === "fibonacci" ? "active" : "")} onClick={() => chooseDrawingTool("fibonacci")}><Ruler size={15}/> Fibonacci</button>
+              <button disabled={!currentCandles.length} title="Draw a ray from two points" className={"compact-action " + (drawingTool === "ray" ? "active" : "")}
+                onClick={() => chooseDrawingTool("ray")}><MoveUpRight size={15}/> Ray</button>
+              <button disabled={!currentCandles.length} title="Measure the price and percentage difference between two points" className={"compact-action " + (drawingTool === "measure" ? "active" : "")}
+                onClick={() => chooseDrawingTool("measure")}><ArrowUpRight size={15}/> Measure</button>
+              <button className={"compact-action magnet-toggle " + (prefs.magnetEnabled ? "active" : "")}
+                aria-label="Snap to candle OHLC" aria-pressed={prefs.magnetEnabled}
+                title="Magnet: snap nearby drawing anchors to candle open, high, low or close"
+                onClick={()=>{
+                  update({magnetEnabled:!prefs.magnetEnabled});
+                  notify(prefs.magnetEnabled?"OHLC magnet disabled.":"OHLC magnet enabled.");
+                }}><Magnet size={15}/> Magnet</button>
               <button className={"compact-action repeat-toggle " + (prefs.keepDrawingToolActive ? "active" : "")}
                 aria-label="Keep drawing tool active" aria-pressed={prefs.keepDrawingToolActive}
                 title="Keep current drawing tool active after creating a shape"
@@ -446,7 +457,7 @@ export default function App() {
             {drawingTool && <div className="draw-banner"><MousePointer2 size={16}/> Click two points or drag to draw a {drawingTool}. After drawing, click the shape to move it or drag its handles. <button onClick={() => setDrawingTool(null)}>Cancel <X size={14}/></button></div>}
             <ChartCanvas key={replay?"historical-replay":"active-chart"} symbol={prefs.symbol} frame={prefs.frame} source={prefs.priceSource} candles={viewedCandles}
               dark={prefs.dark} showSma={prefs.showSma} studies={prefs.studies} levels={replay?[]:currentLevels} drawMode={drawMode} onPlaceLevel={addLevel}
-              drawingTool={drawingTool} drawings={replayDrawings}
+              drawingTool={drawingTool} drawings={replayDrawings} magnetEnabled={prefs.magnetEnabled}
               drawingColor={prefs.accent === "amber" ? "#e9b368" : prefs.accent === "teal" ? "#32c7aa" : "#9295ff"}
               onAddDrawing={addDrawing} onUpdateDrawing={updateDrawing} onDeleteDrawing={removeDrawing}/>
             <div className="chart-footer"><span><span className="sync-point">●</span> Locally saved</span><span>Source: {feed.sourceLabel} · {frameSeconds[prefs.frame] / 60}m candle interval · {replay?"historical replay":feed.status}{feed.lastUpdatedMs ? " · Updated " + new Date(feed.lastUpdatedMs).toLocaleTimeString() : ""}</span></div>
