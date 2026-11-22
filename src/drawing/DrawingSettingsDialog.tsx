@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Clock3, Eye, EyeOff, LayoutGrid, Lock, Paintbrush, RotateCcw, SlidersHorizontal, X } from "lucide-react";
 import { symbols } from "../market";
 import { TOOL_BY_ID, ONE_ANCHOR_TOOLS } from "./toolDefinitions";
+import {ToolSpecificProperties} from "./ToolSpecificProperties";
+import "./toolSpecificProperties.css";
 import { type ChartAnchor, type Drawing } from "./types";
 import { AVAILABLE_FRAMES, editDrawingAnchor, editPatternPoint, formatAnchorUtc, parseAnchorUtc,
   validateDrawingSettings } from "./drawingSettings";
@@ -182,6 +184,7 @@ export function DrawingSettingsDialog({drawing,onSave,onClose}:Props){
           <textarea aria-label="Drawing annotation text" rows={3} maxLength={2000}
             value={draft.text??""} onChange={e=>setDraft(old=>({...old,text:e.target.value}))}/>
         </label>}
+        <ToolSpecificProperties drawing={draft} onChange={setDraft}/>
       </div>}
       {tab==="coordinates"&&<div role="tabpanel" className="drawing-settings-coordinates">
         <div className="drawing-settings-intro"><strong>Precise placement</strong>
