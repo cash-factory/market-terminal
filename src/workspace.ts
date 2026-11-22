@@ -12,8 +12,10 @@ export type Workspace = {
   symbol: SymbolId;
   frame: Frame;
   priceSource: "demo" | "binance";
-  chartLayout: "single" | "dual";
+  chartLayout: "single" | "dual" | "quad";
   secondarySymbol: SymbolId;
+  tertiarySymbol: SymbolId;
+  quaternarySymbol: SymbolId;
   dark: boolean;
   showSma: boolean;
   levels: Level[];
@@ -36,6 +38,8 @@ export const defaultWorkspace: Workspace = {
   priceSource: "demo",
   chartLayout: "single",
   secondarySymbol: "BTCUSDT",
+  tertiarySymbol: "AAPL",
+  quaternarySymbol: "US100",
   dark: true,
   showSma: true,
   levels: [],
@@ -78,8 +82,10 @@ export function parseWorkspace(value: unknown): Workspace {
   return {
     symbol, frame, accent, levels,
     priceSource: symbol === "BTCUSDT" && raw.priceSource === "binance" ? "binance" : "demo",
-    chartLayout: raw.chartLayout === "dual" ? "dual" : "single",
+    chartLayout: raw.chartLayout === "quad" ? "quad" : raw.chartLayout === "dual" ? "dual" : "single",
     secondarySymbol: SYMBOLS.includes(raw.secondarySymbol as SymbolId) ? raw.secondarySymbol as SymbolId : "BTCUSDT",
+    tertiarySymbol: SYMBOLS.includes(raw.tertiarySymbol as SymbolId) ? raw.tertiarySymbol as SymbolId : "AAPL",
+    quaternarySymbol: SYMBOLS.includes(raw.quaternarySymbol as SymbolId) ? raw.quaternarySymbol as SymbolId : "US100",
     drawings: Array.isArray(raw.drawings) ? raw.drawings.filter(isDrawing) : [],
     dark: typeof raw.dark === "boolean" ? raw.dark : true,
     showSma: typeof raw.showSma === "boolean" ? raw.showSma : true,
@@ -104,5 +110,5 @@ export function loadWorkspace(): Workspace {
   }
 }
 export function serializeWorkspace(workspace: Workspace): string {
-  return JSON.stringify({ format: "market-terminal-workspace", version: 13, preferences: workspace }, null, 2);
+  return JSON.stringify({ format: "market-terminal-workspace", version: 14, preferences: workspace }, null, 2);
 }
