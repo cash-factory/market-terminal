@@ -664,7 +664,8 @@ export default function App() {
                     drawings={prefs.drawings.filter(d=>d.symbol===panel.symbol&&(d.source??"demo")==="demo")}
                     magnetEnabled={prefs.magnetEnabled}
                     drawingColor={prefs.accent==="amber"?"#e9b368":prefs.accent==="teal"?"#32c7aa":"#9295ff"}
-                    onAddDrawing={addComparisonDrawing} onUpdateDrawing={updateDrawing} onDeleteDrawing={removeDrawing}/>
+                    onAddDrawing={addComparisonDrawing} onUpdateDrawing={updateDrawing} onDeleteDrawing={removeDrawing} onDeleteDrawings={removeDrawings}
+                    selectedDrawingIds={selectedDrawingIds} onDrawingSelectionChange={setSelectedDrawingIds}/>
                 </section>)}
             </div>
             <div className="chart-footer"><span><span className="sync-point">●</span> Locally saved</span><span>Source: {feed.sourceLabel} · {frameSeconds[prefs.frame] / 60}m candle interval · {replay?"historical replay":feed.status}{feed.lastUpdatedMs ? " · Updated " + new Date(feed.lastUpdatedMs).toLocaleTimeString() : ""}</span></div>
