@@ -15,7 +15,7 @@ test("transient chart fault can be retried without losing workspace state",async
       return nativeCreateElement(tagName,options);
     }) as typeof document.createElement;
   });
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await expect(page.getByRole("alert").filter({hasText:"Primary chart could not render"}))
     .toBeVisible({timeout:10_000});
   await page.getByRole("button",{name:"Retry Primary chart"}).click();
@@ -32,7 +32,7 @@ test("transient chart fault can be retried without losing workspace state",async
   expect(stored.preferences.drawings).toHaveLength(1);
 });
 test("normal four-pane rendering shows no recovery panels",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("button",{name:"Toggle four-chart layout"}).click();
   await expect(page.locator(".chart-grid-cell")).toHaveCount(4);
   await expect(page.locator(".chart-failure")).toHaveCount(0);

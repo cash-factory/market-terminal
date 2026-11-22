@@ -1,7 +1,7 @@
 import {test,expect} from "@playwright/test";
 
 test("comparison overlays stay distinct from broker quotes and preserve drawing input",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("combobox",{name:"Comparison overlay symbol"}).selectOption("AAPL");
   await expect(page.locator(".chart-comparison-attribution")).toContainText("AAPL");
   await expect(page.locator(".chart-comparison-attribution")).toContainText("not the comparison instrument's executable quote");
@@ -24,7 +24,7 @@ test("comparison overlays stay distinct from broker quotes and preserve drawing 
 });
 
 test("BTCUSDT comparison venue can be selected without a fabricated live fallback",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("combobox",{name:"Comparison overlay symbol"}).selectOption("BTCUSDT");
   await page.getByRole("combobox",{name:"Comparison overlay price source"}).selectOption("binance");
   await expect(page.locator(".chart-comparison-attribution")).toContainText("Binance Spot");

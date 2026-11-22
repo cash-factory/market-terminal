@@ -3,7 +3,7 @@ import {expect,test} from "@playwright/test";
 test("real drawing input and chart persistence across desktop and touch engines",async({page,isMobile})=>{
   const errors:string[]=[];
   page.on("pageerror",e=>errors.push(e.message));
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   const overlay=page.locator("svg.drawing-overlay").first();
   await expect(overlay).toBeVisible();
   await page.getByRole("button",{name:"Trendline",exact:true}).click();
@@ -31,7 +31,7 @@ test("real drawing input and chart persistence across desktop and touch engines"
 test("responsive chart controls, saved profiles and linked layout remain accessible",async({page,isMobile})=>{
   const errors:string[]=[];
   page.on("pageerror",e=>errors.push(e.message));
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("button",{name:"Toggle dual-chart layout"}).click();
   await expect(page.locator(".chart-grid-cell")).toHaveCount(2);
   await page.getByRole("combobox",{name:"Chart 2 timeframe"}).selectOption("5m");
@@ -53,7 +53,7 @@ test("responsive chart controls, saved profiles and linked layout remain accessi
 });
 
 test("study selection and chart visualization changes render with correct accessible labels",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("combobox",{name:"Chart display style"}).selectOption("area");
   console.log("Chart style selected");
   await page.getByRole("button",{name:"Technical indicators"}).click({timeout:10000});
@@ -66,4 +66,18 @@ test("study selection and chart visualization changes render with correct access
   await page.reload();
   await expect(page.getByRole("combobox",{name:"Chart display style"})).toHaveValue("area");
   await expect(page.locator(".indicator-pane")).toHaveCount(1);
+});
+
+test("Studio opens an instrument from Overview and preserves the chart setup after reload", async ({page}) => {
+  await page.goto("/market-terminal/");
+  await page.getByRole("button", {name:"Overview", exact:true}).click();
+  await page.getByRole("button", {name:"Open synthetic AAPL"}).click();
+  await expect(page.getByRole("img", {name:"Synthetic AAPL candles chart"})).toBeVisible();
+  await page.getByRole("button", {name:"Chart setup", exact:true}).click();
+  await page.getByRole("button", {name:"Toggle dual-chart layout"}).click();
+  await expect(page.locator(".chart-grid-cell")).toHaveCount(2);
+  await page.reload();
+  await expect(page.locator(".chart-grid-cell")).toHaveCount(2);
+  await expect(page.getByRole("button", {name:"Choose chart instrument"})).toHaveText("AAPL");
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(2);
 });

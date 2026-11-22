@@ -1,7 +1,7 @@
 import {test,expect} from "@playwright/test";
 
 test("reference market calendars disclose exact provenance without claiming live execution",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await expect(page.locator(".market-session-reference summary")).toContainText("Broker hours not configured");
   await page.locator(".market-session-reference summary").click();
   await expect(page.locator(".market-session-reference")).toContainText("Demonstration display precision");

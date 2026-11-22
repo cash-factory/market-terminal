@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test("technical studies render and persist while drawings remain operable",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("button",{name:"Technical indicators"}).click();
   for(const name of ["EMA 20","Bollinger Bands 20","RSI 14","MACD 12/26/9","ATR 14"]){
     await page.getByRole("checkbox",{name}).check();
@@ -30,7 +30,7 @@ test("technical studies render and persist while drawings remain operable",async
 });
 
 test("technical studies can be disabled without affecting the chart",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("button",{name:"Technical indicators"}).click();
   await page.getByRole("checkbox",{name:"RSI 14"}).check();
   await expect(page.locator(".indicator-pane")).toHaveCount(1);

@@ -10,7 +10,7 @@ async function dragAcrossChart(page:Page,tool:string){
   await page.mouse.move(b.x,b.y,{steps:10});await page.mouse.up();
 }
 test("ray and price-range measurement draw and persist using the working chart input layer",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await dragAcrossChart(page,"Ray");
   await expect(page.locator(".drawing-shape")).toHaveCount(1);
   await dragAcrossChart(page,"Measure");
@@ -23,7 +23,7 @@ test("ray and price-range measurement draw and persist using the working chart i
   await expect(page.locator(".drawing-object-row")).toHaveCount(2);
 });
 test("OHLC magnet is optional, persists and never disables other drawings",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   const magnet=page.getByRole("button",{name:"Snap to candle OHLC"});
   await expect(magnet).toHaveAttribute("aria-pressed","false");
   await magnet.click();

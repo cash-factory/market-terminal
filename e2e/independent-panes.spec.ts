@@ -1,7 +1,7 @@
 import {test,expect} from "@playwright/test";
 
 test("each chart pane has its own timeframe and source with honest provenance",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("button",{name:"Toggle four-chart layout"}).click();
   await expect(page.locator(".chart-grid-cell")).toHaveCount(4);
   await page.getByRole("combobox",{name:"Chart 2 timeframe"}).selectOption("5m");
@@ -28,7 +28,7 @@ test("each chart pane has its own timeframe and source with honest provenance",a
 test("linked crosshair and time-range controls remain interactive with real chart gestures",async({page})=>{
   const errors:string[]=[];
   page.on("pageerror",e=>errors.push(e.message));
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("button",{name:"Toggle dual-chart layout"}).click();
   await page.getByRole("button",{name:"Link chart crosshairs"}).click();
   await page.getByRole("button",{name:"Synchronize chart time ranges"}).click();
@@ -48,7 +48,7 @@ test("linked crosshair and time-range controls remain interactive with real char
 });
 
 test("a comparison chart cannot select a live source for unsupported instruments",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("button",{name:"Toggle dual-chart layout"}).click();
   await page.getByRole("combobox",{name:"Secondary chart symbol"}).selectOption("AAPL");
   await expect(page.getByRole("combobox",{name:"Chart 2 price source"}).locator('option[value="binance"]')).toBeDisabled();

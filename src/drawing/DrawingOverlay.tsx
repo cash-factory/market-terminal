@@ -126,8 +126,11 @@ export function DrawingOverlay({
     pendingRef.current = null;
     pendingChannelRef.current=null;
     setDraft(null);
-    onSelectionChange([]);
+    if (tool) onSelectionChange([]);
   }, [symbol, tool, frame]);
+  useEffect(() => {
+    onSelectionChange([]);
+  }, [symbol, frame]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {

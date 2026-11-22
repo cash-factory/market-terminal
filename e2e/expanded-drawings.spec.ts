@@ -16,7 +16,7 @@ async function drag(page:Page,from:[number,number],to:[number,number]){
   await page.mouse.up();
 }
 test("advanced geometric and position drawing catalog works on real chart canvas",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await selectTool(page,"Arrow");
   await drag(page,[.29,.35],[.59,.58]);
   await expect(page.locator(".drawing-arrow-head")).toHaveCount(1);
@@ -36,7 +36,7 @@ test("advanced geometric and position drawing catalog works on real chart canvas
   await expect(page.locator(".drawing-shape")).toHaveCount(4);
 });
 test("text annotation and brush are editable, persistent, and isolated from other tools",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await selectTool(page,"Text note");
   const box=await page.locator("svg.drawing-overlay").boundingBox();
   if(!box)throw new Error("Missing canvas");
