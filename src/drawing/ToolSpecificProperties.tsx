@@ -1,8 +1,8 @@
 import {useState} from "react";
-import {Check,Plus,RotateCcw,Trash2} from "lucide-react";
+import {Plus,RotateCcw,Trash2} from "lucide-react";
 import type {Drawing,ToolLevel,MeasurementParts} from "./types";
 import {TOOL_BY_ID} from "./toolDefinitions";
-import {CIRCLE_RATIOS,FORK_RATIOS,MEASUREMENT_DEFAULTS,effectiveLevels} from "./toolProperties";
+import {FORK_RATIOS,MEASUREMENT_DEFAULTS,effectiveLevels} from "./toolProperties";
 
 type Props={drawing:Drawing;onChange:(drawing:Drawing)=>void};
 
