@@ -139,8 +139,8 @@ export default function App() {
     }]}));
     setDrawMode(false);notify("Comparison chart price level saved.");
   };
-  const updateDrawing = (drawing: Drawing) => {
-    commitDrawings(updateDrawingAndGroup(prefs.drawings,drawing),"Drawing updated.");
+  const updateDrawing = (drawing: Drawing, editKind?:"move"|"start"|"end") => {
+    commitDrawings(updateDrawingAndGroup(prefs.drawings,drawing,editKind),"Drawing updated.");
   };
   const removeDrawing = (id: string) => {
     commitDrawings(prefs.drawings.filter(d => d.id !== id), "Drawing removed. Use Undo to restore.");
