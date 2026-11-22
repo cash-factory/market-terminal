@@ -387,3 +387,13 @@
   .chart-cell-label .secondary-symbol-select select{max-width:125px}
   .chart-cell-label>small{flex:1 0 100%;max-width:none}
 }
+
+
+/* Price chart presentation choices without changing the underlying quote provenance. */
+.chart-style-switch{display:flex;gap:7px;align-items:center;white-space:nowrap;
+  font-size:10px;color:var(--muted)}
+.chart-style-switch select{color:var(--text);background:var(--raised);
+  border:1px solid var(--border);border-radius:7px;padding:8px;font-size:11px;min-width:128px}
+.chart-style-switch select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.chart-display-notice{padding:8px 17px;font-size:10px;line-height:1.5;
+  color:var(--soft);background:var(--accent-dim);border-bottom:1px solid var(--accent-border)}
