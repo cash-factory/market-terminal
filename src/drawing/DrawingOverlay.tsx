@@ -669,7 +669,7 @@ export function DrawingOverlay({
   };
 
   return <svg ref={svgRef} className={"drawing-overlay " + (tool ? "armed" : "")}
-    aria-label={tool ? "Draw " + tool + ": drag or click two points" : "Select chart drawings"}
+    aria-label={tool ? "Draw " + tool + ": " + (requiresMultiPoint(tool)?multiPointCount(tool):ONE_ANCHOR_TOOLS.has(tool)?1:2) + " anchors required" : "Select chart drawings"}
     onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
     onPointerCancel={cancel} onLostPointerCapture={() => { /* normal end handled by pointerup */ }}>
     {/* A real transparent SVG rect is required: empty SVG pixels are not reliably
@@ -679,5 +679,13 @@ export function DrawingOverlay({
       fill="transparent" pointerEvents={tool ? "all" : "none"}/>
     {drawings.filter(d => d.symbol === symbol && isDrawingVisibleAtFrame(d,frame)).map(d => renderDrawing(draft?.id === d.id ? draft : d))}
     {draft?.id === "preview" && renderDrawing(draft)}
+    {tool&&pendingMultiRef.current&&<g className="drawing-anchor-progress" pointerEvents="none">
+      <rect x={12} y={12} width={188} height={35} rx={6}
+        fill="var(--panel)" fillOpacity={.96} stroke={color} strokeOpacity={.55}/>
+      <text x={23} y={26} fill={color} fontSize={10} fontWeight={750}>
+        {"ANCHOR "+(pendingMultiRef.current.points.length+1)+" / "+pendingMultiRef.current.required}
+      </text>
+      <text x={23} y={39} fill="var(--soft)" fontSize={10}>Click the next pivot to continue</text>
+    </g>}
   </svg>;
 }
