@@ -187,7 +187,7 @@ export default function App() {
     }]}));
     setDrawMode(false);notify("Comparison chart price level saved.");
   };
-  const updateDrawing = (drawing: Drawing, editKind?:"move"|"start"|"end"|"control") => {
+  const updateDrawing = (drawing: Drawing, editKind?:"move"|"start"|"end"|"control"|"target") => {
     commitDrawings(updateDrawingAndGroup(prefs.drawings,drawing,editKind),"Drawing updated.");
   };
   const removeDrawing = (id: string) => {
@@ -239,7 +239,9 @@ export default function App() {
       ...active, id: crypto.randomUUID(), hidden: false, locked: false, groupId: undefined,
       start: { time: active.start.time + offset, price: active.start.price * 1.001 },
       end: { time: active.end.time + offset, price: active.end.price * 1.001 },
-      ...(active.points?{points:active.points.map(p=>({time:p.time+offset,price:p.price*1.001}))}:{})
+      ...(active.points?{points:active.points.map(p=>({time:p.time+offset,price:p.price*1.001}))}:{}),
+      ...(active.control?{control:{time:active.control.time+offset,price:active.control.price*1.001}}:{}),
+      ...(active.target?{target:{time:active.target.time+offset,price:active.target.price*1.001}}:{})
     };
     commitDrawings([...prefs.drawings, copy], "Drawing duplicated.");
   };
@@ -371,7 +373,7 @@ export default function App() {
       const json: unknown = JSON.parse(await file.text());
       if (!json || typeof json !== "object" || Array.isArray(json) ||
         !("format" in json) || json.format !== "market-terminal-workspace" ||
-        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15 && json.version !== 16 && json.version !== 17 && json.version !== 18 && json.version !== 19 && json.version !== 20 && json.version !== 21 && json.version !== 22) ||
+        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15 && json.version !== 16 && json.version !== 17 && json.version !== 18 && json.version !== 19 && json.version !== 20 && json.version !== 21 && json.version !== 22 && json.version !== 23) ||
         !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
       const workspace = parseWorkspace(json);
       setPrefs(workspace);
