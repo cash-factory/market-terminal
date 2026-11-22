@@ -10,6 +10,7 @@ import {
 import {
   inChartPlot, logicalFromTime, pointerDistance, timeFromLogical, type ChartPoint
 } from "./geometry";
+import { snapAnchorToOhlc, rayEndpoint, measurement } from "./snap";
 
 type Projected = { a: ChartPoint; b: ChartPoint };
 type Gesture = {
@@ -29,13 +30,14 @@ interface Props {
   tool: DrawingTool | null;
   drawings: Drawing[];
   color: string;
+  magnetEnabled: boolean;
   onAdd: (drawing: Drawing) => void;
   onUpdate: (drawing: Drawing) => void;
   onDelete: (id: string) => void;
 }
 
 export function DrawingOverlay({
-  chart, series, symbol, frame, candles, tool, drawings, color, onAdd, onUpdate, onDelete
+  chart, series, symbol, frame, candles, tool, drawings, color, magnetEnabled, onAdd, onUpdate, onDelete
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const gestureRef = useRef<Gesture | null>(null);
@@ -63,7 +65,16 @@ export function DrawingOverlay({
     if (logical === null || price === null || !Number.isFinite(price) || price <= 0) return null;
     const time = timeFromLogical(logical, candles, frameSeconds[frame]);
     if (time === null) return null;
-    return { time, price };
+    const anchor={time,price};
+    if(!magnetEnabled)return anchor;
+    const snapped=snapAnchorToOhlc(anchor,point,candles,
+      timestamp=>{
+        const logical=logicalFromTime(timestamp,candles,frameSeconds[frame]);
+        return logical===null?null:scale.logicalToCoordinate(logical as Logical);
+      },
+      value=>series.priceToCoordinate(value)
+    );
+    return snapped.anchor;
   };
   const project = (drawing: Drawing): Projected | null => {
     const scale = chart.timeScale();
@@ -246,6 +257,34 @@ export function DrawingOverlay({
     };
     return <g key={drawing.id} className={"drawing-shape " + (selected ? "is-selected" : "")}
       onPointerDown={event => { if (!isPreview) beginEdit(event, drawing, "move"); }}>
+      {drawing.tool === "ray" && (() => {
+        const endpoint=rayEndpoint(a,b,chart.timeScale().width(),
+          Math.max(0,(svgRef.current?.clientHeight ?? 0)-chart.timeScale().height()));
+        return <>
+          <line x1={a.x} y1={a.y} x2={endpoint.x} y2={endpoint.y}
+            stroke="transparent" strokeWidth={16} className="drawing-hit"/>
+          <line x1={a.x} y1={a.y} x2={endpoint.x} y2={endpoint.y}
+            {...common} className="drawing-line"/>
+        </>;
+      })()}
+      {drawing.tool === "measure" && (() => {
+        const m=measurement(drawing.start,drawing.end,frameSeconds[frame]);
+        const left=Math.min(a.x,b.x),top=Math.min(a.y,b.y);
+        const width=Math.max(1,Math.abs(b.x-a.x)),height=Math.max(1,Math.abs(b.y-a.y));
+        const sign=m.change>0?"+":"";
+        return <>
+          <rect x={left} y={top} width={width} height={height}
+            fill={m.change>=0?"#20aa8b":"#dc6575"} fillOpacity={0.12}
+            {...common} className="drawing-rectangle"/>
+          <line x1={a.x} y1={a.y} x2={b.x} y2={b.y}
+            {...common} className="drawing-line" pointerEvents="none"/>
+          <text x={(a.x+b.x)/2} y={top+height/2}
+            fill={drawing.color} fontWeight={700} fontSize={11}
+            textAnchor="middle" pointerEvents="none">
+            {sign+m.change.toFixed(4)+" ("+sign+m.percent.toFixed(2)+"%) · "+m.bars+" bars"}
+          </text>
+        </>;
+      })()}
       {drawing.tool === "trendline" && <>
         <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="transparent"
           strokeWidth={16} className="drawing-hit" />

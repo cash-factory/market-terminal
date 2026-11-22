@@ -24,6 +24,7 @@ interface Props {
   drawingTool: DrawingTool | null;
   drawings: Drawing[];
   drawingColor: string;
+  magnetEnabled: boolean;
   studies: StudySettings;
   onAddDrawing: (drawing: Drawing) => void;
   onUpdateDrawing: (drawing: Drawing) => void;
@@ -33,7 +34,7 @@ type Surface = { chart: IChartApi; series: ISeriesApi<"Candlestick"> };
 
 export function ChartCanvas({
   symbol, frame, source, candles, dark, showSma, levels, drawMode, onPlaceLevel,
-  drawingTool, drawings, drawingColor, studies, onAddDrawing, onUpdateDrawing, onDeleteDrawing
+  drawingTool, drawings, drawingColor, studies, magnetEnabled, onAddDrawing, onUpdateDrawing, onDeleteDrawing
 }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const chart = useRef<IChartApi | null>(null);
@@ -130,7 +131,7 @@ export function ChartCanvas({
         : "Binance Spot " + symbols[symbol].label + " candlestick chart"}/>
     {surface && surface.chart === chart.current && <DrawingOverlay
       chart={surface.chart} series={surface.series} symbol={symbol} frame={frame} candles={candles}
-      tool={drawingTool} drawings={drawings} color={drawingColor}
+      tool={drawingTool} drawings={drawings} color={drawingColor} magnetEnabled={magnetEnabled}
       onAdd={onAddDrawing} onUpdate={onUpdateDrawing} onDelete={onDeleteDrawing}
     />}
   </div>

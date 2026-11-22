@@ -19,6 +19,7 @@ export type Workspace = {
   rightPanelOpen: boolean;
   rightPanelWidth: number;
   keepDrawingToolActive: boolean;
+  magnetEnabled: boolean;
   riskPlanner: RiskPlannerInputs;
   studies: StudySettings;
   alerts: PriceAlert[];
@@ -36,6 +37,7 @@ export const defaultWorkspace: Workspace = {
   rightPanelOpen: true,
   rightPanelWidth: 270,
   keepDrawingToolActive: false,
+  magnetEnabled: false,
   riskPlanner: {...emptyRiskInputs},
   studies: {...defaultStudies},
   alerts: [],
@@ -73,6 +75,7 @@ export function parseWorkspace(value: unknown): Workspace {
     rightPanelOpen: typeof raw.rightPanelOpen === "boolean" ? raw.rightPanelOpen : true,
     rightPanelWidth: typeof raw.rightPanelWidth === "number" ? clampPanelWidth(raw.rightPanelWidth) : 270,
     keepDrawingToolActive: typeof raw.keepDrawingToolActive === "boolean" ? raw.keepDrawingToolActive : false,
+    magnetEnabled: typeof raw.magnetEnabled === "boolean" ? raw.magnetEnabled : false,
     riskPlanner: parseRiskInputs(raw.riskPlanner),
     studies: parseStudies(raw.studies),
     alerts: Array.isArray(raw.alerts)?raw.alerts.filter(isPriceAlert):[],
@@ -87,5 +90,5 @@ export function loadWorkspace(): Workspace {
   }
 }
 export function serializeWorkspace(workspace: Workspace): string {
-  return JSON.stringify({ format: "market-terminal-workspace", version: 9, preferences: workspace }, null, 2);
+  return JSON.stringify({ format: "market-terminal-workspace", version: 10, preferences: workspace }, null, 2);
 }
