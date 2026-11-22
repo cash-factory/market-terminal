@@ -10,6 +10,8 @@ export type Workspace = {
   symbol: SymbolId;
   frame: Frame;
   priceSource: "demo" | "binance";
+  chartLayout: "single" | "dual";
+  secondarySymbol: SymbolId;
   dark: boolean;
   showSma: boolean;
   levels: Level[];
@@ -28,6 +30,8 @@ export const defaultWorkspace: Workspace = {
   symbol: "EURUSD",
   frame: "1h",
   priceSource: "demo",
+  chartLayout: "single",
+  secondarySymbol: "BTCUSDT",
   dark: true,
   showSma: true,
   levels: [],
@@ -68,6 +72,8 @@ export function parseWorkspace(value: unknown): Workspace {
   return {
     symbol, frame, accent, levels,
     priceSource: symbol === "BTCUSDT" && raw.priceSource === "binance" ? "binance" : "demo",
+    chartLayout: raw.chartLayout === "dual" ? "dual" : "single",
+    secondarySymbol: SYMBOLS.includes(raw.secondarySymbol as SymbolId) ? raw.secondarySymbol as SymbolId : "BTCUSDT",
     drawings: Array.isArray(raw.drawings) ? raw.drawings.filter(isDrawing) : [],
     dark: typeof raw.dark === "boolean" ? raw.dark : true,
     showSma: typeof raw.showSma === "boolean" ? raw.showSma : true,
@@ -90,5 +96,5 @@ export function loadWorkspace(): Workspace {
   }
 }
 export function serializeWorkspace(workspace: Workspace): string {
-  return JSON.stringify({ format: "market-terminal-workspace", version: 10, preferences: workspace }, null, 2);
+  return JSON.stringify({ format: "market-terminal-workspace", version: 11, preferences: workspace }, null, 2);
 }

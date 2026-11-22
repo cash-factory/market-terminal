@@ -246,3 +246,31 @@
 .replay-exit{color:var(--muted)}
 @media(max-width:950px){.replay-controls{gap:12px}.replay-timeline{flex-basis:100%;order:5}.replay-exit{margin-left:auto}}
 @media(max-width:620px){.replay-controls{padding:12px;gap:10px}.replay-title{flex:1}.replay-title small{font-size:8px}.replay-timeline{order:4;flex-basis:100%}.replay-exit span{display:none}.replay-exit{margin-left:0;padding:0;width:35px}}
+
+
+/* Charting phase: independently interactive 1-up / 2-up market workspaces. */
+.chart-grid{width:100%;min-width:0}
+.chart-grid-dual{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:1px;background:var(--border)}
+.chart-grid-cell{min-width:0;overflow:hidden;background:var(--panel)}
+.chart-cell-label{min-height:51px;padding:8px 13px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.chart-cell-label>span{font-size:9px;color:var(--muted);font-weight:700;letter-spacing:.8px}
+.chart-cell-label>strong{font-size:12px;font-weight:650}
+.chart-cell-label>small{font-size:9px;color:var(--muted);margin-left:auto}
+.secondary-symbol-select{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:10px}
+.secondary-symbol-select select{background:var(--raised);border:1px solid var(--border);color:var(--text);font-size:12px;border-radius:6px;padding:8px}
+.chart-grid-dual .chart-surface{height:clamp(340px,50vh,640px);min-height:340px}
+.chart-grid-dual .indicator-pane{height:133px}
+.chart-layout-toggle.active{background:var(--accent-dim);border-color:var(--accent-border);color:var(--accent)}
+@media(max-width:1330px){
+  .chart-grid-dual{grid-template-columns:minmax(0,1fr)}
+  .chart-grid-dual .chart-surface{height:410px}
+  .chart-grid-dual .indicator-pane{height:145px}
+}
+@media(max-width:600px){
+  .chart-cell-label{gap:7px}
+  .chart-cell-label>small{width:100%;margin-left:0}
+  .chart-grid-dual .chart-surface{height:360px;min-height:330px}
+}
+
+.chart-make-primary{font-size:10px;border:1px solid var(--accent-border);background:var(--accent-dim);color:var(--accent);border-radius:6px;padding:7px 9px;cursor:pointer;white-space:nowrap}
+.chart-make-primary:hover{filter:brightness(1.12)}

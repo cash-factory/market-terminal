@@ -3,7 +3,7 @@ import {
   Activity, ArrowDownToLine, Bell, BookOpen, ChartCandlestick, Check,
   ChevronLeft, ChevronRight, Command, Compass, Download, Home, Layers,
   Menu, Moon, MousePointer2, Plus, RotateCcw, Search, Settings2, Sun,
-  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Target, Film, Magnet, MoveUpRight, ArrowUpRight
+  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Target, Film, Magnet, MoveUpRight, ArrowUpRight, Columns2
 } from "lucide-react";
 import { ChartCanvas } from "./ChartCanvas";
 import type { Drawing, DrawingTool } from "./drawing/types";
@@ -55,6 +55,9 @@ export default function App() {
   const inputFile = useRef<HTMLInputElement>(null);
   const inputSearch = useRef<HTMLInputElement>(null);
   const feed = usePriceFeed(prefs.symbol, prefs.frame, prefs.priceSource);
+  // Secondary panels are explicitly synthetic until licensed additional feeds
+  // can be attached to each pane independently.
+  const comparisonFeed = usePriceFeed(prefs.secondarySymbol, prefs.frame, "demo");
   const currentCandles = feed.candles;
   const last = currentCandles.length ? currentCandles[currentCandles.length - 1].close : 0;
   const viewedCandles=useMemo(()=>replay?visibleReplayCandles(replay):currentCandles,[replay,currentCandles]);
@@ -62,6 +65,8 @@ export default function App() {
   const replayTime=viewedCandles.length?Number(viewedCandles[viewedCandles.length-1].time):0;
   const currentLevels = useMemo(() => prefs.levels.filter(level => level.symbol === prefs.symbol && (level.source ?? "demo") === prefs.priceSource), [prefs.levels, prefs.symbol, prefs.priceSource]);
   const currentDrawings = useMemo(() => prefs.drawings.filter(drawing => drawing.symbol === prefs.symbol && (drawing.source ?? "demo") === prefs.priceSource), [prefs.drawings, prefs.symbol, prefs.priceSource]);
+  const comparisonLevels = useMemo(() => prefs.levels.filter(level => level.symbol === prefs.secondarySymbol && (level.source ?? "demo") === "demo"), [prefs.levels,prefs.secondarySymbol]);
+  const comparisonDrawings = useMemo(() => prefs.drawings.filter(drawing => drawing.symbol === prefs.secondarySymbol && (drawing.source ?? "demo") === "demo"), [prefs.drawings,prefs.secondarySymbol]);
   const sourceStateLabel = prefs.priceSource === "demo" ? "SYNTHETIC DATA" : ({
     loading: "LOADING BINANCE", connecting: "CONNECTING", historical: "HISTORICAL",
     live: "LIVE · BINANCE SPOT", stale: "STALE FEED", error: "FEED UNAVAILABLE", synthetic: "SYNTHETIC DATA"
@@ -107,9 +112,19 @@ export default function App() {
     setHistoryVersion(v => v + 1);
     notify(message);
   };
-  const addDrawing = (drawing: Drawing) => {
-    commitDrawings([...prefs.drawings, { ...drawing, source: prefs.priceSource }], "Drawing saved locally.");
+  const addDrawingFor = (drawing: Drawing, source: "demo"|"binance") => {
+    commitDrawings([...prefs.drawings, { ...drawing, source }], "Drawing saved locally.");
     if (!prefs.keepDrawingToolActive) setDrawingTool(null);
+  };
+  const addDrawing = (drawing: Drawing) => addDrawingFor(drawing,prefs.priceSource);
+  const addComparisonDrawing = (drawing: Drawing) => addDrawingFor(drawing,"demo");
+  const addComparisonLevel = (price:number) => {
+    if(!Number.isFinite(price)||price<=0){notify("Enter a valid positive price.","error");return;}
+    setPrefs(old=>({...old,levels:[...old.levels,{
+      id:crypto.randomUUID(),symbol:old.secondarySymbol,source:"demo",price,
+      color:old.accent==="amber"?"#e7b05f":old.accent==="teal"?"#24bfa0":"#9495fa"
+    }]}));
+    setDrawMode(false);notify("Comparison chart price level saved.");
   };
   const updateDrawing = (drawing: Drawing) => {
     commitDrawings(prefs.drawings.map(d => d.id === drawing.id ? drawing : d), "Drawing updated.");
@@ -203,7 +218,7 @@ export default function App() {
       const json: unknown = JSON.parse(await file.text());
       if (!json || typeof json !== "object" || Array.isArray(json) ||
         !("format" in json) || json.format !== "market-terminal-workspace" ||
-        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10) ||
+        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11) ||
         !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
       const workspace = parseWorkspace(json);
       setPrefs(workspace);
@@ -377,6 +392,14 @@ export default function App() {
                 title={replay?"Exit historical candle replay":"Study historical candles one bar at a time"}
                 onClick={replay?exitReplay:startReplay}><Film size={15}/>{replay?"Exit replay":"Replay"}</button>
               <span className="tool-divider"/>
+              <button className={"compact-action chart-layout-toggle "+(prefs.chartLayout==="dual"?"active":"")}
+                aria-label="Toggle dual-chart layout" aria-pressed={prefs.chartLayout==="dual"}
+                title="Display one chart or two independent chart panels"
+                onClick={()=>{
+                  update({chartLayout:prefs.chartLayout==="dual"?"single":"dual"});
+                  notify(prefs.chartLayout==="dual"?"Single chart workspace enabled.":"Dual-chart workspace enabled.");
+                }}><Columns2 size={15}/> {prefs.chartLayout==="dual"?"Two charts":"Split chart"}</button>
+              <span className="tool-divider"/>
               <button className="compact-action panel-toggle" title={prefs.rightPanelOpen ? "Hide watchlist" : "Show watchlist"}
                 aria-label={prefs.rightPanelOpen ? "Hide watchlist" : "Show watchlist"}
                 aria-pressed={prefs.rightPanelOpen}
@@ -455,11 +478,43 @@ export default function App() {
             />}
             {drawMode && <div className="draw-banner"><MousePointer2 size={16}/> Click on the chart to place a level <button onClick={() => setDrawMode(false)}>Cancel <X size={14}/></button></div>}
             {drawingTool && <div className="draw-banner"><MousePointer2 size={16}/> Click two points or drag to draw a {drawingTool}. After drawing, click the shape to move it or drag its handles. <button onClick={() => setDrawingTool(null)}>Cancel <X size={14}/></button></div>}
-            <ChartCanvas key={replay?"historical-replay":"active-chart"} symbol={prefs.symbol} frame={prefs.frame} source={prefs.priceSource} candles={viewedCandles}
-              dark={prefs.dark} showSma={prefs.showSma} studies={prefs.studies} levels={replay?[]:currentLevels} drawMode={drawMode} onPlaceLevel={addLevel}
-              drawingTool={drawingTool} drawings={replayDrawings} magnetEnabled={prefs.magnetEnabled}
-              drawingColor={prefs.accent === "amber" ? "#e9b368" : prefs.accent === "teal" ? "#32c7aa" : "#9295ff"}
-              onAddDrawing={addDrawing} onUpdateDrawing={updateDrawing} onDeleteDrawing={removeDrawing}/>
+            <div className={"chart-grid "+(!replay&&prefs.chartLayout==="dual"?"chart-grid-dual":"chart-grid-single")}>
+              <section className="chart-grid-cell" aria-label="Primary chart">
+                {!replay&&prefs.chartLayout==="dual"&&<div className="chart-cell-label"><span>01 / PRIMARY</span>
+                  <strong>{symbols[prefs.symbol].label}</strong><small>{feed.sourceLabel}</small>
+                </div>}
+                <ChartCanvas key={replay?"historical-replay":"active-chart"} symbol={prefs.symbol} frame={prefs.frame} source={prefs.priceSource} candles={viewedCandles}
+                  dark={prefs.dark} showSma={prefs.showSma} studies={prefs.studies} levels={replay?[]:currentLevels} drawMode={drawMode} onPlaceLevel={addLevel}
+                  drawingTool={drawingTool} drawings={replayDrawings} magnetEnabled={prefs.magnetEnabled}
+                  drawingColor={prefs.accent === "amber" ? "#e9b368" : prefs.accent === "teal" ? "#32c7aa" : "#9295ff"}
+                  onAddDrawing={addDrawing} onUpdateDrawing={updateDrawing} onDeleteDrawing={removeDrawing}/>
+              </section>
+              {!replay&&prefs.chartLayout==="dual"&&<section className="chart-grid-cell" aria-label="Secondary chart">
+                <div className="chart-cell-label"><span>02 / COMPARISON</span>
+                  <label className="secondary-symbol-select">Symbol
+                    <select aria-label="Secondary chart symbol" value={prefs.secondarySymbol}
+                      onChange={e=>update({secondarySymbol:e.target.value as SymbolId})}>
+                      {marketList.map(symbol=><option key={symbol} value={symbol}>{symbols[symbol].label}</option>)}
+                    </select>
+                  </label>
+                  <small>SIMULATED · DEMO</small>
+                  <button className="chart-make-primary" aria-label="Make comparison chart primary"
+                    title="Swap comparison symbol into the main chart for full watchlist management"
+                    onClick={()=>{
+                      setPrefs(old=>({...old,symbol:old.secondarySymbol,secondarySymbol:old.symbol,priceSource:"demo"}));
+                      setDrawingTool(null);setDrawMode(false);
+                      notify("Chart symbols swapped; primary quote source is now demonstration data.");
+                    }}>Make primary</button>
+                </div>
+                <ChartCanvas key={"secondary-"+prefs.secondarySymbol} symbol={prefs.secondarySymbol} frame={prefs.frame}
+                  source="demo" candles={comparisonFeed.candles} dark={prefs.dark}
+                  showSma={prefs.showSma} studies={prefs.studies} levels={comparisonLevels}
+                  drawMode={drawMode} onPlaceLevel={addComparisonLevel}
+                  drawingTool={drawingTool} drawings={comparisonDrawings} magnetEnabled={prefs.magnetEnabled}
+                  drawingColor={prefs.accent === "amber" ? "#e9b368" : prefs.accent === "teal" ? "#32c7aa" : "#9295ff"}
+                  onAddDrawing={addComparisonDrawing} onUpdateDrawing={updateDrawing} onDeleteDrawing={removeDrawing}/>
+              </section>}
+            </div>
             <div className="chart-footer"><span><span className="sync-point">●</span> Locally saved</span><span>Source: {feed.sourceLabel} · {frameSeconds[prefs.frame] / 60}m candle interval · {replay?"historical replay":feed.status}{feed.lastUpdatedMs ? " · Updated " + new Date(feed.lastUpdatedMs).toLocaleTimeString() : ""}</span></div>
           </section>
           {prefs.rightPanelOpen && <aside className="right-panel">
