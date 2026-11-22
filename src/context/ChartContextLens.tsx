@@ -1,9 +1,8 @@
-import { Activity, ArrowDownRight, ArrowRight, ArrowUpRight, Bell, BookMarked,
-  ChartNoAxesCombined, ClipboardList, Info, Layers, Plus, ShieldAlert } from "lucide-react";
+import { Activity, ArrowDownRight, ArrowUpRight, Bell,
+  ChartNoAxesCombined, Info, Layers, Plus, ShieldAlert } from "lucide-react";
 import { symbols, type SymbolId, type Frame } from "../market";
 import type { Level } from "../workspace";
 import type { Drawing } from "../drawing/types";
-import type { DecisionRecord } from "../decisions/model";
 import type { PriceAlert } from "../alerts/engine";
 import type { PriceSource, PriceStatus } from "../data/usePriceFeed";
 import { nearestMarkedLevels } from "./model";
@@ -13,10 +12,8 @@ type Props={
   symbol:SymbolId;frame:Frame;source:PriceSource;status:PriceStatus;replay:boolean;
   currentPrice:number|null;lastUpdatedMs:number|null;
   levels:readonly Level[];drawings:readonly Drawing[];
-  decisions:readonly DecisionRecord[];alerts:readonly PriceAlert[];
+  alerts:readonly PriceAlert[];
   onArmAlert:(price:number)=>void;
-  onOpenDecisions:()=>void;
-  onCapture:()=>void;
   onShowMarkets:()=>void;
   onShowObjects:()=>void;
 };
@@ -27,12 +24,10 @@ const formatUtc=(timestamp:number)=>new Date(timestamp).toLocaleString(undefined
 
 export function ChartContextLens({
   symbol,frame,source,status,replay,currentPrice,lastUpdatedMs,levels,drawings,
-  decisions,alerts,onArmAlert,onOpenDecisions,onCapture,onShowMarkets,onShowObjects
+  alerts,onArmAlert,onShowMarkets,onShowObjects
 }:Props) {
   const quote=currentPrice&&Number.isFinite(currentPrice)&&currentPrice>0?currentPrice:null;
   const plotted=quote===null?[]:nearestMarkedLevels(levels,quote,3);
-  const relevant=decisions.filter(row=>row.symbol===symbol&&row.source===source);
-  const openReviews=relevant.filter(row=>!row.reviews.length).length;
   const activeAlerts=alerts.filter(row=>row.symbol===symbol&&row.source===source&&row.triggeredAtMs===null);
   const supporting=drawings.filter(d=>d.tool==="callout"&&d.evidenceSide==="supports").length;
   const challenging=drawings.filter(d=>d.tool==="callout"&&d.evidenceSide==="challenges").length;
@@ -91,15 +86,15 @@ export function ChartContextLens({
       <p>{quote===null?"Load a chart to use the price map.":"Mark horizontal price levels to see exactly how far each is from the last observed close."}</p>
       <button onClick={onShowMarkets} type="button"><Plus size={14}/> Add a price level</button>
     </div>}
-    <div className="context-section-head context-research-head"><div><h4>Research continuity</h4>
-      <p>Connect chart actions to your decisions</p></div></div>
+    <div className="context-section-head context-research-head"><div><h4>Chart workspace</h4>
+      <p>Your plotted objects and marked price levels</p></div></div>
     <div className="context-research-grid">
-      <button type="button" onClick={onOpenDecisions} aria-label="Open saved Decision Desk records">
-        <BookMarked size={18}/><strong>{relevant.length}</strong><span>Decision records</span>
-        <small>{openReviews} await review</small>
-      </button>
       <button type="button" onClick={onShowObjects} aria-label="Open saved chart objects and levels">
         <Layers size={18}/><strong>{drawings.length}</strong><span>Drawings</span>
+        <small>Inspect, edit and group</small>
+      </button>
+      <button type="button" onClick={onShowMarkets} aria-label="Open price levels">
+        <ChartNoAxesCombined size={18}/><strong>{levels.length}</strong><span>Price levels</span>
         <small>{activeAlerts.length} alerts armed</small>
       </button>
     </div>
@@ -116,8 +111,6 @@ export function ChartContextLens({
       {supporting>0&&challenging===0&&<small>Consider what evidence would disconfirm this thesis.</small>}
       {challenging>0&&supporting===0&&<small>Consider what evidence would strengthen or revise this thesis.</small>}
     </section>}
-    <button type="button" className="context-capture-button" onClick={onCapture}>
-      <ClipboardList size={16}/> Capture current thesis <ArrowRight size={15}/></button>
     <div className="context-caveat"><Info size={15}/>
       <p>Levels are user-marked, not automatically verified support or resistance. Alerts check crossings only while this browser tab is active. No orders are sent.</p>
     </div>

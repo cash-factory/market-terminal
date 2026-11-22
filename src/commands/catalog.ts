@@ -21,9 +21,7 @@ const draw = (id:DrawingTool,label:string,description:string,keywords=""):Termin
  */
 export const TERMINAL_COMMANDS: TerminalCommand[] = [
   page("terminal","Open Chart Studio","Return to the primary chart workstation","charts"),
-  page("decisions","Decision Desk","Capture original hypotheses and append reviews","trading journal notes psychology"),
   page("home","Market Overview","Inspect source-labelled demonstration market snapshots","watchlist home"),
-  page("risk","Risk Planner","Work through illustrative risk scenarios","position calculator"),
   page("alerts","Price Alerts","Create and manage browser-local price alerts","notify"),
   page("library","My Workspace","Import, export and manage local chart workspace data","backup"),
   page("settings","Preferences","Change appearance and workspace controls","theme"),
@@ -39,6 +37,12 @@ export const TERMINAL_COMMANDS: TerminalCommand[] = [
   chart("watchlist","Markets Panel","Open the watchlist and price level inspector","panel markets"),
   chart("crosshairs","Link Chart Crosshairs","Sync observed candle inspection across panes","linked cursor"),
   chart("timeranges","Link Time Windows","Sync chart pan and zoom across panes","link range"),
+  chart("frame-1s","1 Second Timeframe","Real Binance one-second Spot candles or labelled synthetic demos","1s scalping seconds"),
+  chart("frame-5s","5 Second Timeframe","Assemble observed native 1s exchange data","5s seconds"),
+  chart("frame-10s","10 Second Timeframe","Observe 10-second aggregation without invented ticks","10s"),
+  chart("frame-15s","15 Second Timeframe","Observe 15-second candles","15s"),
+  chart("frame-30s","30 Second Timeframe","Observe 30-second candles","30s"),
+  chart("frame-45s","45 Second Timeframe","Observe 45-second candles","45s"),
   chart("frame-1m","1 Minute Timeframe","Switch chart to one-minute candles","1m"),
   chart("frame-5m","5 Minute Timeframe","Switch chart to five-minute candles","5m"),
   chart("frame-15m","15 Minute Timeframe","Switch chart to fifteen-minute candles","15m"),

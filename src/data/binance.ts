@@ -4,6 +4,7 @@ import {
 } from "./contracts";
 
 const ENDPOINT = "https://data-api.binance.vision/api/v3/klines";
+const BINANCE_NATIVE_INTERVALS=new Set<MarketInterval>(["1s","1m","5m","15m","1h","4h","1d"]);
 
 /** Binance's public REST feed. This is exchange spot data, not a CFD or a synthetic index. */
 export const BTC_USDT_SPOT: InstrumentIdentity = {
@@ -45,6 +46,7 @@ export interface BinanceFetchOptions {
 /** Fetch a single exchange-limited batch (at most 1,000 candles). Uses no API key. */
 export async function fetchBinanceSpotCandles(options: BinanceFetchOptions): Promise<CandleBatch> {
   if (options.symbol && options.symbol !== "BTCUSDT") throw new MarketDataError("UNSUPPORTED", "Only BTCUSDT is enabled in the initial Binance adapter.");
+  if(!BINANCE_NATIVE_INTERVALS.has(options.interval))throw new MarketDataError("UNSUPPORTED","This is a derived seconds interval; request Binance native 1s candles and aggregate them locally.");
   const url = new URL(ENDPOINT);
   url.searchParams.set("symbol", "BTCUSDT");
   url.searchParams.set("interval", options.interval);

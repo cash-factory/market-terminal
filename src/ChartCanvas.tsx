@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  createChart, CandlestickSeries, LineSeries, BarSeries, AreaSeries, type CandlestickData,
+  createChart, CandlestickSeries, LineSeries, BarSeries, AreaSeries, LineStyle, type CandlestickData,
   type IChartApi, type ISeriesApi, type IPriceLine, type UTCTimestamp
 } from "lightweight-charts";
-import { sma, symbols, type Frame, type SymbolId } from "./market";
+import { sma, symbols, isSecondsFrame, type Frame, type SymbolId } from "./market";
 import type { Level } from "./workspace";
+import {levelVisibleAtFrame} from "./levels/model";
 import type { PriceSource } from "./data/usePriceFeed";
 import { DrawingOverlay } from "./drawing/DrawingOverlay";
 import type { Drawing, DrawingTool } from "./drawing/types";
@@ -89,7 +90,7 @@ export function ChartCanvas({
       autoSize: true,
       layout: { background: { color: dark ? "#101821" : "#ffffff" }, textColor: dark ? "#8e9bad" : "#64748b" },
       grid: { vertLines: { color: dark ? "#202d39" : "#edf1f5" }, horzLines: { color: dark ? "#202d39" : "#edf1f5" } },
-      timeScale: { borderColor: dark ? "#293644" : "#dce4eb" },
+      timeScale: { borderColor: dark ? "#293644" : "#dce4eb",timeVisible:true,secondsVisible:isSecondsFrame(frame) },
       rightPriceScale: { borderColor: dark ? "#293644" : "#dce4eb" },
     });
     const s = c.addSeries(CandlestickSeries, {
@@ -190,8 +191,14 @@ export function ChartCanvas({
     const s = priceLineOwner.current;
     if (!s) return;
     for (const line of priceLines.current) s.removePriceLine(line);
-    priceLines.current = levels.filter(l => l.symbol === symbol && (l.source ?? "demo") === source).map(level =>
-      s.createPriceLine({ price: level.price, color: level.color, lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: "LEVEL" })
+    const styles=[LineStyle.Solid,LineStyle.Dotted,LineStyle.Dashed,LineStyle.LargeDashed] as const;
+    priceLines.current = levels.filter(l => l.symbol === symbol &&
+      (l.source ?? "demo") === source && levelVisibleAtFrame(l,frame)).map(level =>
+      s.createPriceLine({
+        price:level.price,color:level.color,lineWidth:level.lineWidth??1,
+        lineStyle:styles[level.lineStyle??2],axisLabelVisible:level.axisLabelVisible!==false,
+        title:level.title??"LEVEL"
+      })
     );
   }, [levels, symbol, frame, dark, showSma, source, chartStyle]);
 

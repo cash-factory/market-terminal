@@ -1,4 +1,4 @@
-import type { SymbolId, Frame } from "../market";
+import { ALL_FRAMES, type SymbolId, type Frame } from "../market";
 import { TOOL_BY_ID } from "./toolDefinitions";
 import { isCompleteMultiPointDrawing } from "./multiAnchor";
 
@@ -11,6 +11,8 @@ export type DrawingTool =
   | "fib-extension" | "fib-timezone" | "fib-circles" | "gann-box"
   | "triangle" | "pattern-abcd" | "pattern-xabcd" | "elliott-impulse"
   | "cyclic-lines" | "callout" | "price-note" | "arrow-marker" | "date-price-range";
+export type ToolLevel={ratio:number;visible:boolean;color:string};
+export type MeasurementParts={price:boolean;percent:boolean;bars:boolean;elapsed:boolean};
 export type ChartAnchor = { time: number; price: number };
 export type Drawing = {
   id: string;
@@ -35,10 +37,18 @@ export type Drawing = {
   evidenceSide?: "supports" | "challenges" | "unclassified";
   showLabels?: boolean;
   visibleOnFrames?: Frame[];
+  fibLevels?:ToolLevel[];
+  forkLevels?:number[];
+  labelMode?:"ratio"|"price"|"both";
+  gridDivisions?:number;
+  markerDirection?:"up"|"down"|"left"|"right";
+  fontSize?:number;
+  showMeasurements?:MeasurementParts;
+  projection?:"segment"|"left"|"right"|"both";
 };
 
 const validSymbols = new Set<SymbolId>(["EURUSD", "BTCUSDT", "AAPL", "US100"]);
-const validFrames = new Set<Frame>(["1m", "5m", "15m", "1h", "4h", "1d"]);
+const validFrames = new Set<Frame>(ALL_FRAMES);
 export function isDrawing(input: unknown): input is Drawing {
   if (!input || typeof input !== "object" || Array.isArray(input)) return false;
   const d = input as Partial<Drawing>;
@@ -69,8 +79,30 @@ export function isDrawing(input: unknown): input is Drawing {
     (d.evidenceSide===undefined || (d.tool==="callout"&&
       (d.evidenceSide==="supports"||d.evidenceSide==="challenges"||d.evidenceSide==="unclassified"))) &&
     (d.showLabels === undefined || typeof d.showLabels === "boolean") &&
+    (d.fibLevels===undefined || (["fibonacci","fib-extension","fib-circles"].includes(d.tool as string)&&
+      Array.isArray(d.fibLevels)&&d.fibLevels.length>0&&d.fibLevels.length<=16&&
+      d.fibLevels.every(level=>level&&typeof level==="object"&&
+        Number.isFinite(level.ratio)&&level.ratio>=-3&&level.ratio<=8&&
+        typeof level.visible==="boolean"&&typeof level.color==="string"&&/^#[a-f0-9]{6}$/i.test(level.color)))) &&
+    (d.forkLevels===undefined || (d.tool==="pitchfork"&&Array.isArray(d.forkLevels)&&
+      d.forkLevels.length<=8&&new Set(d.forkLevels).size===d.forkLevels.length&&
+      d.forkLevels.every(r=>typeof r==="number"&&Number.isFinite(r)&&r>=.125&&r<=4))) &&
+    (d.labelMode===undefined || (["fibonacci","fib-extension","fib-circles"].includes(d.tool as string)&&
+      ["ratio","price","both"].includes(d.labelMode))) &&
+    (d.gridDivisions===undefined || (d.tool==="gann-box"&&Number.isInteger(d.gridDivisions)&&
+      d.gridDivisions>=2&&d.gridDivisions<=12)) &&
+    (d.markerDirection===undefined || (d.tool==="arrow-marker"&&
+      ["up","down","left","right"].includes(d.markerDirection))) &&
+    (d.fontSize===undefined || (["text","callout","price-note"].includes(d.tool as string)&&
+      Number.isInteger(d.fontSize)&&d.fontSize>=9&&d.fontSize<=28)) &&
+    (d.showMeasurements===undefined || (["measure","info-line","price-range","date-range","date-price-range"].includes(d.tool as string)&&
+      d.showMeasurements!==null&&typeof d.showMeasurements==="object"&&
+      ["price","percent","bars","elapsed"].every(key=>
+        typeof d.showMeasurements?.[key as keyof MeasurementParts]==="boolean"))) &&
+    (d.projection===undefined || (["trendline","ray","extended-line","info-line"].includes(d.tool as string)&&
+      ["segment","left","right","both"].includes(d.projection))) &&
     (d.visibleOnFrames === undefined ||
-      (Array.isArray(d.visibleOnFrames) && d.visibleOnFrames.length <= 6 &&
+      (Array.isArray(d.visibleOnFrames) && d.visibleOnFrames.length <= ALL_FRAMES.length &&
        new Set(d.visibleOnFrames).size === d.visibleOnFrames.length &&
        d.visibleOnFrames.every(frame=>validFrames.has(frame))));
 }

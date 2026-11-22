@@ -6,7 +6,7 @@ test("built-in and saved chart setups apply and persist without affecting drawin
   await page.getByRole("combobox",{name:"Apply chart template"}).selectOption("builtin:momentum");
   await expect(page.getByRole("checkbox",{name:"RSI 14"})).toBeChecked();
   await expect(page.getByRole("checkbox",{name:"MACD 12/26/9"})).toBeChecked();
-  await expect(page.getByRole("button",{name:"15m",exact:true})).toHaveClass(/active/);
+  await expect(page.getByRole("button",{name:"Chart interval"})).toContainText("15m");
   await page.getByRole("textbox",{name:"Template name"}).fill("My Momentum");
   await page.getByRole("button",{name:"Save study template"}).click();
   await expect(page.getByRole("combobox",{name:"Apply chart template"})).toContainText("My Momentum");

@@ -1,5 +1,5 @@
 import type { Workspace } from "../workspace";
-import type { Frame, SymbolId } from "../market";
+import { ALL_FRAMES, type Frame, type SymbolId } from "../market";
 import { parseChartDisplayStyle } from "./display";
 import { parseStudies } from "../indicators/studies";
 import { parseStudyParameters } from "../indicators/parameters";
@@ -20,7 +20,7 @@ export type ChartProfile = {
   settings: ProfileSettings;
 };
 const symbolIds: readonly SymbolId[]=["EURUSD","BTCUSDT","AAPL","US100"];
-const frames: readonly Frame[]=["1m","5m","15m","1h","4h","1d"];
+const frames: readonly Frame[]=ALL_FRAMES;
 function record(value:unknown):value is Record<string,unknown>{
   return value!==null && typeof value==="object"&&!Array.isArray(value);
 }

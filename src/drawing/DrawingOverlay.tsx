@@ -4,19 +4,21 @@ import type {
 } from "lightweight-charts";
 import { frameSeconds, symbols, type Frame } from "../market";
 import {
-  FIBONACCI_LEVELS, fibonacciPrices, translateDrawing,
+  translateDrawing,
   type ChartAnchor, type Drawing, type DrawingTool
 } from "./types";
 import {
   inChartPlot, logicalFromTime, pointerDistance, timeFromLogical, type ChartPoint
 } from "./geometry";
-import { snapAnchorToOhlc, rayEndpoint, measurement } from "./snap";
-import { clippedExtendedLine, horizontalReference, verticalReference,
+import { snapAnchorToOhlc, measurement } from "./snap";
+import { horizontalReference, verticalReference,
   observedBarCount, formatElapsedDuration } from "./precision";
 import { ONE_ANCHOR_TOOLS } from "./toolDefinitions";
 import { isDrawingVisibleAtFrame } from "./drawingSettings";
 import { addMultiPointAnchor, multiPointCount, requiresMultiPoint } from "./multiAnchor";
 import { AdvancedDrawingPrimitives } from "./AdvancedDrawingPrimitives";
+import {effectiveLevels,formatFibLabel,measurementSegments} from "./toolProperties";
+import {projectedSegment} from "./projection";
 import {calculatePosition,defaultPositionTarget,positionTargetAnchor} from "../analysis/positionDrawing";
 
 type Projected = { a: ChartPoint; b: ChartPoint };
@@ -446,10 +448,10 @@ export function DrawingOverlay({
             fill="none" stroke="transparent" strokeWidth={18} className="drawing-hit"/>
           <path d={"M "+a.x+" "+a.y+" L "+b.x+" "+b.y+" M "+c.x+" "+c.y+" L "+d.x+" "+d.y}
             fill="none" {...common} className="drawing-channel"/>
-          <line x1={(a.x+c.x)/2} y1={(a.y+c.y)/2}
+          {drawing.showMidline!==false&&<line x1={(a.x+c.x)/2} y1={(a.y+c.y)/2}
             x2={(b.x+d.x)/2} y2={(b.y+d.y)/2}
             stroke={drawing.color} strokeDasharray="3 6" strokeWidth={1}
-            opacity={.65} pointerEvents="none"/>
+            opacity={.65} pointerEvents="none" className="drawing-channel-midline"/>}
           {selected&&!drawing.locked&&drawing.control&&
             <circle cx={projected.a.x} cy={projected.a.y} r={7}
               fill="var(--panel)" stroke={drawing.color} strokeWidth={2}
@@ -479,12 +481,13 @@ export function DrawingOverlay({
       })()}
       {drawing.tool === "text" && (() => {
         const label=(drawing.text||"Note").slice(0,120);
-        const width=Math.max(44,Math.min(440,label.length*7+20));
+        const fontSize=drawing.fontSize??12;
+        const width=Math.max(44,Math.min(500,label.length*fontSize*.6+20));
         return <>
-          <rect x={a.x} y={a.y-25} width={width} height={32}
+          <rect x={a.x} y={a.y-fontSize-13} width={width} height={fontSize+21}
             rx={5} fill="var(--panel)" fillOpacity={.96}
             stroke={drawing.color} strokeWidth={1} className="drawing-note-box"/>
-          <text x={a.x+10} y={a.y-5} fill={drawing.color} fontSize={12}
+          <text x={a.x+10} y={a.y-5} fill={drawing.color} fontSize={fontSize}
             fontWeight={600} pointerEvents="none">{label}</text>
         </>;
       })()}
@@ -527,22 +530,22 @@ export function DrawingOverlay({
           <rect x={x1} y={rewardTop} width={width} height={Math.abs(targetY-a.y)}
             fill="#22b98e" fillOpacity={.16} stroke="#22b98e" strokeWidth={1} className="drawing-position-reward"/>
           <line x1={x1} y1={a.y} x2={x1+width} y2={a.y} {...common} className="drawing-line"/>
-          <text x={x1+6} y={rewardTop+14} fill="#22b98e" fontSize={11}
+          {drawing.showLabels!==false&&<text x={x1+6} y={rewardTop+14} fill="#22b98e" fontSize={11}
             pointerEvents="none">{isLong?"LONG":"SHORT"} ·
-            {position&&position.targetIsValid?position.multiple.toFixed(2)+"R":"Target on wrong side"}</text>
+            {position&&position.targetIsValid?position.multiple.toFixed(2)+"R":"Target on wrong side"}</text>}
           {selected&&!drawing.locked&&
             <circle cx={b.x} cy={targetY} r={7}
               fill="var(--panel)" stroke="#22b98e" strokeWidth={2}
               className="drawing-handle position-target-handle"
               onPointerDown={event=>beginEdit(event,drawing,"target")}/>}
 
-          <text x={x1+6} y={riskTop+Math.max(12,Math.abs(b.y-a.y)-5)}
-            fill="#e66a77" fontSize={10} pointerEvents="none">Stop · risk 1R</text>
+          {drawing.showLabels!==false&&<text x={x1+6} y={riskTop+Math.max(12,Math.abs(b.y-a.y)-5)}
+            fill="#e66a77" fontSize={10} pointerEvents="none">Stop · risk 1R</text>}
         </>;
       })()}
       {(["extended-line","horizontal-line","horizontal-ray","vertical-line","cross-line"] as string[])
          .includes(drawing.tool) && (() => {
-         const first=drawing.tool==="extended-line"?clippedExtendedLine(a,b,plot):
+         const first=drawing.tool==="extended-line"?projectedSegment(a,b,plot,drawing.projection??"both"):
            drawing.tool==="horizontal-line"?horizontalReference(a,plot,false):
            drawing.tool==="horizontal-ray"?horizontalReference(a,plot,true):
            verticalReference(a,plot);
@@ -565,7 +568,10 @@ export function DrawingOverlay({
          const m=measurement(drawing.start,drawing.end,frameSeconds[frame]);
          const left=Math.min(a.x,b.x),top=Math.min(a.y,b.y);
          const width=Math.max(16,Math.abs(b.x-a.x)),height=Math.max(2,Math.abs(b.y-a.y));
-         const sign=m.change>0?"+":"";
+         const label=measurementSegments(drawing,
+           observedBarCount(candleTimes,drawing.start.time,drawing.end.time),
+           formatElapsedDuration(Math.abs(drawing.end.time-drawing.start.time)),
+           symbols[symbol].precision).map(part=>part.label).join(" · ");
          const labelToLeft=left+width>plot.width-145;
          return <>
            <rect x={left} y={top} width={width} height={height}
@@ -573,17 +579,19 @@ export function DrawingOverlay({
              strokeWidth={1} className="drawing-rectangle drawing-price-range"/>
            <line x1={left} x2={left+width} y1={a.y} y2={a.y} {...common} pointerEvents="none"/>
            <line x1={left} x2={left+width} y1={b.y} y2={b.y} {...common} pointerEvents="none"/>
-           <text x={labelToLeft?left+width-6:left+width+6} y={top+height/2} fill={drawing.color}
+           {drawing.showLabels!==false&&<text x={labelToLeft?left+width-6:left+width+6} y={top+height/2} fill={drawing.color}
              fontSize={11} fontWeight={700} dominantBaseline="middle" pointerEvents="none"
              textAnchor={labelToLeft?"end":"start"}>
-             {sign+m.change.toFixed(symbols[symbol].precision)+" / "+sign+m.percent.toFixed(2)+"%"}
-           </text>
+             {label}
+           </text>}
          </>;
        })()}
        {drawing.tool==="date-range" && (() => {
          const left=Math.min(a.x,b.x),width=Math.max(1,Math.abs(b.x-a.x));
          const bars=observedBarCount(candleTimes,drawing.start.time,drawing.end.time);
          const elapsed=formatElapsedDuration(Math.abs(drawing.end.time-drawing.start.time));
+         const label=measurementSegments(drawing,bars,elapsed,symbols[symbol].precision)
+           .map(part=>part.label).join(" · ");
          return <>
            <rect x={left} y={0} width={width} height={plot.height}
              fill={drawing.color} fillOpacity={drawing.fillOpacity??.08} pointerEvents="none"
@@ -592,18 +600,18 @@ export function DrawingOverlay({
              stroke="transparent" strokeWidth={16} fill="none" className="drawing-hit"/>
            <path d={"M "+a.x+" 0 V "+plot.height+" M "+b.x+" 0 V "+plot.height}
              fill="none" {...common} className="drawing-line"/>
-           <text x={Math.min(Math.max(90,left+width/2),Math.max(90,plot.width-90))} y={Math.max(18,Math.min(plot.height-12,28))}
+           {drawing.showLabels!==false&&<text x={Math.min(Math.max(90,left+width/2),Math.max(90,plot.width-90))} y={Math.max(18,Math.min(plot.height-12,28))}
              textAnchor="middle" fontSize={11} fontWeight={650} fill={drawing.color}
-             pointerEvents="none">{elapsed+" · "+bars+" observed bars"}</text>
+             pointerEvents="none">{label}</text>}
          </>;
        })()}
-       {drawing.tool === "ray" && (() => {
-        const endpoint=rayEndpoint(a,b,chart.timeScale().width(),
-          Math.max(0,(svgRef.current?.clientHeight ?? 0)-chart.timeScale().height()));
+      {drawing.tool === "ray" && (() => {
+        const line=projectedSegment(a,b,plot,drawing.projection??"right");
+        if(!line)return null;
         return <>
-          <line x1={a.x} y1={a.y} x2={endpoint.x} y2={endpoint.y}
+          <line x1={line.start.x} y1={line.start.y} x2={line.end.x} y2={line.end.y}
             stroke="transparent" strokeWidth={16} className="drawing-hit"/>
-          <line x1={a.x} y1={a.y} x2={endpoint.x} y2={endpoint.y}
+          <line x1={line.start.x} y1={line.start.y} x2={line.end.x} y2={line.end.y}
             {...common} className="drawing-line"/>
         </>;
       })()}
@@ -611,40 +619,49 @@ export function DrawingOverlay({
         const m=measurement(drawing.start,drawing.end,frameSeconds[frame]);
         const left=Math.min(a.x,b.x),top=Math.min(a.y,b.y);
         const width=Math.max(1,Math.abs(b.x-a.x)),height=Math.max(1,Math.abs(b.y-a.y));
-        const sign=m.change>0?"+":"";
+        const label=measurementSegments(drawing,
+          observedBarCount(candleTimes,drawing.start.time,drawing.end.time),
+          formatElapsedDuration(Math.abs(drawing.end.time-drawing.start.time)),
+          symbols[symbol].precision).map(part=>part.label).join(" · ");
         return <>
           <rect x={left} y={top} width={width} height={height}
             fill={m.change>=0?"#20aa8b":"#dc6575"} fillOpacity={drawing.fillOpacity??.12}
             {...common} className="drawing-rectangle"/>
           <line x1={a.x} y1={a.y} x2={b.x} y2={b.y}
             {...common} className="drawing-line" pointerEvents="none"/>
-          <text x={(a.x+b.x)/2} y={top+height/2}
+          {drawing.showLabels!==false&&<text x={(a.x+b.x)/2} y={top+height/2}
             fill={drawing.color} fontWeight={700} fontSize={11}
             textAnchor="middle" pointerEvents="none">
-            {sign+m.change.toFixed(4)+" ("+sign+m.percent.toFixed(2)+"%) · "+m.bars+" bars"}
-          </text>
+            {label}
+          </text>}
         </>;
       })()}
-      {drawing.tool === "trendline" && <>
-        <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="transparent"
-          strokeWidth={16} className="drawing-hit" />
-        <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} {...common} className="drawing-line"/>
-      </>}
+      {drawing.tool === "trendline" && (() => {
+        const line=projectedSegment(a,b,plot,drawing.projection??"segment");
+        if(!line)return null;
+        return <>
+          <line x1={line.start.x} y1={line.start.y} x2={line.end.x} y2={line.end.y}
+            stroke="transparent" strokeWidth={16} className="drawing-hit"/>
+          <line x1={line.start.x} y1={line.start.y} x2={line.end.x} y2={line.end.y}
+            {...common} className="drawing-line"/>
+        </>;
+      })()}
       {drawing.tool === "rectangle" && <rect x={Math.min(a.x,b.x)} y={Math.min(a.y,b.y)}
         width={Math.max(1,Math.abs(b.x-a.x))} height={Math.max(1,Math.abs(b.y-a.y))}
         fill={drawing.color} fillOpacity={drawing.fillOpacity??.08} {...common} className="drawing-rectangle"/>}
-      {drawing.tool === "fibonacci" && FIBONACCI_LEVELS.map((level, i) => {
-        const y = fibonacciPrices(a.y, b.y)[i];
-        const x1 = Math.min(a.x, b.x);
-        const x2 = Math.max(a.x, b.x);
-        return <g key={level}>
+      {drawing.tool === "fibonacci" && effectiveLevels(drawing).map((level,i)=>{
+        if(!level.visible)return null;
+        const price=drawing.start.price+(drawing.end.price-drawing.start.price)*level.ratio;
+        const y=series.priceToCoordinate(price);
+        if(y===null||y< -30||y>plot.height+30)return null;
+        const x1=Math.min(a.x,b.x),x2=Math.max(a.x,b.x);
+        return <g key={i}>
           <line x1={x1} x2={x2} y1={y} y2={y} stroke="transparent"
             strokeWidth={12} className="drawing-hit"/>
-          <line x1={x1} x2={x2} y1={y} y2={y} {...common}
-            strokeOpacity={i === 0 || i === FIBONACCI_LEVELS.length - 1 ? 1 : .75}
-            className="drawing-line"/>
-          {drawing.showLabels!==false&&          <text x={x2+6} y={y-4} fill={drawing.color} fontSize={10}
-            pointerEvents="none">{(level*100).toFixed(1)}%</text>}
+          <line x1={x1} x2={x2} y1={y} y2={y} {...common} stroke={level.color}
+            strokeOpacity={level.ratio===0||level.ratio===1?1:.75} className="drawing-line drawing-fib-level"/>
+          {drawing.showLabels!==false&&<text x={x2+6} y={y-4} fill={level.color} fontSize={10}
+            pointerEvents="none">{formatFibLabel(level.ratio,price,symbols[symbol].precision,drawing.labelMode)}</text>}
         </g>;
       })}
       {drawing.tool==="rectangle"&&drawing.showMidline&&

@@ -1,7 +1,9 @@
-import type { Frame, SymbolId } from "./market";
+import { ALL_FRAMES, type Frame, type SymbolId } from "./market";
 import { clampPanelWidth } from "./layout";
 import { isDrawing, type Drawing, type DrawingTool } from "./drawing/types";
 import { DEFAULT_FAVORITE_TOOLS, parseFavoriteTools } from "./drawing/toolDefinitions";
+import {parseToolPresets,type ToolPresets} from "./drawing/toolPresets";
+import {parseLevel} from "./levels/model";
 import { emptyRiskInputs, parseRiskInputs, type RiskPlannerInputs } from "./analysis/risk";
 import { defaultStudies, parseStudies, type StudySettings } from "./indicators/studies";
 import { parseChartTemplates,type ChartTemplate } from "./indicators/templates";
@@ -12,7 +14,11 @@ import {parseDecisionRecords,type DecisionRecord} from "./decisions/model";
 import {parseChartDisplayStyle,type ChartDisplayStyle} from "./charts/display";
 import {parseChartProfiles,type ChartProfile} from "./charts/profiles";
 
-export type Level = { id: string; symbol: SymbolId; price: number; color: string; source?: "demo" | "binance" };
+export type Level = {
+  id:string;symbol:SymbolId;price:number;color:string;source?:"demo"|"binance";
+  lineWidth?:1|2|3|4;lineStyle?:0|1|2|3;
+  title?:string;axisLabelVisible?:boolean;hidden?:boolean;visibleOnFrames?:Frame[];
+};
 export type Workspace = {
   symbol: SymbolId;
   frame: Frame;
@@ -51,6 +57,7 @@ export type Workspace = {
   alerts: PriceAlert[];
   decisions: DecisionRecord[];
   favoriteDrawingTools: DrawingTool[];
+  toolPresets:ToolPresets;
 };
 export const defaultWorkspace: Workspace = {
   symbol: "EURUSD",
@@ -90,9 +97,10 @@ export const defaultWorkspace: Workspace = {
   alerts: [],
   decisions: [],
   favoriteDrawingTools: [...DEFAULT_FAVORITE_TOOLS],
+  toolPresets:{},
 };
 const SYMBOLS = ["EURUSD", "BTCUSDT", "AAPL", "US100"] as const;
-const FRAMES = ["1m", "5m", "15m", "1h", "4h", "1d"] as const;
+const FRAMES:readonly Frame[]=ALL_FRAMES;
 const ACCENTS = ["violet", "teal", "amber"] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -104,16 +112,8 @@ export function parseWorkspace(value: unknown): Workspace {
   const symbol = SYMBOLS.includes(raw.symbol as SymbolId) ? raw.symbol as SymbolId : defaultWorkspace.symbol;
   const frame = FRAMES.includes(raw.frame as Frame) ? raw.frame as Frame : defaultWorkspace.frame;
   const accent = ACCENTS.includes(raw.accent as Workspace["accent"]) ? raw.accent as Workspace["accent"] : defaultWorkspace.accent;
-  const levels: Level[] = [];
-  if (Array.isArray(raw.levels)) {
-    for (const level of raw.levels) {
-      if (!isRecord(level) || typeof level.price !== "number" || !Number.isFinite(level.price) || level.price <= 0 ||
-          typeof level.id !== "string" || !SYMBOLS.includes(level.symbol as SymbolId)) continue;
-      levels.push({ id: level.id, symbol: level.symbol as SymbolId, price: level.price,
-        color: typeof level.color === "string" && /^#[0-9a-fA-F]{6}$/.test(level.color) ? level.color : "#8d94fa",
-        ...(level.source === "binance" || level.source === "demo" ? { source: level.source } : {}) });
-    }
-  }
+  const levels:Level[]=Array.isArray(raw.levels)?
+    raw.levels.flatMap(value=>{const parsed=parseLevel(value);return parsed?[parsed]:[];}):[];
   return {
     symbol, frame, accent, levels,
     priceSource: symbol === "BTCUSDT" && raw.priceSource === "binance" ? "binance" : "demo",
@@ -151,6 +151,7 @@ export function parseWorkspace(value: unknown): Workspace {
     alerts: Array.isArray(raw.alerts)?raw.alerts.filter(isPriceAlert):[],
     decisions: parseDecisionRecords(raw.decisions),
     favoriteDrawingTools: parseFavoriteTools(raw.favoriteDrawingTools),
+    toolPresets:parseToolPresets(raw.toolPresets),
   };
 }
 export function loadWorkspace(): Workspace {

@@ -1,0 +1,33 @@
+
+.price-level-dialog{width:min(540px,100%)}
+.price-level-style-preview{border:1px solid var(--border);border-radius:6px;background:var(--bg);
+  padding:10px 14px;margin-bottom:18px}
+.price-level-style-preview>span{font-size:9px;letter-spacing:.11em;color:var(--muted);font-weight:750}
+.price-level-style-preview svg{width:100%;height:59px}
+.price-level-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.price-level-fields label{min-width:0;display:flex;flex-direction:column;gap:8px;
+  font-size:10px;color:var(--soft);font-weight:670}
+.price-level-fields input:not([type=color]),.price-level-fields select{background:var(--raised);
+  color:var(--text);min-width:0;width:100%;height:37px;padding:7px 9px;border-radius:6px;
+  border:1px solid var(--border);font-size:12px}
+.price-level-fields input:focus-visible,.price-level-fields select:focus-visible{outline:2px solid var(--accent-border)}
+.price-level-color{display:flex;align-items:center;gap:8px;padding:4px 7px;background:var(--raised);
+  height:37px;border:1px solid var(--border);border-radius:6px}
+.price-level-color input[type=color]{width:41px;height:27px;padding:0;border:0;background:none;cursor:pointer}
+.price-level-color code{font-size:11px;font-weight:650}
+.price-level-toggles{margin:16px 0 22px}
+.price-level-frame-head{font-size:12px;font-weight:700;margin-bottom:6px}
+.price-level-frame-hint{font-size:10px;color:var(--muted);line-height:1.5;margin:0 0 12px}
+.price-level-toggles .drawing-settings-toggle{margin:9px 0 0}
+@media(max-width:540px){.price-level-dialog .drawing-dialog-content{padding:18px 16px}.price-level-fields{gap:11px}}
+
+.level-list .price-level-row-label{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.level-list .price-level-row-label strong{font-size:11px;font-weight:650;color:var(--soft)}
+.level-list .price-level-row-label small{font-size:9px;color:var(--muted);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.level-list>div.price-level-unshown{opacity:.58}
+.level-list>div.price-level-unshown:hover{opacity:1}
+.level-list button{border-radius:5px;display:grid;place-items:center;
+  width:26px;height:27px;flex-shrink:0}
+.level-list button[title="Level properties"]:hover{color:var(--accent);background:var(--accent-dim)}
+.level-list button[title="Remove level"]:hover{color:var(--negative);background:var(--raised)}
