@@ -37,7 +37,7 @@ interface Props {
   studies: StudySettings;
   parameters: StudyParameters;
   onAddDrawing: (drawing: Drawing) => void;
-  onUpdateDrawing: (drawing: Drawing,editKind?:"move"|"start"|"end") => void;
+  onUpdateDrawing: (drawing: Drawing,editKind?:"move"|"start"|"end"|"control") => void;
   onDeleteDrawing: (id: string) => void;
   onDeleteDrawings: (ids:string[])=>void;
   selectedDrawingIds:string[];

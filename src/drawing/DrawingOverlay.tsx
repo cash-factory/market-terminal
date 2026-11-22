@@ -14,12 +14,13 @@ import { snapAnchorToOhlc, rayEndpoint, measurement } from "./snap";
 
 type Projected = { a: ChartPoint; b: ChartPoint };
 type Gesture = {
-  kind: "create" | "move" | "start" | "end";
+  kind: "create" | "move" | "start" | "end" | "control";
   origin: ChartPoint;
   original?: Drawing;
   first?: ChartAnchor;
 };
 type PendingClick = { tool: DrawingTool; first: ChartAnchor };
+type PendingChannel = { first:ChartAnchor; second:ChartAnchor };
 
 interface Props {
   chart: IChartApi;
@@ -32,7 +33,7 @@ interface Props {
   color: string;
   magnetEnabled: boolean;
   onAdd: (drawing: Drawing) => void;
-  onUpdate: (drawing: Drawing,editKind?:"move"|"start"|"end") => void;
+  onUpdate: (drawing: Drawing,editKind?:"move"|"start"|"end"|"control") => void;
   onDelete: (id: string) => void;
   onDeleteMany: (ids: string[]) => void;
   selectedIds: string[];
@@ -46,6 +47,7 @@ export function DrawingOverlay({
   const gestureRef = useRef<Gesture | null>(null);
   const draftRef = useRef<Drawing | null>(null);
   const pendingRef = useRef<PendingClick | null>(null);
+  const pendingChannelRef=useRef<PendingChannel|null>(null);
   const [draft, setDraftState] = useState<Drawing | null>(null);
   const [, setRevision] = useState(0);
   const animationFrame = useRef<number | null>(null);
@@ -121,6 +123,7 @@ export function DrawingOverlay({
   useEffect(() => {
     gestureRef.current = null;
     pendingRef.current = null;
+    pendingChannelRef.current=null;
     setDraft(null);
     onSelectionChange([]);
   }, [symbol, tool, frame]);
@@ -130,6 +133,7 @@ export function DrawingOverlay({
       if (event.key === "Escape") {
         gestureRef.current = null;
         pendingRef.current = null;
+        pendingChannelRef.current=null;
         setDraft(null);
         onSelectionChange([]);
         return;
@@ -183,6 +187,14 @@ export function DrawingOverlay({
     const anchor = anchorAt(point);
     if (!anchor) return;
     event.preventDefault();
+    if(tool==="channel"&&pendingChannelRef.current){
+      const {first,second}=pendingChannelRef.current;
+      pendingChannelRef.current=null;
+      pendingRef.current=null;
+      setDraft(null);
+      onAdd({...makeDrawing(first,second,"channel"),control:anchor,id:crypto.randomUUID()});
+      return;
+    }
     capture(event);
     gestureRef.current = {
       kind: "create", origin: point,
@@ -198,6 +210,14 @@ export function DrawingOverlay({
     const point = pointFromEvent(event);
     const active = gestureRef.current;
     if (!active) {
+      if(tool==="channel"&&pendingChannelRef.current){
+        const next=anchorAt(point);
+        if(next){
+          const {first,second}=pendingChannelRef.current;
+          setDraft({...makeDrawing(first,second,"channel"),control:next});
+        }
+        return;
+      }
       const pending = pendingRef.current;
       if (pending && tool === pending.tool) {
         const next = anchorAt(point);
@@ -225,11 +245,22 @@ export function DrawingOverlay({
     if (!originalProjected) return;
     const dx = point.x - active.origin.x;
     const dy = point.y - active.origin.y;
+    if(active.kind==="control"&&active.original.control){
+      const controlProjected=project({...active.original,start:active.original.control,end:active.original.control});
+      if(controlProjected){
+        const control=anchorAt({x:controlProjected.a.x+dx,y:controlProjected.a.y+dy});
+        if(control)setDraft({...active.original,control});
+      }
+      return;
+    }
     const start = active.kind === "end" ? active.original.start :
       anchorAt({ x: originalProjected.a.x + dx, y: originalProjected.a.y + dy });
     const end = active.kind === "start" ? active.original.end :
       anchorAt({ x: originalProjected.b.x + dx, y: originalProjected.b.y + dy });
-    if (start && end) setDraft(translateDrawing(active.original, start, end));
+    if (start && end) {
+      const changed=translateDrawing(active.original,start,end);
+      setDraft(active.kind==="move"?changed:{...changed,control:active.original.control});
+    }
   };
   const onPointerUp = (event: ReactPointerEvent<SVGSVGElement>) => {
     const active = gestureRef.current;
@@ -257,10 +288,15 @@ export function DrawingOverlay({
       }else if (distance >= 5 || pendingRef.current) {
         const completed = makeDrawing(active.first, second, tool);
         pendingRef.current = null;
-        setDraft(null);
         if (completed.start.time !== completed.end.time || completed.start.price !== completed.end.price) {
-          onAdd({ ...completed, id: crypto.randomUUID() });
-        }
+          if(tool==="channel"){
+            pendingChannelRef.current={first:completed.start,second:completed.end};
+            setDraft({...completed,control:completed.start});
+          }else{
+            setDraft(null);
+            onAdd({ ...completed, id: crypto.randomUUID() });
+          }
+        }else setDraft(null);
       } else {
         // TradingView-like click once to set the first point, click again to finish.
         pendingRef.current = { tool, first: active.first };
@@ -277,6 +313,7 @@ export function DrawingOverlay({
   const cancel = () => {
     gestureRef.current = null;
     pendingRef.current = null;
+    pendingChannelRef.current=null;
     setDraft(null);
   };
 
@@ -295,6 +332,31 @@ export function DrawingOverlay({
     };
     return <g key={drawing.id} className={"drawing-shape " + (selected ? "is-selected" : "")}
       onPointerDown={event => { if (!isPreview) beginEdit(event, drawing, "move"); }}>
+      {drawing.tool==="channel"&&(()=>{
+        const control=drawing.control??drawing.start;
+        const projected=project({...drawing,start:control,end:control});
+        if(!projected)return null;
+        const dx=projected.a.x-a.x,dy=projected.a.y-a.y;
+        const c={x:a.x+dx,y:a.y+dy},d={x:b.x+dx,y:b.y+dy};
+        return <>
+          <polygon points={[a,b,d,c].map(p=>p.x+","+p.y).join(" ")}
+            fill={drawing.color} fillOpacity={.08}
+            stroke="none" pointerEvents="none"/>
+          <path d={"M "+a.x+" "+a.y+" L "+b.x+" "+b.y+" M "+c.x+" "+c.y+" L "+d.x+" "+d.y}
+            fill="none" stroke="transparent" strokeWidth={18} className="drawing-hit"/>
+          <path d={"M "+a.x+" "+a.y+" L "+b.x+" "+b.y+" M "+c.x+" "+c.y+" L "+d.x+" "+d.y}
+            fill="none" {...common} className="drawing-channel"/>
+          <line x1={(a.x+c.x)/2} y1={(a.y+c.y)/2}
+            x2={(b.x+d.x)/2} y2={(b.y+d.y)/2}
+            stroke={drawing.color} strokeDasharray="3 6" strokeWidth={1}
+            opacity={.65} pointerEvents="none"/>
+          {selected&&!drawing.locked&&drawing.control&&
+            <circle cx={projected.a.x} cy={projected.a.y} r={7}
+              fill="var(--panel)" stroke={drawing.color} strokeWidth={2}
+              className="drawing-handle channel-control-handle"
+              onPointerDown={event=>beginEdit(event,drawing,"control")}/>}
+        </>;
+      })()}
       {drawing.tool === "ellipse" && <ellipse
         cx={(a.x+b.x)/2} cy={(a.y+b.y)/2}
         rx={Math.max(2,Math.abs(b.x-a.x)/2)}

@@ -15,7 +15,7 @@ export function ungroupDrawings(drawings:readonly Drawing[],ids:readonly string[
   const selection=new Set(ids);
   return drawings.map(d=>selection.has(d.id)?{...d,groupId:undefined}:d);
 }
-export function updateDrawingAndGroup(drawings:readonly Drawing[],updated:Drawing,editKind?:"move"|"start"|"end"):Drawing[]{
+export function updateDrawingAndGroup(drawings:readonly Drawing[],updated:Drawing,editKind?:"move"|"start"|"end"|"control"):Drawing[]{
   const original=drawings.find(d=>d.id===updated.id);
   if(!original)return [...drawings];
   const dt=updated.start.time-original.start.time;

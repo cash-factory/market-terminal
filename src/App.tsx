@@ -179,7 +179,7 @@ export default function App() {
     }]}));
     setDrawMode(false);notify("Comparison chart price level saved.");
   };
-  const updateDrawing = (drawing: Drawing, editKind?:"move"|"start"|"end") => {
+  const updateDrawing = (drawing: Drawing, editKind?:"move"|"start"|"end"|"control") => {
     commitDrawings(updateDrawingAndGroup(prefs.drawings,drawing,editKind),"Drawing updated.");
   };
   const removeDrawing = (id: string) => {
@@ -328,7 +328,7 @@ export default function App() {
       const json: unknown = JSON.parse(await file.text());
       if (!json || typeof json !== "object" || Array.isArray(json) ||
         !("format" in json) || json.format !== "market-terminal-workspace" ||
-        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15 && json.version !== 16 && json.version !== 17 && json.version !== 18) ||
+        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15 && json.version !== 16 && json.version !== 17 && json.version !== 18 && json.version !== 19) ||
         !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
       const workspace = parseWorkspace(json);
       setPrefs(workspace);
@@ -639,7 +639,8 @@ export default function App() {
                     ["text","Text note","Click once to place a text annotation"],
                     ["long-position","Long position","Drag from entry to stop to estimate 2R long position"],
                     ["short-position","Short position","Drag from entry to stop to estimate 2R short position"],
-                    ["brush","Freehand brush","Draw a freehand multi-point curve"]
+                    ["brush","Freehand brush","Draw a freehand multi-point curve"],
+                    ["channel","Parallel channel","Set two points for the base, then click a third point for the parallel rail"]
                   ] as [DrawingTool,string,string][]).map(([id,label,description])=>
                     <button key={id} className={"advanced-tool-item "+(drawingTool===id?"active":"")}
                       title={description} onClick={()=>chooseDrawingTool(id)}>
