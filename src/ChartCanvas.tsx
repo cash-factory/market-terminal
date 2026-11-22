@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   createChart, CandlestickSeries, LineSeries,
-  type IChartApi, type ISeriesApi, type IPriceLine, type UTCTimestamp
+  type IChartApi, type ISeriesApi, type IPriceLine
 } from "lightweight-charts";
 import { demoCandles, sma, symbols, type Frame, type SymbolId } from "./market";
 import type { Level } from "./workspace";
+import { DrawingOverlay } from "./drawing/DrawingOverlay";
+import type { Drawing, DrawingTool } from "./drawing/types";
 
 interface Props {
   symbol: SymbolId;
@@ -14,12 +16,24 @@ interface Props {
   levels: Level[];
   drawMode: boolean;
   onPlaceLevel: (price: number) => void;
+  drawingTool: DrawingTool | null;
+  drawings: Drawing[];
+  drawingColor: string;
+  onAddDrawing: (drawing: Drawing) => void;
+  onUpdateDrawing: (drawing: Drawing) => void;
+  onDeleteDrawing: (id: string) => void;
 }
-export function ChartCanvas({ symbol, frame, dark, showSma, levels, drawMode, onPlaceLevel }: Props) {
+type Surface = { chart: IChartApi; series: ISeriesApi<"Candlestick"> };
+
+export function ChartCanvas({
+  symbol, frame, dark, showSma, levels, drawMode, onPlaceLevel,
+  drawingTool, drawings, drawingColor, onAddDrawing, onUpdateDrawing, onDeleteDrawing
+}: Props) {
   const host = useRef<HTMLDivElement>(null);
   const chart = useRef<IChartApi | null>(null);
   const series = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const priceLines = useRef<IPriceLine[]>([]);
+  const [surface, setSurface] = useState<Surface | null>(null);
   const callback = useRef(onPlaceLevel);
   const armed = useRef(drawMode);
   callback.current = onPlaceLevel;
@@ -55,6 +69,7 @@ export function ChartCanvas({ symbol, frame, dark, showSma, levels, drawMode, on
     c.subscribeClick(handleChartClick);
     chart.current = c;
     series.current = s;
+    setSurface({ chart: c, series: s });
     c.timeScale().fitContent();
     return () => {
       c.unsubscribeClick(handleChartClick);
@@ -74,6 +89,13 @@ export function ChartCanvas({ symbol, frame, dark, showSma, levels, drawMode, on
     );
   }, [levels, symbol, frame, dark, showSma]);
 
-  return <div ref={host} className={drawMode ? "chart-canvas drawing-armed" : "chart-canvas"}
-    role="img" aria-label={"Interactive synthetic " + symbols[symbol].label + " candlestick chart"} />;
+  return <div className="chart-surface">
+    <div ref={host} className={drawMode ? "chart-canvas drawing-armed" : "chart-canvas"}
+      role="img" aria-label={"Synthetic " + symbols[symbol].label + " candlestick chart"}/>
+    {surface && surface.chart === chart.current && <DrawingOverlay
+      chart={surface.chart} series={surface.series}
+      symbol={symbol} tool={drawingTool} drawings={drawings} color={drawingColor}
+      onAdd={onAddDrawing} onUpdate={onUpdateDrawing} onDelete={onDeleteDrawing}
+    />}
+  </div>;
 }
