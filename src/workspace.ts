@@ -6,6 +6,7 @@ import { defaultStudies, parseStudies, type StudySettings } from "./indicators/s
 import { parseChartTemplates,type ChartTemplate } from "./indicators/templates";
 import { defaultStudyParameters,parseStudyParameters,type StudyParameters } from "./indicators/parameters";
 import { isPriceAlert, type PriceAlert } from "./alerts/engine";
+import {parseCustomStudies,type CustomStudy} from "./indicators/formula";
 import {parseChartDisplayStyle,type ChartDisplayStyle} from "./charts/display";
 
 export type Level = { id: string; symbol: SymbolId; price: number; color: string; source?: "demo" | "binance" };
@@ -38,6 +39,7 @@ export type Workspace = {
   magnetEnabled: boolean;
   riskPlanner: RiskPlannerInputs;
   studies: StudySettings;
+  customStudies: CustomStudy[];
   studyParameters: StudyParameters;
   chartTemplates: ChartTemplate[];
   alerts: PriceAlert[];
@@ -71,6 +73,7 @@ export const defaultWorkspace: Workspace = {
   magnetEnabled: false,
   riskPlanner: {...emptyRiskInputs},
   studies: {...defaultStudies},
+  customStudies: [],
   studyParameters: {...defaultStudyParameters},
   chartTemplates: [],
   alerts: [],
@@ -124,6 +127,7 @@ export function parseWorkspace(value: unknown): Workspace {
     magnetEnabled: typeof raw.magnetEnabled === "boolean" ? raw.magnetEnabled : false,
     riskPlanner: parseRiskInputs(raw.riskPlanner),
     studies: parseStudies(raw.studies),
+    customStudies: parseCustomStudies(raw.customStudies),
     studyParameters: parseStudyParameters(raw.studyParameters),
     chartTemplates: parseChartTemplates(raw.chartTemplates),
     alerts: Array.isArray(raw.alerts)?raw.alerts.filter(isPriceAlert):[],
@@ -138,5 +142,5 @@ export function loadWorkspace(): Workspace {
   }
 }
 export function serializeWorkspace(workspace: Workspace): string {
-  return JSON.stringify({ format: "market-terminal-workspace", version: 19, preferences: workspace }, null, 2);
+  return JSON.stringify({ format: "market-terminal-workspace", version: 20, preferences: workspace }, null, 2);
 }
