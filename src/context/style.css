@@ -61,3 +61,17 @@
 /* Narrow inspector refinement from rendered 1366px screenshot. */
 .workspace-rail-tabs.context-tabs .rail-count{display:none}
 .workspace-rail-tabs.context-tabs button{white-space:nowrap;word-break:normal;font-size:10px}
+
+/* Evidence counterweight is a representation of user notes, never an entry signal. */
+.context-counterweight{margin-top:17px;border:1px solid var(--border);border-radius:7px;padding:13px;background:var(--raised)}
+.context-counterweight-head{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.context-counterweight-head strong{font-size:11px;font-weight:690}
+.context-counterweight-head>span{font:700 9px ui-monospace,monospace;letter-spacing:.06em;color:var(--muted)}
+.context-counterweight p{margin:8px 0 12px;color:var(--muted);font-size:10px;line-height:1.5}
+.context-counterweight-counts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+.context-counterweight-counts>span{display:flex;flex-direction:column;gap:4px;min-width:0;
+  font-size:9px;color:var(--muted);background:var(--panel);padding:9px 6px;border-radius:5px}
+.context-counterweight-counts strong{font:650 19px ui-monospace,monospace;color:var(--soft)}
+.context-counterweight-counts .supporting strong{color:var(--positive)}
+.context-counterweight-counts .challenging strong{color:var(--negative)}
+.context-counterweight>small{display:block;margin-top:10px;color:var(--soft);font-size:10px;line-height:1.5}
