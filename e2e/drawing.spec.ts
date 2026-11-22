@@ -124,3 +124,44 @@ test("all synthetic market charts allow creating and retaining drawings across t
     await expect(page.locator(".drawing-shape")).toHaveCount(before + 1);
   }
 });
+
+
+test("object manager can hide, show, lock, unlock and duplicate drawings", async ({ page }) => {
+  await page.goto("/market-terminal/");
+  await drawDrag(page, "Trendline", [0.32, 0.38], [0.58, 0.60]);
+  await expect(page.locator(".drawing-shape")).toHaveCount(1);
+  await page.getByRole("button", { name: "Hide trendline 1" }).click();
+  await expect(page.locator(".drawing-shape")).toHaveCount(0);
+  await page.getByRole("button", { name: "Show trendline 1" }).click();
+  await expect(page.locator(".drawing-shape")).toHaveCount(1);
+  await page.getByRole("button", { name: "Lock trendline 1" }).click();
+  const savedLocked = await page.evaluate(() => JSON.parse(localStorage.getItem("market-terminal-workspace") ?? "{}"));
+  expect(savedLocked.preferences.drawings[0].locked).toBe(true);
+  await page.getByRole("button", { name: "Unlock trendline 1" }).click();
+  await page.getByRole("button", { name: "Duplicate trendline 1" }).click();
+  await expect(page.locator(".drawing-shape")).toHaveCount(2);
+  await page.getByRole("button", { name: "Delete trendline 2" }).click();
+  await expect(page.locator(".drawing-shape")).toHaveCount(1);
+  await page.getByRole("button", { name: "Undo drawing" }).click();
+  await expect(page.locator(".drawing-shape")).toHaveCount(2);
+  await page.reload();
+  await expect(page.locator(".drawing-shape")).toHaveCount(2);
+});
+
+test("repeat-mode draws multiple shapes without selecting the tool again", async ({ page }) => {
+  await page.goto("/market-terminal/");
+  await page.getByRole("button", { name: "Keep drawing tool active" }).click();
+  await drawDrag(page, "Rectangle", [0.25, 0.30], [0.45, 0.50]);
+  await expect(page.locator(".drawing-overlay.armed")).toHaveCount(1);
+  const a = await chartPoint(page, 0.52, 0.38);
+  const b = await chartPoint(page, 0.70, 0.60);
+  await page.mouse.move(a.x, a.y);
+  await page.mouse.down();
+  await page.mouse.move(b.x, b.y, { steps: 8 });
+  await page.mouse.up();
+  await expect(page.locator(".drawing-shape")).toHaveCount(2);
+  const workspace = await page.evaluate(() => JSON.parse(localStorage.getItem("market-terminal-workspace") ?? "{}"));
+  expect(workspace.preferences.keepDrawingToolActive).toBe(true);
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".drawing-overlay.armed")).toHaveCount(0);
+});
