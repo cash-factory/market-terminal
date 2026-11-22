@@ -70,7 +70,7 @@ test("two clicks create rectangles; dragging creates Fibonacci; delete and undo 
   await page.reload();
   await expect(page.locator(".drawing-shape")).toHaveCount(2);
   await expect(page.locator(".drawing-rectangle")).toHaveCount(1);
-  await expect(page.locator(".drawing-line").count()).resolves.toBeGreaterThan(6);
+  expect(await page.locator(".drawing-line").count()).toBeGreaterThan(6);
 });
 
 test("Escape cancels a pending drawing and restores chart navigation", async ({ page }) => {
