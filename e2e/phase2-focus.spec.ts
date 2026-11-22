@@ -29,8 +29,8 @@ test("Shift+F toggles focus except while entering text",async({page})=>{
   await expect(page.locator(".app.focus-mode")).toBeVisible();
   await page.keyboard.press("Shift+F");
   await expect(page.locator(".app.focus-mode")).toHaveCount(0);
-  await page.getByRole("button",{name:"Search markets or commands"}).click();
-  const search=page.getByRole("dialog",{name:"Search instruments"}).getByRole("combobox");
+  await page.getByRole("button",{name:"Search markets & tools"}).click();
+  const search=page.getByRole("dialog",{name:"Search instruments and tools"}).getByRole("combobox");
   await search.focus();
   await page.keyboard.press("Shift+F");
   await expect(page.locator(".app.focus-mode")).toHaveCount(0);

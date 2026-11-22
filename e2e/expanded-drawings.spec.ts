@@ -2,7 +2,7 @@ import {expect,test,type Page} from "@playwright/test";
 
 async function selectTool(page:Page,name:string){
   await page.getByRole("button",{name:"More drawing tools"}).click();
-  await page.getByRole("button",{name:new RegExp("^"+name)}).click();
+  await page.getByRole("button",{name,exact:true}).click();
 }
 async function drag(page:Page,from:[number,number],to:[number,number]){
   const surface=page.locator("svg.drawing-overlay").first();

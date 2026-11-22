@@ -1,0 +1,53 @@
+
+/* Market Terminal's own drawing rail: compact family icons, a layered catalog and discoverable utility dock. */
+.studio-rail-root{position:relative;width:100%;min-height:0;flex:1;display:flex;flex-direction:column}
+.studio-rail-tools{display:flex;flex-flow:column nowrap;align-items:center;gap:2px;min-width:0;width:100%;flex:1}
+.studio-rail-tools>button{width:61px;min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:4px;border-radius:7px;border:1px solid transparent;background:transparent;color:var(--soft);
+  padding:5px 3px;position:relative}
+.studio-rail-tools>button>span{font-size:9px;font-weight:600;letter-spacing:-.015em;line-height:1.15;text-align:center}
+.studio-rail-tools>button:is(:hover,:focus-visible,.active,.selected,.armed){color:var(--accent);
+  background:var(--accent-dim);border-color:var(--accent-border)}
+.studio-rail-category>svg:first-child{stroke-width:1.75}
+.studio-rail-category .studio-rail-chevron{position:absolute;right:3px;top:17px;color:var(--muted)}
+.studio-rail-category.selected .studio-rail-chevron{color:var(--accent);transform:rotate(180deg)}
+.studio-rail-category-pinned{position:absolute;top:6px;left:8px;width:4px;height:4px;
+  border-radius:50%;background:var(--accent)}
+.studio-rail-rule{margin:5px auto;min-height:1px;height:1px;width:36px;background:var(--border)}
+.studio-rail-favorites{width:100%;display:flex;align-items:center;justify-content:center;
+  flex-wrap:wrap;gap:4px;padding:4px 0 8px}
+.studio-rail-microhead{width:100%;display:flex;justify-content:center;align-items:center;gap:4px;
+  font-size:8px;font-weight:720;letter-spacing:.1em;color:var(--muted);margin-bottom:3px}
+.studio-rail-favorite{width:18px;height:25px;background:var(--raised);color:var(--soft);
+  border:1px solid var(--border);font-size:7px;font-weight:800;border-radius:4px;display:grid;place-items:center;padding:0}
+.studio-rail-favorite:is(:hover,.active){color:var(--accent);border-color:var(--accent-border);background:var(--accent-dim)}
+.studio-rail-utilities{margin-top:auto;width:100%;padding:8px 0 3px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));justify-items:center;gap:3px;border-top:1px solid var(--border)}
+.studio-rail-utilities button{width:28px;height:29px;border:1px solid transparent;border-radius:5px;
+  display:grid;place-items:center;color:var(--muted);background:transparent}
+.studio-rail-utilities button:is(:hover,:focus-visible,.active){color:var(--accent);background:var(--accent-dim);border-color:var(--accent-border)}
+.studio-rail-utilities button:disabled{opacity:.3}
+.studio-rail-root .tool-shelf{position:fixed!important;left:clamp(78px,8vw,140px)!important;top:clamp(135px,19vh,210px)!important;
+  right:auto!important;bottom:12px!important;height:auto!important;width:min(630px,calc(100vw - 170px))!important;
+  max-height:none!important;z-index:100!important}
+@media(max-height:780px) and (min-width:701px){
+  .studio-rail-favorites{display:none}
+  .studio-rail-tools>button{min-height:41px}
+  .studio-rail-tools>button>span{font-size:8px}
+  .studio-rail-utilities{padding-top:4px;grid-template-columns:repeat(3,minmax(0,1fr))}
+  .studio-rail-root .tool-shelf{top:105px!important}
+}
+@media(max-width:700px){
+  .studio-rail-root{width:100%}
+  .studio-rail-tools{flex-flow:row nowrap;justify-content:flex-start;overflow-x:auto;
+    align-items:center;gap:3px;scrollbar-width:thin}
+  .studio-rail-tools>button{width:45px;min-width:45px;min-height:45px;padding:3px 1px}
+  .studio-rail-tools>button>span{font-size:8px;max-width:44px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .studio-rail-chevron,.studio-rail-category-pinned{display:none}
+  .studio-rail-tools .studio-rail-rule,.studio-rail-favorites{display:none}
+  .studio-rail-utilities{display:flex;flex-flow:row nowrap;align-items:center;gap:2px;
+    margin:0 0 0 6px;border-left:1px solid var(--border);border-top:0;padding:0 4px;width:auto}
+  .studio-rail-utilities button{width:30px;min-width:30px;height:36px}
+  .studio-rail-root .tool-shelf{position:fixed!important;inset:auto 7px 7px 7px!important;
+    width:auto!important;max-height:75dvh!important;z-index:100!important}
+}
+@media(prefers-reduced-motion:reduce){.studio-rail-category .studio-rail-chevron{transition:none}}
