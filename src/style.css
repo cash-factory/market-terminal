@@ -422,3 +422,40 @@
 .custom-study-list label span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .custom-study-list button{background:none;border:0;color:var(--muted);display:grid;place-items:center}
 .custom-study-list button:hover{color:var(--negative)}
+
+
+/* Named full chart profiles, independent from simple indicator presets. */
+.chart-profile-picker{position:relative}
+.chart-profile-popover{position:absolute;z-index:30;left:0;top:calc(100% + 8px);
+  width:min(370px,calc(100vw - 34px));background:var(--panel);
+  border:1px solid var(--border);border-radius:12px;padding:15px;
+  box-shadow:0 22px 55px rgba(0,0,0,.3)}
+.chart-profile-heading{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.chart-profile-heading>div{display:flex;flex-direction:column;gap:5px}
+.chart-profile-heading strong{font-size:13px}
+.chart-profile-heading small{font-size:10px;line-height:1.55;color:var(--muted)}
+.chart-profile-heading button{background:transparent;border:0;color:var(--muted);padding:5px}
+.chart-profile-save{display:flex;align-items:center;gap:7px;margin-top:15px}
+.chart-profile-save input{min-width:0;flex:1;background:var(--raised);color:var(--text);
+  border:1px solid var(--border);border-radius:7px;padding:10px;font-size:11px}
+.chart-profile-save button{display:flex;align-items:center;gap:5px;justify-content:center;
+  border:1px solid var(--accent-border);background:var(--accent-dim);color:var(--accent);
+  border-radius:7px;padding:10px;font-size:11px;font-weight:600}
+.chart-profile-save button:disabled{opacity:.5}
+.chart-profile-list{max-height:min(330px,42vh);overflow-y:auto;display:flex;flex-direction:column;
+  gap:7px;margin-top:14px}
+.chart-profile-list>p{color:var(--muted);font-size:11px;line-height:1.65}
+.chart-profile-item{display:flex;align-items:center;gap:7px;padding:10px;
+  border:1px solid var(--border);border-radius:8px;background:var(--raised)}
+.chart-profile-item>div{min-width:0;display:flex;flex-direction:column;gap:4px;flex:1}
+.chart-profile-item strong{font-size:11px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.chart-profile-item small{font-size:9px;color:var(--muted);line-height:1.4}
+.chart-profile-item button{display:flex;align-items:center;gap:3px;background:var(--accent-dim);
+  border:1px solid var(--accent-border);color:var(--accent);border-radius:6px;
+  padding:8px;font-size:10px}
+.chart-profile-item .chart-profile-delete{background:transparent;border-color:var(--border);
+  color:var(--muted)}
+.chart-profile-item .chart-profile-delete:hover{color:var(--negative)}
+.chart-profile-note{padding-top:12px;margin:12px 0 0;border-top:1px solid var(--border);
+  color:var(--muted);font-size:10px;line-height:1.6}
+@media(max-width:700px){.chart-profile-popover{left:auto;right:0}}
