@@ -1,6 +1,6 @@
 import type { SymbolId } from "../market";
 
-export type DrawingTool = "trendline" | "rectangle" | "fibonacci" | "ray" | "measure";
+export type DrawingTool = "trendline" | "rectangle" | "fibonacci" | "ray" | "measure" | "arrow" | "ellipse" | "text" | "long-position" | "short-position" | "brush";
 export type ChartAnchor = { time: number; price: number };
 export type Drawing = {
   id: string;
@@ -12,10 +12,12 @@ export type Drawing = {
   color: string;
   locked: boolean;
   hidden?: boolean;
+  text?: string;
+  points?: ChartAnchor[];
 };
 
 const validSymbols = new Set<SymbolId>(["EURUSD", "BTCUSDT", "AAPL", "US100"]);
-const validTools = new Set<DrawingTool>(["trendline", "rectangle", "fibonacci", "ray", "measure"]);
+const validTools = new Set<DrawingTool>(["trendline", "rectangle", "fibonacci", "ray", "measure", "arrow", "ellipse", "text", "long-position", "short-position", "brush"]);
 export function isDrawing(input: unknown): input is Drawing {
   if (!input || typeof input !== "object" || Array.isArray(input)) return false;
   const d = input as Partial<Drawing>;
@@ -29,7 +31,10 @@ export function isDrawing(input: unknown): input is Drawing {
     anchor(d.start) && anchor(d.end) &&
     (d.source === undefined || d.source === "demo" || d.source === "binance") && typeof d.color === "string" &&
     /^#[a-f0-9]{6}$/i.test(d.color) && typeof d.locked === "boolean" &&
-    (d.hidden === undefined || typeof d.hidden === "boolean");
+    (d.hidden === undefined || typeof d.hidden === "boolean") &&
+    (d.text === undefined || (typeof d.text === "string" && d.text.length <= 2000)) &&
+    (d.points === undefined || (Array.isArray(d.points) &&
+      d.points.length <= 100000 && d.points.every(anchor)));
 }
 
 export function translateDrawing(
@@ -37,7 +42,11 @@ export function translateDrawing(
   start: ChartAnchor,
   end: ChartAnchor
 ): Drawing {
-  return { ...drawing, start, end };
+  const dt=start.time-drawing.start.time;
+  const dp=start.price-drawing.start.price;
+  return { ...drawing, start, end,
+    ...(drawing.points ? {points:drawing.points.map(p=>({time:p.time+dt,price:p.price+dp}))} : {})
+  };
 }
 
 export const FIBONACCI_LEVELS = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1] as const;
