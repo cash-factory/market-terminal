@@ -7,7 +7,7 @@ export type ToolDefinition = {
   label: string;
   description: string;
   group: ToolGroup;
-  points: 1 | 2 | 3;
+  points: 1 | 2 | 3 | 4 | 5 | 6;
   keywords: string;
 };
 
@@ -47,11 +47,11 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     description:"Highlight visually scaled Fibonacci distance rings.",keywords:"circles rings fib"},
   {id:"gann-box",label:"Gann box",group:"Fibonacci",points:2,
     description:"Scale-dependent price/time thirds and geometric diagonals. Not a forecast.",keywords:"gann grid angles"},
-  {id:"pattern-abcd",label:"ABCD pattern",group:"Patterns",points:3,
+  {id:"pattern-abcd",label:"ABCD pattern",group:"Patterns",points:4,
     description:"Four user-confirmed swing anchors and comparative leg distances.",keywords:"abcd swings harmonic"},
-  {id:"pattern-xabcd",label:"XABCD pattern",group:"Patterns",points:3,
+  {id:"pattern-xabcd",label:"XABCD pattern",group:"Patterns",points:5,
     description:"Five labeled swing anchors for manual ratio analysis; no predictive signal.",keywords:"xabcd harmonic bats gartley"},
-  {id:"elliott-impulse",label:"Elliott impulse 0–5",group:"Patterns",points:3,
+  {id:"elliott-impulse",label:"Elliott impulse 0–5",group:"Patterns",points:6,
     description:"Six manually marked wave pivots; interpretation remains your own.",keywords:"elliott wave impulse 12345"},
   {id:"cyclic-lines",label:"Cyclic lines",group:"Patterns",points:2,
     description:"Repeat a measured observed-bar interval as a visual timing hypothesis.",keywords:"time cycle rhythm repeat"},
