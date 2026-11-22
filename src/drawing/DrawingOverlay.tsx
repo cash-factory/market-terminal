@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointer
 import type {
   CandlestickData, IChartApi, ISeriesApi, Logical, UTCTimestamp
 } from "lightweight-charts";
-import { frameSeconds, type Frame } from "../market";
+import { frameSeconds, symbols, type Frame } from "../market";
 import {
   FIBONACCI_LEVELS, fibonacciPrices, translateDrawing,
   type ChartAnchor, type Drawing, type DrawingTool
@@ -500,15 +500,17 @@ export function DrawingOverlay({
          const left=Math.min(a.x,b.x),top=Math.min(a.y,b.y);
          const width=Math.max(16,Math.abs(b.x-a.x)),height=Math.max(2,Math.abs(b.y-a.y));
          const sign=m.change>0?"+":"";
+         const labelToLeft=left+width>plot.width-145;
          return <>
            <rect x={left} y={top} width={width} height={height}
              fill={drawing.color} fillOpacity={.10} stroke={drawing.color}
              strokeWidth={1} className="drawing-rectangle drawing-price-range"/>
            <line x1={left} x2={left+width} y1={a.y} y2={a.y} {...common} pointerEvents="none"/>
            <line x1={left} x2={left+width} y1={b.y} y2={b.y} {...common} pointerEvents="none"/>
-           <text x={left+width+6} y={top+height/2} fill={drawing.color}
-             fontSize={11} fontWeight={700} dominantBaseline="middle" pointerEvents="none">
-             {sign+m.change.toFixed(4)+" / "+sign+m.percent.toFixed(2)+"%"}
+           <text x={labelToLeft?left+width-6:left+width+6} y={top+height/2} fill={drawing.color}
+             fontSize={11} fontWeight={700} dominantBaseline="middle" pointerEvents="none"
+             textAnchor={labelToLeft?"end":"start"}>
+             {sign+m.change.toFixed(symbols[symbol].precision)+" / "+sign+m.percent.toFixed(2)+"%"}
            </text>
          </>;
        })()}
@@ -524,7 +526,7 @@ export function DrawingOverlay({
              stroke="transparent" strokeWidth={16} fill="none" className="drawing-hit"/>
            <path d={"M "+a.x+" 0 V "+plot.height+" M "+b.x+" 0 V "+plot.height}
              fill="none" {...common} className="drawing-line"/>
-           <text x={left+width/2} y={Math.max(18,Math.min(plot.height-12,28))}
+           <text x={Math.min(Math.max(90,left+width/2),Math.max(90,plot.width-90))} y={Math.max(18,Math.min(plot.height-12,28))}
              textAnchor="middle" fontSize={11} fontWeight={650} fill={drawing.color}
              pointerEvents="none">{elapsed+" · "+bars+" observed bars"}</text>
          </>;
