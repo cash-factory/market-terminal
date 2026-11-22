@@ -23,6 +23,14 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Run real-browser drawing tests
         run: npm run test:e2e
+      - name: Upload synthetic-only UI review screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: market-terminal-ui-review
+          path: test-results/review/
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Upload failed traces
         if: failure()
         uses: actions/upload-artifact@v4
