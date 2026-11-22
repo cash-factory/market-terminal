@@ -148,7 +148,12 @@ export function DrawingOverlay({
     setDraft(null);
   };
   const onPointerDown = (event: ReactPointerEvent<SVGSVGElement>) => {
-    if (!tool || event.button !== 0 || event.target !== event.currentTarget) return;
+    // The transparent plot hit-surface is an SVG child. Prior versions rejected
+    // all clicks landing on child nodes, so ordinary chart interaction could be ignored.
+    const target = event.target;
+    const onPlotSurface = target === event.currentTarget ||
+      (target instanceof SVGRectElement && target.dataset.drawingSurface === "true");
+    if (!tool || event.button !== 0 || !onPlotSurface) return;
     const point = pointFromEvent(event);
     const anchor = anchorAt(point);
     if (!anchor) return;
@@ -272,10 +277,17 @@ export function DrawingOverlay({
     </g>;
   };
 
+  const plotWidth = chart.timeScale().width();
+  const plotHeight = Math.max(0, (svgRef.current?.clientHeight ?? 0) - chart.timeScale().height());
   return <svg ref={svgRef} className={"drawing-overlay " + (tool ? "armed" : "")}
     aria-label={tool ? "Draw " + tool + ": drag or click two points" : "Select chart drawings"}
     onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
     onPointerCancel={cancel} onLostPointerCapture={() => { /* normal end handled by pointerup */ }}>
+    {/* A real transparent SVG rect is required: empty SVG pixels are not reliably
+        pointer targets in every browser. Restrict interception to chart plotting area. */}
+    <rect className="drawing-plot-surface" data-drawing-surface="true"
+      x={0} y={0} width={Math.max(0,plotWidth)} height={plotHeight}
+      fill="transparent" pointerEvents={tool ? "all" : "none"}/>
     {drawings.filter(d => d.symbol === symbol).map(d => renderDrawing(draft?.id === d.id ? draft : d))}
     {draft?.id === "preview" && renderDrawing(draft)}
   </svg>;
