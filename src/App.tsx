@@ -1,14 +1,15 @@
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type CSSProperties, type PointerEvent as ReactPointerEvent, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import {
   Activity, ArrowDownToLine, Bell, BookOpen, ChartCandlestick, Check,
   ChevronLeft, ChevronRight, Command, Compass, Download, Home, Layers,
   Menu, Moon, MousePointer2, Plus, RotateCcw, Search, Settings2, Sun,
-  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff
+  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen
 } from "lucide-react";
 import { ChartCanvas } from "./ChartCanvas";
 import type { Drawing, DrawingTool } from "./drawing/types";
 import { frameSeconds, symbols, type Frame, type SymbolId } from "./market";
 import { usePriceFeed } from "./data/usePriceFeed";
+import { panelWidthAfterDrag, panelWidthAfterKey } from "./layout";
 import { defaultWorkspace, loadWorkspace, parseWorkspace, serializeWorkspace, type Workspace } from "./workspace";
 
 type Page = "home" | "terminal" | "library" | "settings";
@@ -35,6 +36,8 @@ export default function App() {
   const [historyVersion, setHistoryVersion] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [searchIndex, setSearchIndex] = useState(0);
+  const resizeStart = useRef<{x:number; width:number} | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const inputFile = useRef<HTMLInputElement>(null);
@@ -138,7 +141,7 @@ export default function App() {
       const json: unknown = JSON.parse(await file.text());
       if (!json || typeof json !== "object" || Array.isArray(json) ||
         !("format" in json) || json.format !== "market-terminal-workspace" ||
-        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4) ||
+        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5) ||
         !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
       const workspace = parseWorkspace(json);
       setPrefs(workspace);
@@ -153,6 +156,27 @@ export default function App() {
   };
   const filtered = marketList.filter(symbol => (symbol + " " + symbols[symbol].label + " " + symbols[symbol].market)
     .toLowerCase().includes(query.toLowerCase()));
+  const onResizeStart = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    resizeStart.current = {x: event.clientX, width: prefs.rightPanelWidth};
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+  const onResizeMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!resizeStart.current) return;
+    update({rightPanelWidth: panelWidthAfterDrag(resizeStart.current.width, resizeStart.current.x, event.clientX)});
+  };
+  const onResizeStop = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!resizeStart.current) return;
+    resizeStart.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    notify("Watchlist width saved.");
+  };
+  const onResizeKey = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (!["ArrowLeft","ArrowRight","Home","End"].includes(event.key)) return;
+    event.preventDefault();
+    update({rightPanelWidth: panelWidthAfterKey(prefs.rightPanelWidth, event.key)});
+  };
 
   useEffect(() => {
     try {
@@ -185,6 +209,12 @@ export default function App() {
     return () => window.removeEventListener("keydown", drawingShortcuts);
   }, [prefs.drawings]);
   useEffect(() => { if (searchOpen) inputSearch.current?.focus(); }, [searchOpen]);
+  useEffect(() => { setSearchIndex(0); }, [query, searchOpen]);
+  useEffect(() => {
+    if (!notice || notice.kind === "error") return;
+    const timer = window.setTimeout(() => setNotice(current => current?.id === notice.id ? null : current), 4200);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
   return <div className={"app " + (prefs.dark ? "dark" : "light") + " accent-" + prefs.accent}>
     <header className="topbar">
       <div className="branding">
