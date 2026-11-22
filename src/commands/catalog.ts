@@ -21,7 +21,7 @@ const draw = (id:DrawingTool,label:string,description:string,keywords=""):Termin
  */
 export const TERMINAL_COMMANDS: TerminalCommand[] = [
   page("terminal","Open Chart Studio","Return to the primary chart workstation","charts"),
-  page("decisions","Decision Desk","Capture original hypotheses and append reviews","journal notes psychology"),
+  page("decisions","Decision Desk","Capture original hypotheses and append reviews","trading journal notes psychology"),
   page("home","Market Overview","Inspect source-labelled demonstration market snapshots","watchlist home"),
   page("risk","Risk Planner","Work through illustrative risk scenarios","position calculator"),
   page("alerts","Price Alerts","Create and manage browser-local price alerts","notify"),
