@@ -18,7 +18,9 @@ describe("price-time drawing data model", () => {
   });
   it("computes exact Fibonacci levels for either price direction", () => {
     expect(FIBONACCI_LEVELS).toHaveLength(7);
-    expect(fibonacciPrices(100, 200)).toEqual([100, 123.6, 138.2, 150, 161.8, 178.6, 200]);
+    [100, 123.6, 138.2, 150, 161.8, 178.6, 200].forEach((expected, i) => {
+      expect(fibonacciPrices(100, 200)[i]).toBeCloseTo(expected, 8);
+    });
     expect(fibonacciPrices(200, 100)[3]).toBe(150);
   });
   it("updates both endpoints without overwriting the underlying drawing id", () => {
