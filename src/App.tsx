@@ -1039,7 +1039,7 @@ export default function App() {
             {prefs.chartDisplayStyle==="heikin-ashi"&&
               <div className="chart-display-notice" role="status">
                 Heikin Ashi is a derived OHLC chart transformation, not broker-executable prices.
-                Risk planning and alerts still use underlying observed prices.
+                Drawings and alerts still use the underlying observed OHLC, not the transformed chart values.
               </div>}
             {replay && <ReplayControls replay={replay}
               onTogglePlay={()=>setReplay(s=>s?toggleReplayPlayback(s):s)}
@@ -1312,7 +1312,7 @@ export default function App() {
           <div className="section-head first"><div><small>PERSONALIZE</small><h1>Workspace preferences</h1><p>Make the experience yours. Changes are saved automatically in this browser.</p></div></div>
           <div className="setting-section"><h2>Appearance</h2><p>Choose how Market Terminal looks and feels.</p><div className="choice-row"><button className={prefs.dark ? "chosen" : ""} onClick={() => { update({ dark: true }); notify("Dark appearance selected."); }}><Moon size={18}/> Dark {prefs.dark && <Check size={15}/>}</button><button className={!prefs.dark ? "chosen" : ""} onClick={() => { update({ dark: false }); notify("Light appearance selected."); }}><Sun size={18}/> Light {!prefs.dark && <Check size={15}/>}</button></div></div>
           <div className="setting-section"><h2>Accent color</h2><p>Three carefully balanced palettes for the workstation.</p><div className="choice-row">{(["violet","teal","amber"] as const).map(accent => <button key={accent} className={prefs.accent === accent ? "chosen" : ""} onClick={() => { update({ accent }); notify("Accent color set to " + accent + "."); }}><span className={"accent-dot " + accent}/>{accent[0].toUpperCase() + accent.slice(1)} {prefs.accent === accent && <Check size={15}/>}</button>)}</div></div>
-          <div className="setting-section"><h2>Workspace data</h2><p>Reset preferences, drawings, decisions and their review history. Export before resetting.</p><button className="danger-button" onClick={() => { if (window.confirm("Permanently reset this browser workspace, including drawings, decision records and their review history?")) { setPrefs(defaultWorkspace); drawingHistory.current = { past: [], future: [] }; setHistoryVersion(v => v + 1); setDrawMode(false); setDrawingTool(null); notify("Local workspace reset."); } }}><RotateCcw size={16}/> Reset local workspace</button></div>
+          <div className="setting-section"><h2>Workspace data</h2><p>Reset all browser-local preferences, drawings and saved data. Export before resetting.</p><button className="danger-button" onClick={() => { if (window.confirm("Permanently reset this browser workspace, including saved drawings and all locally retained data?")) { setPrefs(defaultWorkspace); drawingHistory.current = { past: [], future: [] }; setHistoryVersion(v => v + 1); setDrawMode(false); setDrawingTool(null); notify("Local workspace reset."); } }}><RotateCcw size={16}/> Reset local workspace</button></div>
         </div>}
       </div>
     </div>
