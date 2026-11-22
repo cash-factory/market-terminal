@@ -81,3 +81,10 @@
     width:auto!important;max-height:min(74dvh,640px)!important;
   }
 }
+
+/* Reveal instrument identity and chart controls above the transient library. */
+@media(min-width:701px){
+ .studio .terminal-toolbar .tool-shelf,.terminal-toolbar .tool-shelf{
+   top:clamp(205px,30.5vh,254px)!important;bottom:12px!important;
+ }
+}
