@@ -55,7 +55,7 @@ export default function App() {
   },[]);
   const [page, setPage] = useState<Page>("terminal");
   const [focusMode,setFocusMode]=useState(false);
-  const [panelTab,setPanelTab]=useState<"markets"|"objects">("markets");
+  const [panelTab,setPanelTab]=useState<"markets"|"objects">(prefs.drawings.length ? "objects" : "markets");
   useEffect(()=>{
     const onFocusShortcut=(event:KeyboardEvent)=>{
       const target=event.target;
