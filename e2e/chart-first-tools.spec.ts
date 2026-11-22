@@ -115,3 +115,34 @@ test("seconds intervals and standalone settings fit mobile viewport without hori
   await expect(page.getByRole("button",{name:"Chart interval"})).toContainText("5s");
   expect(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)).toBeLessThanOrEqual(2);
 });
+
+test("save-as-default is isolated by drawing tool and never copies price anchors",async({page})=>{
+  await page.goto("/market-terminal/?classic");
+  await page.getByRole("button",{name:"Fibonacci",exact:true}).click();
+  await draw(page,[.22,.33],[.47,.63]);
+  const initial=await page.evaluate(()=>JSON.parse(localStorage.getItem("market-terminal-workspace")??"{}"));
+  const first=initial.preferences.drawings[0];
+  const dialog=await props(page);
+  await dialog.getByRole("combobox",{name:"Drawing line weight"}).selectOption("5");
+  await dialog.getByRole("button",{name:"Save Fibonacci retracement settings as default"}).click();
+  await expect(page.getByRole("status").filter({hasText:"Default settings saved"})).toBeVisible();
+  await dialog.getByRole("button",{name:"Cancel"}).click();
+  await page.getByRole("button",{name:"Fibonacci",exact:true}).click();
+  await draw(page,[.52,.25],[.71,.62]);
+  let saved=await page.evaluate(()=>JSON.parse(localStorage.getItem("market-terminal-workspace")??"{}"));
+  expect(saved.preferences.drawings).toHaveLength(2);
+  expect(saved.preferences.drawings[0].strokeWidth).toBeUndefined();
+  expect(saved.preferences.drawings[1].strokeWidth).toBe(5);
+  expect(saved.preferences.drawings[1].start).not.toEqual(first.start);
+  expect(saved.preferences.toolPresets.fibonacci.strokeWidth).toBe(5);
+  await page.reload();
+  await page.getByRole("button",{name:"Fibonacci",exact:true}).click();
+  await draw(page,[.29,.43],[.52,.58]);
+  saved=await page.evaluate(()=>JSON.parse(localStorage.getItem("market-terminal-workspace")??"{}"));
+  expect(saved.preferences.drawings[2].strokeWidth).toBe(5);
+  await page.getByRole("button",{name:"Settings for drawing 3"}).click();
+  await page.getByRole("button",{name:"Reset Fibonacci retracement default settings"}).click();
+  await page.getByRole("button",{name:"Cancel"}).click();
+  saved=await page.evaluate(()=>JSON.parse(localStorage.getItem("market-terminal-workspace")??"{}"));
+  expect(saved.preferences.toolPresets.fibonacci).toBeUndefined();
+});
