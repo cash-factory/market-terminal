@@ -55,6 +55,7 @@ export default function App() {
   },[]);
   const [page, setPage] = useState<Page>("terminal");
   const [focusMode,setFocusMode]=useState(false);
+  const [panelTab,setPanelTab]=useState<"markets"|"objects">("markets");
   useEffect(()=>{
     const onFocusShortcut=(event:KeyboardEvent)=>{
       const target=event.target;
@@ -190,6 +191,7 @@ export default function App() {
     }));
     setDraft("");
     setDrawMode(false);
+    setPanelTab("markets");
     notify("Price level added and saved locally.");
   };
   const commitDrawings = (next: Drawing[], message: string) => {
@@ -201,6 +203,7 @@ export default function App() {
   };
   const addDrawingFor = (drawing: Drawing, source: "demo"|"binance") => {
     commitDrawings([...prefs.drawings, { ...drawing, source }], "Drawing saved locally.");
+    setPanelTab("objects");
     if (!prefs.keepDrawingToolActive) setDrawingTool(null);
   };
   const addDrawing = (drawing: Drawing) => addDrawingFor(drawing,prefs.priceSource);
@@ -935,12 +938,23 @@ export default function App() {
               onPointerDown={onResizeStart} onPointerMove={onResizeMove}
               onPointerUp={onResizeStop} onPointerCancel={onResizeStop}
               onKeyDown={onResizeKey}/>
+            <div className="workspace-rail-tabs" role="tablist" aria-label="Workspace side panel">
+              <button type="button" role="tab" id="rail-tab-markets" aria-controls="rail-panel-markets"
+                aria-selected={panelTab==="markets"} className={panelTab==="markets"?"active":""}
+                onClick={()=>setPanelTab("markets")}><Compass size={15}/> Markets</button>
+              <button type="button" role="tab" id="rail-tab-objects" aria-controls="rail-panel-objects"
+                aria-selected={panelTab==="objects"} className={panelTab==="objects"?"active":""}
+                onClick={()=>setPanelTab("objects")}><Layers size={15}/> Objects <span className="rail-count">{currentDrawings.length}</span></button>
+            </div>
+            {panelTab==="markets"&&<div className="workspace-rail-content" id="rail-panel-markets" role="tabpanel" aria-labelledby="rail-tab-markets">
             <div className="panel-head"><strong>Watchlist</strong><button aria-label="Search instruments" title="Search instruments" className="mini-button" onClick={() => setSearchOpen(true)}><Search size={16}/></button></div>
             <div className="watchlist">{marketList.map(symbol => <button key={symbol} onClick={() => openInstrument(symbol)} className={symbol === prefs.symbol ? "selected" : ""}><span><b>{symbols[symbol].label}</b><small>{symbols[symbol].market.split(" · ")[0]}</small></span><ChevronRight size={15}/></button>)}</div>
             <div className="panel-head separated"><strong>Price levels</strong><span className="count">{currentLevels.length}</span></div>
             <div className="price-form"><input type="number" min="0" step="any" aria-label="Level price" placeholder={last.toFixed(symbols[prefs.symbol].precision)} value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === "Enter") addLevel(draft.trim() ? Number(draft) : last); }}/><button aria-label="Add price level" title="Add price level" onClick={() => addLevel(draft.trim() ? Number(draft) : last)}><Plus size={17}/></button></div>
             <div className="level-list">{currentLevels.map(level => <div key={level.id}><span className="level-swatch" style={{ background: level.color }}/><span>{level.price.toFixed(symbols[prefs.symbol].precision)}</span><button aria-label={"Remove price level " + level.price} title="Remove level" onClick={() => removeLevel(level.id)}><Trash2 size={15}/></button></div>)}</div>
-            <div className="panel-head separated"><strong>Chart drawings</strong><span className="count">{currentDrawings.length}</span></div>
+            </div>}
+            {panelTab==="objects"&&<div className="workspace-rail-content" id="rail-panel-objects" role="tabpanel" aria-labelledby="rail-tab-objects">
+            <div className="panel-head"><strong>Chart drawings</strong><span className="count">{currentDrawings.length}</span></div>
             <div className="drawing-bulk-toolbar">
               <span>{selectedDrawingIds.length} selected</span>
               <button aria-label="Select all chart drawings"
@@ -1028,6 +1042,7 @@ export default function App() {
               </div>
             )}{currentDrawings.length === 0 && <p className="drawing-object-empty">No drawings on this chart yet. Choose a drawing tool above.</p>}</div>
             <p className="panel-note">Drag or click two points to draw. Lock, hide or duplicate objects here. Turn on Repeat to draw continuously. Ctrl+Z and Ctrl+Shift+Z undo and redo.</p>
+            </div>}
           </aside>}
         </div>}
         {page === "alerts" && <AlertsCenter
