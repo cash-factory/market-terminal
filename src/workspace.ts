@@ -7,6 +7,7 @@ import { parseChartTemplates,type ChartTemplate } from "./indicators/templates";
 import { defaultStudyParameters,parseStudyParameters,type StudyParameters } from "./indicators/parameters";
 import { isPriceAlert, type PriceAlert } from "./alerts/engine";
 import {parseCustomStudies,type CustomStudy} from "./indicators/formula";
+import {parseDecisionRecords,type DecisionRecord} from "./decisions/model";
 import {parseChartDisplayStyle,type ChartDisplayStyle} from "./charts/display";
 import {parseChartProfiles,type ChartProfile} from "./charts/profiles";
 
@@ -47,6 +48,7 @@ export type Workspace = {
   studyParameters: StudyParameters;
   chartTemplates: ChartTemplate[];
   alerts: PriceAlert[];
+  decisions: DecisionRecord[];
 };
 export const defaultWorkspace: Workspace = {
   symbol: "EURUSD",
@@ -84,6 +86,7 @@ export const defaultWorkspace: Workspace = {
   studyParameters: {...defaultStudyParameters},
   chartTemplates: [],
   alerts: [],
+  decisions: [],
 };
 const SYMBOLS = ["EURUSD", "BTCUSDT", "AAPL", "US100"] as const;
 const FRAMES = ["1m", "5m", "15m", "1h", "4h", "1d"] as const;
@@ -143,6 +146,7 @@ export function parseWorkspace(value: unknown): Workspace {
     studyParameters: parseStudyParameters(raw.studyParameters),
     chartTemplates: parseChartTemplates(raw.chartTemplates),
     alerts: Array.isArray(raw.alerts)?raw.alerts.filter(isPriceAlert):[],
+    decisions: parseDecisionRecords(raw.decisions),
   };
 }
 export function loadWorkspace(): Workspace {
@@ -154,5 +158,5 @@ export function loadWorkspace(): Workspace {
   }
 }
 export function serializeWorkspace(workspace: Workspace): string {
-  return JSON.stringify({ format: "market-terminal-workspace", version: 23, preferences: workspace }, null, 2);
+  return JSON.stringify({ format: "market-terminal-workspace", version: 24, preferences: workspace }, null, 2);
 }
