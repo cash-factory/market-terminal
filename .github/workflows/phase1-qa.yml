@@ -1,0 +1,45 @@
+name: Phase 1 cross-browser and touch QA
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: ${{ matrix.project }} chart interactions
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project: firefox
+            engine: firefox
+          - project: webkit
+            engine: webkit
+          - project: mobile-chromium
+            engine: chromium
+          - project: mobile-webkit
+            engine: webkit
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install browser and system libraries
+        run: npx playwright install --with-deps "${{ matrix.engine }}"
+      - name: Run cross-browser and touch chart smoke tests
+        run: npx playwright test --config=playwright.phase1.config.ts --project="${{ matrix.project }}"
+      - name: Upload failed traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase1-${{ matrix.project }}-failure
+          path: test-results/
+          if-no-files-found: ignore
