@@ -23,8 +23,8 @@ test("Chart Context Lens converts marked levels into measured distances and acti
   expect(saved.preferences.alerts[0]).toMatchObject({
     symbol:"EURUSD",source:"demo",direction:"above",triggeredAtMs:null
   });
-  await panel.getByRole("button",{name:"Capture current thesis"}).click();
-  await expect(page.getByRole("heading",{name:"Decision Desk."})).toBeVisible();
+  await panel.getByRole("button",{name:"Open saved chart objects and levels"}).click();
+  await expect(page.getByRole("tab",{name:/Objects/})).toHaveAttribute("aria-selected","true");
 });
 
 test("Tool Atlas opens Chart Context Lens and it remains accessible on a narrow viewport",async({page})=>{
