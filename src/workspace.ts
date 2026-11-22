@@ -1,4 +1,5 @@
 import type { Frame, SymbolId } from "./market";
+import { isDrawing, type Drawing } from "./drawing/types";
 
 export type Level = { id: string; symbol: SymbolId; price: number; color: string };
 export type Workspace = {
@@ -7,6 +8,7 @@ export type Workspace = {
   dark: boolean;
   showSma: boolean;
   levels: Level[];
+  drawings: Drawing[];
   accent: "violet" | "teal" | "amber";
   sidebarOpen: boolean;
 };
@@ -16,6 +18,7 @@ export const defaultWorkspace: Workspace = {
   dark: true,
   showSma: true,
   levels: [],
+  drawings: [],
   accent: "violet",
   sidebarOpen: true,
 };
@@ -43,6 +46,7 @@ export function parseWorkspace(value: unknown): Workspace {
   }
   return {
     symbol, frame, accent, levels,
+    drawings: Array.isArray(raw.drawings) ? raw.drawings.filter(isDrawing) : [],
     dark: typeof raw.dark === "boolean" ? raw.dark : true,
     showSma: typeof raw.showSma === "boolean" ? raw.showSma : true,
     sidebarOpen: typeof raw.sidebarOpen === "boolean" ? raw.sidebarOpen : true,
@@ -57,5 +61,5 @@ export function loadWorkspace(): Workspace {
   }
 }
 export function serializeWorkspace(workspace: Workspace): string {
-  return JSON.stringify({ format: "market-terminal-workspace", version: 2, preferences: workspace }, null, 2);
+  return JSON.stringify({ format: "market-terminal-workspace", version: 3, preferences: workspace }, null, 2);
 }
