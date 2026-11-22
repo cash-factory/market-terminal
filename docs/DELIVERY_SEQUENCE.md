@@ -14,7 +14,7 @@ persistence, replay, EMA, Bollinger, RSI, MACD, ATR.
 - [x] OHLC magnet, ray and price-measure drawings (#20)
 - [x] Independent two-chart layout, saved comparison instrument (#21)
 - [x] Built-in indicator presets and custom saved chart templates (#23)
-- [ ] Configurable study parameters with valid numeric bounds (#24; in review)
+- [x] Configurable study parameters with valid numeric bounds (#24)
 - [ ] Expand to 4-chart configurable layouts, independent feeds and symbol/timeframe choices
 - [ ] Advanced drawing catalog: annotations/text, risk/reward and long/short position tools,
       channels, geometric tools, brush and multi-point shapes
