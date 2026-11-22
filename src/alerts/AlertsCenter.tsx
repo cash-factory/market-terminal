@@ -25,7 +25,7 @@ export function AlertsCenter({
   const [error,setError]=useState<string|null>(null);
   const triggered=alerts.filter(a=>a.triggeredAtMs!==null);
   const armed=alerts.filter(a=>a.triggeredAtMs===null);
-  const online=status==="live"||status==="synthetic";
+  const online=status==="live";
   const make=(event:FormEvent<HTMLFormElement>)=>{
     event.preventDefault();
     try{
@@ -62,7 +62,7 @@ export function AlertsCenter({
               "Live updates unavailable ("+status+"). Alert monitoring is paused."}
           </span>
         </div>
-        <form onSubmit={make}>
+        <form noValidate onSubmit={make}>
           <label className="alert-field">Trigger when price
             <select value={direction} onChange={event=>setDirection(event.target.value as PriceAlert["direction"])}>
               <option value="above">Crosses above</option>
