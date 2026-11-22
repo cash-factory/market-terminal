@@ -20,6 +20,7 @@ import { StudioDrawingRail } from "./drawing/StudioDrawingRail";
 import type { ToolGroup } from "./drawing/toolDefinitions";
 import { DrawingSettingsDialog } from "./drawing/DrawingSettingsDialog";
 import { validateDrawingSettings } from "./drawing/drawingSettings";
+import {applyToolPreset,presetFromDrawing} from "./drawing/toolPresets";
 import { TOOL_BY_ID } from "./drawing/toolDefinitions";
 import {groupDrawings,ungroupDrawings,styleDrawings,moveDrawingLayers,updateDrawingAndGroup,type DrawingStylePatch} from "./drawing/manage";
 import {ALL_FRAMES, frameSeconds, symbols, type Frame, type SymbolId} from "./market";
@@ -237,7 +238,8 @@ export default function App() {
     notify(message);
   };
   const addDrawingFor = (drawing: Drawing, source: "demo"|"binance") => {
-    commitDrawings([...prefs.drawings, { ...drawing, source }], "Drawing saved locally.");
+    const created=applyToolPreset({...drawing,source},prefs.toolPresets[drawing.tool]);
+    commitDrawings([...prefs.drawings, created], "Drawing saved locally.");
     setPanelTab("objects");
     if (studio) setSelectedDrawingIds([drawing.id]);
     if (!prefs.keepDrawingToolActive) setDrawingTool(null);
@@ -283,6 +285,24 @@ export default function App() {
     const checked=validateDrawingSettings(original,next);
     commitDrawings(prefs.drawings.map(item=>item.id===checked.id?checked:item),
       "Drawing properties saved. Undo is available.");
+  };
+  const saveToolAsDefault=(drawing:Drawing)=>{
+    const original=prefs.drawings.find(item=>item.id===drawing.id);
+    if(!original){notify("Drawing no longer exists.","error");return;}
+    try{
+      const validated=validateDrawingSettings(original,drawing);
+      const preset=presetFromDrawing(validated);
+      setPrefs(old=>({...old,toolPresets:{...old.toolPresets,[validated.tool]:preset}}));
+      notify("Default settings saved for "+(TOOL_BY_ID.get(validated.tool)?.label??validated.tool)+".","success");
+    }catch(error){notify(error instanceof Error?error.message:"Invalid default settings.","error");}
+  };
+  const resetToolDefault=(tool:DrawingTool)=>{
+    setPrefs(old=>{
+      const next={...old.toolPresets};
+      delete next[tool];
+      return {...old,toolPresets:next};
+    });
+    notify("Tool defaults restored for "+(TOOL_BY_ID.get(tool)?.label??tool)+".","info");
   };
   const openDrawingSettings=(id:string)=>{
     const active=prefs.drawings.find(d=>d.id===id);
@@ -1320,6 +1340,8 @@ export default function App() {
     {notice && <div role="status" className={"toast " + notice.kind} key={notice.id}><span>{notice.kind === "success" ? <Check size={17}/> : <Activity size={17}/>}</span><p>{notice.message}</p><button aria-label="Dismiss notification" onClick={() => setNotice(null)}><X size={16}/></button></div>}
     {settingsObject&&<DrawingSettingsDialog key={settingsObject.id}
        drawing={settingsObject} onSave={saveDrawingSettings}
+       onSaveAsDefault={saveToolAsDefault} onResetDefault={resetToolDefault}
+       hasDefault={Boolean(prefs.toolPresets[settingsObject.tool])}
        onClose={()=>setDrawingSettingsId(null)}/>}
     {searchOpen && <CommandPalette onClose={()=>setSearchOpen(false)}
        onOpenInstrument={openInstrument} onExecuteCommand={runTerminalCommand}/>}
