@@ -11,11 +11,13 @@ import { frameSeconds, symbols, type Frame, type SymbolId } from "./market";
 import { usePriceFeed } from "./data/usePriceFeed";
 import { panelWidthAfterDrag, panelWidthAfterKey } from "./layout";
 import { RiskPlanner } from "./analysis/RiskPlanner";
+import { defaultStudies, studyLabels, type StudySettings } from "./indicators/studies";
 import { defaultWorkspace, loadWorkspace, parseWorkspace, serializeWorkspace, type Workspace } from "./workspace";
 
 type Page = "home" | "terminal" | "risk" | "library" | "settings";
 type Notice = { id: number; message: string; kind: "success" | "info" | "error" };
 const frames: Frame[] = ["1m", "5m", "15m", "1h", "4h", "1d"];
+const studyKeys=Object.keys(defaultStudies) as (keyof StudySettings)[];
 const menu: { id: Page; label: string; Icon: typeof Home }[] = [
   { id: "home", label: "Overview", Icon: Home },
   { id: "terminal", label: "Terminal", Icon: ChartCandlestick },
@@ -42,6 +44,7 @@ export default function App() {
   const resizeStart = useRef<{x:number; width:number} | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [studyMenuOpen, setStudyMenuOpen] = useState(false);
   const inputFile = useRef<HTMLInputElement>(null);
   const inputSearch = useRef<HTMLInputElement>(null);
   const feed = usePriceFeed(prefs.symbol, prefs.frame, prefs.priceSource);
@@ -53,6 +56,7 @@ export default function App() {
     loading: "LOADING BINANCE", connecting: "CONNECTING", historical: "HISTORICAL",
     live: "LIVE · BINANCE SPOT", stale: "STALE FEED", error: "FEED UNAVAILABLE", synthetic: "SYNTHETIC DATA"
   })[feed.status];
+  const activeStudyCount=studyKeys.filter(key=>prefs.studies[key]).length+(prefs.showSma?1:0);
   const quoteText = last > 0 ? last.toLocaleString(undefined, {
     minimumFractionDigits: symbols[prefs.symbol].precision,
     maximumFractionDigits: symbols[prefs.symbol].precision
@@ -164,7 +168,7 @@ export default function App() {
       const json: unknown = JSON.parse(await file.text());
       if (!json || typeof json !== "object" || Array.isArray(json) ||
         !("format" in json) || json.format !== "market-terminal-workspace" ||
-        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7) ||
+        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8) ||
         !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
       const workspace = parseWorkspace(json);
       setPrefs(workspace);
@@ -214,7 +218,7 @@ export default function App() {
         event.preventDefault();
         setSearchOpen(value => !value);
       }
-      if (event.key === "Escape") { setSearchOpen(false); setHelpOpen(false); setDrawMode(false); setDrawingTool(null); }
+      if (event.key === "Escape") { setSearchOpen(false); setHelpOpen(false); setDrawMode(false); setDrawingTool(null); setStudyMenuOpen(false); }
     };
     window.addEventListener("keydown", shortcut);
     return () => window.removeEventListener("keydown", shortcut);
@@ -311,7 +315,30 @@ export default function App() {
                 <span>{prefs.rightPanelOpen ? "Hide panel" : "Show panel"}</span>
               </button>
               <span className="tool-divider"/>
-              <button className={"compact-action " + (prefs.showSma ? "active" : "")} onClick={() => { update({ showSma: !prefs.showSma }); notify(!prefs.showSma ? "SMA 20 enabled." : "SMA 20 hidden."); }}>SMA 20</button>
+              <div className="study-picker">
+                <button className={"compact-action study-trigger "+(activeStudyCount?"active":"")}
+                  aria-label="Technical indicators" aria-expanded={studyMenuOpen}
+                  aria-controls="study-list" onClick={()=>setStudyMenuOpen(v=>!v)}>
+                  <Activity size={15}/> Indicators <span className="study-count">{activeStudyCount}</span>
+                </button>
+                {studyMenuOpen && <div id="study-list" className="study-list" role="group" aria-label="Technical indicator selection">
+                  <div className="study-list-head"><strong>Technical studies</strong><button aria-label="Close indicator menu" onClick={()=>setStudyMenuOpen(false)}><X size={15}/></button></div>
+                  <label className="study-option"><input type="checkbox" checked={prefs.showSma}
+                    onChange={e=>update({showSma:e.target.checked})}/><span>SMA 20</span></label>
+                  {studyKeys.map(key=><label key={key} className="study-option">
+                    <input type="checkbox" checked={prefs.studies[key]}
+                      onChange={e=>{
+                        update({studies:{...prefs.studies,[key]:e.target.checked}});
+                        notify(studyLabels[key]+(e.target.checked?" added.":" hidden."));
+                      }}/>
+                    <span>{studyLabels[key]}</span>
+                  </label>)}
+                  <div className="study-list-foot"><span>Applied to current market and timeframe</span>
+                    <button onClick={()=>{
+                      update({studies:{...defaultStudies},showSma:false});notify("All technical indicators hidden.");
+                    }}>Clear all</button></div>
+                </div>}
+              </div>
               <button disabled={!currentCandles.length} className={"compact-action draw-toggle " + (drawMode ? "active" : "")} onClick={() => { setDrawingTool(null); setDrawMode(!drawMode); notify(!drawMode ? "Drawing armed: click the chart to place a horizontal level." : "Drawing cancelled.", "info"); }}><Plus size={15}/> Price level</button>
               <span className="tool-divider"/>
               <button disabled={!currentCandles.length} title="Drag on the chart to draw a trendline" className={"compact-action " + (drawingTool === "trendline" ? "active" : "")} onClick={() => chooseDrawingTool("trendline")}><TrendingUp size={15}/> Trendline</button>
@@ -341,7 +368,7 @@ export default function App() {
             {drawMode && <div className="draw-banner"><MousePointer2 size={16}/> Click on the chart to place a level <button onClick={() => setDrawMode(false)}>Cancel <X size={14}/></button></div>}
             {drawingTool && <div className="draw-banner"><MousePointer2 size={16}/> Click two points or drag to draw a {drawingTool}. After drawing, click the shape to move it or drag its handles. <button onClick={() => setDrawingTool(null)}>Cancel <X size={14}/></button></div>}
             <ChartCanvas symbol={prefs.symbol} frame={prefs.frame} source={prefs.priceSource} candles={currentCandles}
-              dark={prefs.dark} showSma={prefs.showSma} levels={currentLevels} drawMode={drawMode} onPlaceLevel={addLevel}
+              dark={prefs.dark} showSma={prefs.showSma} studies={prefs.studies} levels={currentLevels} drawMode={drawMode} onPlaceLevel={addLevel}
               drawingTool={drawingTool} drawings={currentDrawings}
               drawingColor={prefs.accent === "amber" ? "#e9b368" : prefs.accent === "teal" ? "#32c7aa" : "#9295ff"}
               onAddDrawing={addDrawing} onUpdateDrawing={updateDrawing} onDeleteDrawing={removeDrawing}/>
