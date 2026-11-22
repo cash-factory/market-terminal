@@ -18,23 +18,24 @@ type Props={
   onOpenDecisions:()=>void;
   onCapture:()=>void;
   onShowMarkets:()=>void;
+  onShowObjects:()=>void;
 };
 
 const formatUtc=(timestamp:number)=>new Date(timestamp).toLocaleString(undefined,{
   timeZone:"UTC",hour:"2-digit",minute:"2-digit",month:"short",day:"numeric"
 })+" UTC";
-const signed=(amount:number)=>amount>0?"+":""+""; // sign is deliberately formatted with the number below
 
 export function ChartContextLens({
   symbol,frame,source,status,replay,currentPrice,lastUpdatedMs,levels,drawings,
-  decisions,alerts,onArmAlert,onOpenDecisions,onCapture,onShowMarkets
+  decisions,alerts,onArmAlert,onOpenDecisions,onCapture,onShowMarkets,onShowObjects
 }:Props) {
   const quote=currentPrice&&Number.isFinite(currentPrice)&&currentPrice>0?currentPrice:null;
   const plotted=quote===null?[]:nearestMarkedLevels(levels,quote,3);
   const relevant=decisions.filter(row=>row.symbol===symbol&&row.source===source);
   const openReviews=relevant.filter(row=>!row.reviews.length).length;
   const activeAlerts=alerts.filter(row=>row.symbol===symbol&&row.source===source&&row.triggeredAtMs===null);
-  const statusLabel=source==="demo"?"SYNTHETIC":replay?"REPLAY":status.toUpperCase();
+  const statusLabel=replay?"REPLAY":source==="demo"?"SYNTHETIC":status.toUpperCase();
+  const alertsAllowed=!replay&&(source==="demo"||status==="live");
   const sourceName=source==="demo"?"Synthetic demonstration candles":"Binance Spot BTC/USDT";
   const quoteFormat=(value:number)=>value.toLocaleString(undefined,{
     minimumFractionDigits:symbols[symbol].precision,
@@ -75,8 +76,8 @@ export function ChartContextLens({
             <small>{item.side==="at"?"At observed close":item.side==="above"?"Above observed close":"Below observed close"}</small></div>
           <span className="context-level-delta">{item.distancePercent>0?"+":""}{item.distancePercent.toFixed(2)}%</span>
           <button type="button" aria-label={"Arm alert at "+quoteFormat(item.price)}
-            title={replay?"Exit replay before arming a current alert":alreadyArmed?"Alert already armed":item.side==="at"?"Crossing alerts require a level above or below the last close":"Arm browser-local crossing alert"}
-            disabled={!quote||replay||item.side==="at"||alreadyArmed}
+            title={!alertsAllowed?"A current exchange stream or demonstration mode is required for a new alert":alreadyArmed?"Alert already armed":item.side==="at"?"Crossing alerts require a level above or below the last close":"Arm browser-local crossing alert"}
+            disabled={!quote||!alertsAllowed||item.side==="at"||alreadyArmed}
             onClick={()=>onArmAlert(item.price)}>
             {alreadyArmed?<Bell size={15} fill="currentColor"/>:<Bell size={15}/>}
           </button>
@@ -94,7 +95,7 @@ export function ChartContextLens({
         <BookMarked size={18}/><strong>{relevant.length}</strong><span>Decision records</span>
         <small>{openReviews} await review</small>
       </button>
-      <button type="button" onClick={onShowMarkets} aria-label="Open saved chart objects and levels">
+      <button type="button" onClick={onShowObjects} aria-label="Open saved chart objects and levels">
         <Layers size={18}/><strong>{drawings.length}</strong><span>Drawings</span>
         <small>{activeAlerts.length} alerts armed</small>
       </button>
