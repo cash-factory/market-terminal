@@ -6,6 +6,7 @@ import {
   Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Target, Film, Magnet, MoveUpRight, ArrowUpRight, Columns2, Grid2X2, Shapes, Pencil, ArrowUp, ArrowDown, Link2, Unlink2
 } from "lucide-react";
 import { ChartCanvas,type ChartSurface,type ChartRange } from "./ChartCanvas";
+import { InstrumentHeader } from "./charts/InstrumentHeader";
 import {ChartErrorBoundary} from "./charts/ChartErrorBoundary";
 import {chartStyles,type ChartDisplayStyle} from "./charts/display";
 import {ChartProfileMenu} from "./charts/ChartProfileMenu";
@@ -49,6 +50,8 @@ const titles: Record<Page, string> = {
 const studio = new URLSearchParams(window.location.search).has("studio");
 
 export default function App() {
+  const [manageObjects,setManageObjects] = useState(false);
+  const [saveFailed,setSaveFailed] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
   const [prefs, setPrefs] = useState<Workspace>(loadWorkspace);
   const [marketClock,setMarketClock]=useState(()=>Date.now());
@@ -459,7 +462,9 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem("market-terminal-workspace", serializeWorkspace(prefs));
+      setSaveFailed(false);
     } catch {
+      setSaveFailed(true);
       setNotice({ id: Date.now(), message: "Browser storage is unavailable. Export your workspace to keep changes.", kind: "error" });
     }
   }, [prefs]);
@@ -527,6 +532,11 @@ export default function App() {
         <span className="logo"><ChartCandlestick size={20}/></span>
         <span><strong>MARKET<span className="brand-suffix">/TERMINAL</span></strong><small>{studio ? "Analysis workstation" : "Independent trading workspace"}</small></span>
       </div>
+      {studio && page==="terminal" && <nav className="studio-destinations" aria-label="Workstation pages">
+        {menu.map(({id,label})=><button key={id} aria-current={id===page?"page":undefined}
+          onClick={()=>{setPage(id);setDrawMode(false);setDrawingTool(null);}}>{label}</button>)}
+        <button aria-label="Help and shortcuts" onClick={()=>setHelpOpen(true)}><BookOpen size={16}/></button>
+      </nav>}
       <div className="header-center">
         <button className="search-trigger" onClick={() => setSearchOpen(true)}>
           <Search size={16}/><span>{studio ? "Search instruments" : "Search markets or commands"}</span><kbd>Ctrl K</kbd>
@@ -580,6 +590,8 @@ export default function App() {
         {page === "terminal" && <div className={"terminal-layout " + (prefs.rightPanelOpen ? "" : "panel-closed")}
           style={{"--right-panel-width": prefs.rightPanelWidth + "px"} as CSSProperties}>
           <section className="terminal-center">
+            {studio && <InstrumentHeader symbol={prefs.symbol} frame={prefs.frame} candles={viewedCandles}
+              source={displaySourceLabel} onSearch={()=>setSearchOpen(true)}/>}
             <div className="studio-header-slot">
             <div className="terminal-toolbar" aria-label="Chart workstation controls">
               <div className="terminal-toolbar-market" role="group" aria-label="Market and chart setup">
@@ -828,11 +840,11 @@ export default function App() {
               <button title="Redo drawing" aria-label="Redo drawing" disabled={!drawingHistory.current.future.length} className="compact-action" onClick={redoDrawing}><Redo2 size={16}/></button>
               </div>
             <div className="studio-chart-column">
-            <div className="chart-heading"><div>
+            {!studio && <div className="chart-heading"><div>
               <div className="eyebrow">{replay?"HISTORICAL REPLAY · "+feed.sourceLabel:feed.sourceLabel} <span>•</span> {prefs.frame.toUpperCase()}</div>
               <h1>{studio ? <button aria-label="Choose chart instrument" onClick={()=>setSearchOpen(true)}>{symbols[prefs.symbol].label}<Search size={17}/></button> : symbols[prefs.symbol].label} <span className={"demo-pill feed-pill " + (replay?"historical":feed.status)}>{displaySourceLabel}</span></h1>
               <p>{replay?"Paused historical snapshot · Future candles hidden until you advance":prefs.priceSource === "demo" ? "Illustrative candles, not executable quotes" : "Direct Binance public Spot data · BTC/USDT, not broker CFD prices"}</p>
-            </div><div className="quote"><small>{replay?"REPLAY BAR CLOSE":prefs.priceSource === "demo" ? "SIMULATED LAST" : "BINANCE SPOT LAST"}</small><strong>{quoteText}</strong></div></div>
+            </div><div className="quote"><small>{replay?"REPLAY BAR CLOSE":prefs.priceSource === "demo" ? "SIMULATED LAST" : "BINANCE SPOT LAST"}</small><strong>{quoteText}</strong></div></div>}
             <details className="market-session-reference">
               <summary>
                 <span>Market hours reference</span>
@@ -958,7 +970,7 @@ export default function App() {
                   </ChartErrorBoundary>
                 </section>)}
             </div>
-            <div className="chart-footer"><span><span className="sync-point">●</span> Locally saved</span><span>Source: {feed.sourceLabel} · {frameSeconds[prefs.frame] / 60}m candle interval · {replay?"historical replay":feed.status}{feed.lastUpdatedMs ? " · Updated " + new Date(feed.lastUpdatedMs).toLocaleTimeString() : ""}</span></div>
+            <div className="chart-footer"><span><span className="sync-point">●</span> {saveFailed?"Local save failed":"Locally saved"}</span><span>Source: {feed.sourceLabel} · {frameSeconds[prefs.frame] / 60}m candle interval · {replay?"historical replay":feed.status}{feed.lastUpdatedMs ? " · Updated " + new Date(feed.lastUpdatedMs).toLocaleTimeString() : ""}</span></div>
             </div>
             </div>
           </section>
@@ -985,8 +997,8 @@ export default function App() {
             <div className="level-list">{currentLevels.map(level => <div key={level.id}><span className="level-swatch" style={{ background: level.color }}/><span>{level.price.toFixed(symbols[prefs.symbol].precision)}</span><button aria-label={"Remove price level " + level.price} title="Remove level" onClick={() => removeLevel(level.id)}><Trash2 size={15}/></button></div>)}</div>
             </div>}
             {panelTab==="objects"&&<div className="workspace-rail-content" id="rail-panel-objects" role="tabpanel" aria-labelledby="rail-tab-objects">
-            <div className="panel-head"><strong>Chart drawings</strong><span className="count">{currentDrawings.length}</span></div>
-            <div className="drawing-bulk-toolbar">
+            <div className="panel-head"><strong>Chart drawings</strong>{studio ? <button className="manage-objects" aria-expanded={manageObjects} onClick={()=>setManageObjects(value=>!value)}>Manage</button> : <span className="count">{currentDrawings.length}</span>}</div>
+            {(!studio || manageObjects) && <div className="drawing-bulk-toolbar">
               <span>{selectedDrawingIds.length} selected</span>
               <button aria-label="Select all chart drawings"
                 onClick={()=>setSelectedDrawingIds(currentDrawings.map(d=>d.id))}>Select all</button>
@@ -995,7 +1007,7 @@ export default function App() {
                 onClick={groupSelectedDrawings}>Group</button>
               <button aria-label="Ungroup selected drawings" disabled={!selectedDrawingIds.length}
                 onClick={ungroupSelectedDrawings}>Ungroup</button>
-            </div>
+            </div>}
             {selectedDrawingIds.length>0&&<div className="drawing-style-toolbar">
               <label>Color <input type="color" aria-label="Selected drawing color"
                 value={prefs.drawings.find(d=>selectedDrawingIds.includes(d.id))?.color??"#9495fa"}
@@ -1029,7 +1041,9 @@ export default function App() {
                     e.target.checked?[...new Set([...ids,drawing.id])]:ids.filter(id=>id!==drawing.id))}/>
                 <span className="level-swatch" style={{background:drawing.color}}/>
                 <span className="drawing-object-name" title={drawing.tool}>
-                  {index+1}. {drawing.tool}{drawing.tool==="text"?" · "+(drawing.text||"Note"):""}
+                  {studio ? <button className="object-select" aria-pressed={selectedDrawingIds.includes(drawing.id)}
+                    onClick={()=>setSelectedDrawingIds(selectedDrawingIds.includes(drawing.id)?[]:[drawing.id])}>
+                    {drawing.tool==="text"?drawing.text||"Note":drawing.tool}</button> : <>{index+1}. {drawing.tool}{drawing.tool==="text"?" · "+(drawing.text||"Note"):""}</>}
                 </span>
                 <div className="drawing-object-actions">
                   {drawing.tool==="text"&&<button aria-label={"Edit annotation "+(index+1)}
@@ -1072,7 +1086,14 @@ export default function App() {
                   </div>}
               </div>
             )}{currentDrawings.length === 0 && <p className="drawing-object-empty">No drawings on this chart yet. Choose a drawing tool above.</p>}</div>
-            <p className="panel-note">Drag or click two points to draw. Lock, hide or duplicate objects here. Turn on Repeat to draw continuously. Ctrl+Z and Ctrl+Shift+Z undo and redo.</p>
+            {studio && selectedObject?.tool==="trendline" && <section className="anchor-readout" aria-label="Selected trendline anchors">
+              <h3>Trendline anchors</h3>
+              {([["Start",selectedObject.start],["End",selectedObject.end]] as const).map(([label,point])=><div key={label}>
+                <span>{label}</span><strong>{point.price.toFixed(symbols[selectedObject.symbol].precision)}</strong>
+                <time dateTime={new Date(point.time*1000).toISOString()}>{new Date(point.time*1000).toISOString().slice(0,16).replace("T"," ")} UTC</time>
+              </div>)}
+            </section>}
+            {!studio && <p className="panel-note">Drag or click two points to draw. Lock, hide or duplicate objects here. Turn on Repeat to draw continuously. Ctrl+Z and Ctrl+Shift+Z undo and redo.</p>}
             </div>}
           </aside>}
         </div>}
@@ -1104,7 +1125,7 @@ export default function App() {
         </div>}
       </div>
     </div>
-    <footer className="statusbar"><span><span className="sync-point">●</span> MARKET TERMINAL / LOCAL-FIRST PREVIEW</span><span>Feed: {sourceStateLabel} · Workspace saved locally</span></footer>
+    <footer className="statusbar"><span><span className="sync-point">●</span> MARKET TERMINAL / LOCAL-FIRST PREVIEW</span><span>Feed: {sourceStateLabel} · {saveFailed?"Local save failed":"Workspace saved locally"}</span></footer>
     {notice && <div role="status" className={"toast " + notice.kind} key={notice.id}><span>{notice.kind === "success" ? <Check size={17}/> : <Activity size={17}/>}</span><p>{notice.message}</p><button aria-label="Dismiss notification" onClick={() => setNotice(null)}><X size={16}/></button></div>}
     {searchOpen && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setSearchOpen(false); }}><div className="command-dialog" role="dialog" aria-modal="true" aria-label="Search instruments"><div className="command-input"><Search size={19}/><input ref={inputSearch} placeholder="Search a symbol, market or instrument…" value={query}
   role="combobox" aria-expanded="true" aria-controls="instrument-options"
