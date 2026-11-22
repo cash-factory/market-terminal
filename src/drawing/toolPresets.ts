@@ -42,7 +42,7 @@ function validPreset(tool:DrawingTool,input:unknown):ToolPreset|null{
     ...raw
   } as Drawing;
   if(!isDrawing(sample))return null;
-  return presetFromDrawing(sample);
+  return clonePreset(Object.fromEntries(Object.keys(raw).map(key=>[key,sample[key as keyof ToolPreset]])) as ToolPreset);
 }
 
 export function parseToolPresets(input:unknown):ToolPresets{
