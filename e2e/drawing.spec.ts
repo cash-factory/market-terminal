@@ -83,3 +83,44 @@ test("Escape cancels a pending drawing and restores chart navigation", async ({ 
   await expect(page.locator(".drawing-overlay.armed")).toHaveCount(0);
   await expect(page.locator(".drawing-shape")).toHaveCount(0);
 });
+
+
+test("drawing mode captures the actual chart surface, not the underlying candle canvas", async ({ page }) => {
+  await page.goto("/market-terminal/");
+  await page.getByRole("button", { name: "Trendline", exact: true }).click();
+  const a = await chartPoint(page, 0.31, 0.38);
+  const hit = await page.evaluate(({x,y}) => {
+    const el = document.elementFromPoint(x,y);
+    return {
+      className: el?.getAttribute("class"),
+      surface: (el as SVGElement | null)?.getAttribute("data-drawing-surface"),
+      pointerEvents: el ? window.getComputedStyle(el).pointerEvents : "none"
+    };
+  }, a);
+  expect(hit.surface, "The transparent drawing surface must be the true pointer target").toBe("true");
+  expect(hit.pointerEvents).not.toBe("none");
+  await page.mouse.click(a.x, a.y);
+  const b = await chartPoint(page, 0.60, 0.60);
+  await page.mouse.click(b.x, b.y);
+  const workspace = await page.evaluate(() => JSON.parse(localStorage.getItem("market-terminal-workspace") ?? "{}"));
+  expect(workspace.preferences.drawings).toHaveLength(1);
+  await expect(page.locator(".drawing-shape")).toHaveCount(1);
+});
+
+test("all synthetic market charts allow creating and retaining drawings across timeframes", async ({ page }) => {
+  await page.goto("/market-terminal/");
+  for (const market of ["EUR / USD", "BTC / USDT", "AAPL", "US100"]) {
+    await page.locator(".symbol-button").click();
+    await page.getByRole("option", { name: new RegExp(market.replace("/", "\\/")) }).click();
+    await expect(page.locator("svg.drawing-overlay")).toBeVisible();
+    await page.getByRole("button", { name: "1h", exact: true }).click();
+    const before = await page.locator(".drawing-shape").count();
+    await drawDrag(page, "Rectangle", [0.30, 0.40], [0.56, 0.62]);
+    await expect(page.locator(".drawing-shape")).toHaveCount(before + 1);
+    await page.getByRole("button", { name: "5m", exact: true }).click();
+    const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("market-terminal-workspace") ?? "{}"));
+    expect(stored.preferences.drawings.filter((d: { symbol: string }) => d.symbol === ({ "EUR / USD":"EURUSD", "BTC / USDT":"BTCUSDT", AAPL:"AAPL", US100:"US100" } as Record<string,string>)[market])).toHaveLength(1);
+    await page.getByRole("button", { name: "1h", exact: true }).click();
+    await expect(page.locator(".drawing-shape")).toHaveCount(before + 1);
+  }
+});
