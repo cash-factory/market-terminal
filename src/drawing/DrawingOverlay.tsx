@@ -277,8 +277,6 @@ export function DrawingOverlay({
     </g>;
   };
 
-  const plotWidth = chart.timeScale().width();
-  const plotHeight = Math.max(0, (svgRef.current?.clientHeight ?? 0) - chart.timeScale().height());
   return <svg ref={svgRef} className={"drawing-overlay " + (tool ? "armed" : "")}
     aria-label={tool ? "Draw " + tool + ": drag or click two points" : "Select chart drawings"}
     onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
@@ -286,7 +284,7 @@ export function DrawingOverlay({
     {/* A real transparent SVG rect is required: empty SVG pixels are not reliably
         pointer targets in every browser. Restrict interception to chart plotting area. */}
     <rect className="drawing-plot-surface" data-drawing-surface="true"
-      x={0} y={0} width={Math.max(0,plotWidth)} height={plotHeight}
+      x={0} y={0} width="100%" height="100%"
       fill="transparent" pointerEvents={tool ? "all" : "none"}/>
     {drawings.filter(d => d.symbol === symbol).map(d => renderDrawing(draft?.id === d.id ? draft : d))}
     {draft?.id === "preview" && renderDrawing(draft)}
