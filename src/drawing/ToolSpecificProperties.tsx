@@ -106,7 +106,7 @@ export function ToolSpecificProperties({drawing,onChange}:Props){
         <option value="both">Extend both directions</option>
       </select></label>}
     {drawing.tool==="channel"&&
-      checkbox("Central reference",drawing.showMidline??false,
+      checkbox("Central reference",drawing.showMidline??true,
         checked=>update({showMidline:checked}),"Plot a dashed middle rail between channel boundaries")}
     {metrics&&<>
       <p className="tool-special-explain">Select which quantities this drawing reports. Changes are calculated from the anchors and observed chart candles.</p>
