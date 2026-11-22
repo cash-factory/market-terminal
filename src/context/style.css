@@ -57,3 +57,7 @@
 .workspace-rail-tabs.context-tabs button{gap:4px;padding-inline:3px;min-width:0;font-size:10px}
 .workspace-rail-tabs.context-tabs .rail-count{font-size:9px;padding:2px 4px}
 .studio .workspace-rail-tabs.context-tabs button{font-size:11px}
+
+/* Narrow inspector refinement from rendered 1366px screenshot. */
+.workspace-rail-tabs.context-tabs .rail-count{display:none}
+.workspace-rail-tabs.context-tabs button{white-space:nowrap;word-break:normal;font-size:10px}
