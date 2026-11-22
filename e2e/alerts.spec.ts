@@ -32,7 +32,7 @@ test("alerts reject invalid thresholds and keep instrument/source attribution",a
   await expect(page.locator(".alert-row")).toHaveCount(0);
   await page.getByRole("button",{name:"Change market"}).click();
   await page.locator(".symbol-button").click();
-  await page.getByRole("option",{name:/BTC \/ USDT/}).click();
+  await page.getByRole("listbox").getByRole("option",{name:/BTC \/ USDT/}).click();
   await page.getByRole("button",{name:"Price Alerts",exact:true}).click();
   await page.getByRole("spinbutton",{name:"Threshold price"}).fill("100000");
   await page.getByRole("button",{name:"Create local alert"}).click();
