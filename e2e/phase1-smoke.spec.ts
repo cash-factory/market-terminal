@@ -7,12 +7,14 @@ test("real drawing input and chart persistence across desktop and touch engines"
   const overlay=page.locator("svg.drawing-overlay").first();
   await expect(overlay).toBeVisible();
   await page.getByRole("button",{name:"Trendline",exact:true}).click();
+  await overlay.scrollIntoViewIfNeeded();
   const box=await overlay.boundingBox();
   if(!box)throw new Error("Drawing overlay unavailable");
   const a={x:box.x+box.width*.31,y:box.y+box.height*.38};
   const b={x:box.x+box.width*.61,y:box.y+box.height*.61};
   if(isMobile){
     await page.touchscreen.tap(a.x,a.y);
+    await expect(page.locator(".drawing-shape"),"First tap should show anchor preview").toHaveCount(1);
     await page.touchscreen.tap(b.x,b.y);
   }else{
     await page.mouse.move(a.x,a.y);
@@ -53,8 +55,12 @@ test("responsive chart controls, saved profiles and linked layout remain accessi
 test("study selection and chart visualization changes render with correct accessible labels",async({page})=>{
   await page.goto("/market-terminal/");
   await page.getByRole("combobox",{name:"Chart display style"}).selectOption("area");
-  await page.getByRole("button",{name:"Technical indicators"}).click();
-  await page.getByRole("checkbox",{name:"RSI 14"}).check();
+  console.log("Chart style selected");
+  await page.getByRole("button",{name:"Technical indicators"}).click({timeout:10000});
+  console.log("Indicator menu open");
+  const checkbox=page.getByRole("checkbox",{name:"RSI 14"});
+  await checkbox.check({timeout:10000});
+  console.log("RSI enabled");
   await expect(page.locator(".indicator-pane")).toHaveCount(1);
   await page.getByRole("button",{name:"Close indicator menu"}).click();
   await page.reload();
