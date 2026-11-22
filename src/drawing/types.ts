@@ -1,6 +1,6 @@
 import type { SymbolId } from "../market";
 
-export type DrawingTool = "trendline" | "rectangle" | "fibonacci" | "ray" | "measure" | "arrow" | "ellipse" | "text" | "long-position" | "short-position" | "brush";
+export type DrawingTool = "trendline" | "rectangle" | "fibonacci" | "ray" | "measure" | "arrow" | "ellipse" | "text" | "long-position" | "short-position" | "brush" | "channel";
 export type ChartAnchor = { time: number; price: number };
 export type Drawing = {
   id: string;
@@ -14,6 +14,7 @@ export type Drawing = {
   hidden?: boolean;
   text?: string;
   points?: ChartAnchor[];
+  control?: ChartAnchor;
   groupId?: string;
   strokeWidth?: number;
   dash?: "solid" | "dashed" | "dotted";
@@ -21,7 +22,7 @@ export type Drawing = {
 };
 
 const validSymbols = new Set<SymbolId>(["EURUSD", "BTCUSDT", "AAPL", "US100"]);
-const validTools = new Set<DrawingTool>(["trendline", "rectangle", "fibonacci", "ray", "measure", "arrow", "ellipse", "text", "long-position", "short-position", "brush"]);
+const validTools = new Set<DrawingTool>(["trendline", "rectangle", "fibonacci", "ray", "measure", "arrow", "ellipse", "text", "long-position", "short-position", "brush", "channel"]);
 export function isDrawing(input: unknown): input is Drawing {
   if (!input || typeof input !== "object" || Array.isArray(input)) return false;
   const d = input as Partial<Drawing>;
@@ -37,6 +38,8 @@ export function isDrawing(input: unknown): input is Drawing {
     /^#[a-f0-9]{6}$/i.test(d.color) && typeof d.locked === "boolean" &&
     (d.hidden === undefined || typeof d.hidden === "boolean") &&
     (d.text === undefined || (typeof d.text === "string" && d.text.length <= 2000)) &&
+    (d.control === undefined || anchor(d.control)) &&
+    (d.tool !== "channel" || anchor(d.control)) &&
     (d.points === undefined || (Array.isArray(d.points) &&
       d.points.length <= 100000 && d.points.every(anchor))) &&
     (d.groupId === undefined || (typeof d.groupId === "string" && d.groupId.length > 0 && d.groupId.length <= 128)) &&
@@ -53,7 +56,8 @@ export function translateDrawing(
   const dt=start.time-drawing.start.time;
   const dp=start.price-drawing.start.price;
   return { ...drawing, start, end,
-    ...(drawing.points ? {points:drawing.points.map(p=>({time:p.time+dt,price:p.price+dp}))} : {})
+    ...(drawing.points ? {points:drawing.points.map(p=>({time:p.time+dt,price:p.price+dp}))} : {}),
+    ...(drawing.control ? {control:{time:drawing.control.time+dt,price:drawing.control.price+dp}} : {})
   };
 }
 
