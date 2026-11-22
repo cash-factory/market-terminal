@@ -18,7 +18,7 @@ test("select, group, style and layer drawings; save and restore the editor state
   await expect(page.locator(".drawing-shape")).toHaveCount(3);
   await page.getByRole("checkbox",{name:"Select drawing 1"}).check();
   await page.getByRole("checkbox",{name:"Select drawing 2"}).check();
-  await page.getByRole("button",{name:"Group selected drawings"}).click();
+  await page.getByRole("button",{name:"Group selected drawings",exact:true}).click();
   await page.getByRole("combobox",{name:"Selected drawing weight"}).selectOption("4");
   await page.getByRole("combobox",{name:"Selected drawing line style"}).selectOption("dashed");
   await page.getByRole("button",{name:"Bring selected drawings forward"}).click();
@@ -33,7 +33,7 @@ test("select, group, style and layer drawings; save and restore the editor state
   await expect(page.locator(".drawing-shape")).toHaveCount(3);
   await page.getByRole("checkbox",{name:"Select drawing 2"}).check();
   await page.getByRole("checkbox",{name:"Select drawing 3"}).check();
-  await page.getByRole("button",{name:"Ungroup selected drawings"}).click();
+  await page.getByRole("button",{name:"Ungroup selected drawings",exact:true}).click();
   saved=await page.evaluate(()=>JSON.parse(localStorage.getItem("market-terminal-workspace")??"{}"));
   expect(saved.preferences.drawings.every((d:{groupId?:string})=>!d.groupId)).toBe(true);
   await page.getByRole("button",{name:"Undo drawing"}).click();
