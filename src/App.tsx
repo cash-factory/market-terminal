@@ -452,6 +452,7 @@ export default function App() {
         notify(prefs.linkTimeRanges?"Independent time windows enabled.":"Chart time windows linked.");break;
       case "objects":setPanelTab("objects");update({rightPanelOpen:true});
         notify("Drawing inspector opened.","info");break;
+      case "tools":setMoreToolsOpen(true);notify("Drawing Tool Library opened.","info");break;
       case "undo":undoDrawing();break;
       case "redo":redoDrawing();break;
     }
@@ -947,8 +948,8 @@ export default function App() {
                 onClick={() => chooseDrawingTool("measure")}><ArrowUpRight size={15}/> Measure</button>
               <div className="study-picker advanced-tool-picker">
                 <button className={"compact-action "+(moreToolsOpen?"active":"")}
-                  aria-label="More drawing tools" aria-expanded={moreToolsOpen}
-                  onClick={()=>setMoreToolsOpen(open=>!open)}><Shapes size={15}/> More tools</button>
+                  aria-label="More drawing tools" title="Browse precise chart tools and your favorites" aria-expanded={moreToolsOpen}
+                  onClick={()=>setMoreToolsOpen(open=>!open)}><Shapes size={15}/> Tool library</button>
                 {moreToolsOpen&&<ToolShelf
                   active={drawingTool} favorites={prefs.favoriteDrawingTools}
                   recent={recentDrawingTools} disabled={!currentCandles.length}
