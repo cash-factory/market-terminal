@@ -424,8 +424,11 @@ export function DrawingOverlay({
         const isLong=drawing.tool==="long-position",entry=drawing.start.price,stop=drawing.end.price;
         const correct=isLong?stop<entry:stop>entry;
         const x1=Math.min(a.x,b.x),width=Math.max(40,Math.abs(a.x-b.x));
-        const target=entry+(entry-stop)*2;
-        const targetY=series.priceToCoordinate(target);
+        const target=drawing.target?.price??
+          defaultPositionTarget(drawing.tool as "long-position"|"short-position",entry,stop);
+        const targetY=target!==null&&target!==undefined?series.priceToCoordinate(target):null;
+        const position=target===null||target===undefined?null:
+          calculatePosition(drawing.tool as "long-position"|"short-position",entry,stop,target);
         if(!correct||targetY===null)return <>
           <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="transparent"
             strokeWidth={18} className="drawing-hit"/>
@@ -442,7 +445,14 @@ export function DrawingOverlay({
             fill="#22b98e" fillOpacity={.16} stroke="#22b98e" strokeWidth={1} className="drawing-position-reward"/>
           <line x1={x1} y1={a.y} x2={x1+width} y2={a.y} {...common} className="drawing-line"/>
           <text x={x1+6} y={rewardTop+14} fill="#22b98e" fontSize={11}
-            pointerEvents="none">{isLong?"LONG":"SHORT"} · target 2R</text>
+            pointerEvents="none">{isLong?"LONG":"SHORT"} ·
+            {position&&position.targetIsValid?position.multiple.toFixed(2)+"R":"Target on wrong side"}</text>
+          {selected&&!drawing.locked&&
+            <circle cx={b.x} cy={targetY} r={7}
+              fill="var(--panel)" stroke="#22b98e" strokeWidth={2}
+              className="drawing-handle position-target-handle"
+              onPointerDown={event=>beginEdit(event,drawing,"target")}/>}
+
           <text x={x1+6} y={riskTop+Math.max(12,Math.abs(b.y-a.y)-5)}
             fill="#e66a77" fontSize={10} pointerEvents="none">Stop · risk 1R</text>
         </>;
