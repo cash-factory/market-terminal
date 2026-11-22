@@ -107,7 +107,7 @@ export function ChartCanvas({
         ? "Synthetic " + symbols[symbol].label + " candlestick chart"
         : "Binance Spot " + symbols[symbol].label + " candlestick chart"}/>
     {surface && surface.chart === chart.current && <DrawingOverlay
-      chart={surface.chart} series={surface.series} symbol={symbol}
+      chart={surface.chart} series={surface.series} symbol={symbol} frame={frame} candles={candles}
       tool={drawingTool} drawings={drawings} color={drawingColor}
       onAdd={onAddDrawing} onUpdate={onUpdateDrawing} onDelete={onDeleteDrawing}
     />}

@@ -191,7 +191,7 @@ export default function App() {
         event.preventDefault();
         setSearchOpen(value => !value);
       }
-      if (event.key === "Escape") { setSearchOpen(false); setHelpOpen(false); setDrawMode(false); }
+      if (event.key === "Escape") { setSearchOpen(false); setHelpOpen(false); setDrawMode(false); setDrawingTool(null); }
     };
     window.addEventListener("keydown", shortcut);
     return () => window.removeEventListener("keydown", shortcut);
@@ -310,7 +310,7 @@ export default function App() {
               <button onClick={() => update({priceSource:"demo"})}>Use demo</button>
             </div>}
             {drawMode && <div className="draw-banner"><MousePointer2 size={16}/> Click on the chart to place a level <button onClick={() => setDrawMode(false)}>Cancel <X size={14}/></button></div>}
-            {drawingTool && <div className="draw-banner"><MousePointer2 size={16}/> Drag on the chart to create a {drawingTool}. Select an existing shape to reposition or resize it. <button onClick={() => setDrawingTool(null)}>Cancel <X size={14}/></button></div>}
+            {drawingTool && <div className="draw-banner"><MousePointer2 size={16}/> Click two points or drag to draw a {drawingTool}. After drawing, click the shape to move it or drag its handles. <button onClick={() => setDrawingTool(null)}>Cancel <X size={14}/></button></div>}
             <ChartCanvas symbol={prefs.symbol} frame={prefs.frame} source={prefs.priceSource} candles={currentCandles}
               dark={prefs.dark} showSma={prefs.showSma} levels={currentLevels} drawMode={drawMode} onPlaceLevel={addLevel}
               drawingTool={drawingTool} drawings={currentDrawings}
@@ -334,7 +334,7 @@ export default function App() {
             <div className="level-list">{currentDrawings.map(drawing =>
               <div key={drawing.id}><span className="level-swatch" style={{background:drawing.color}}/><span>{drawing.tool}</span><button aria-label={"Delete " + drawing.tool} title="Delete drawing" onClick={() => removeDrawing(drawing.id)}><Trash2 size={15}/></button></div>
             )}</div>
-            <p className="panel-note">Drag to place drawings. Click a shape to select it, drag to move, drag endpoints to resize, or press Delete. Ctrl+Z / Ctrl+Shift+Z undo and redo.</p>
+            <p className="panel-note">Draw by dragging or clicking two points. Click a shape to select it, drag its body to move, drag endpoint handles to resize, or press Delete. Ctrl+Z / Ctrl+Shift+Z undo and redo.</p>
           </aside>}
         </div>}
         {page === "library" && <div className="content-page">
