@@ -6,7 +6,7 @@ import {
 import { atr, macd, rsi, type StudySettings } from "./studies";
 
 type PaneKey = "rsi14" | "macd" | "atr14";
-type PaneSurface = { chart: IChartApi; lines: ISeriesApi<"Line">[]; histogram: ISeriesApi<"Histogram"> | null };
+type PaneSurface = { chart: IChartApi; parent:IChartApi; lines: ISeriesApi<"Line">[]; histogram: ISeriesApi<"Histogram"> | null };
 type PaneProps = {
   kind:PaneKey;
   candles:readonly CandlestickData<UTCTimestamp>[];
@@ -54,22 +54,22 @@ function IndicatorPane({kind,candles,priceChart,dark}:PaneProps){
       lines.push(c.addSeries(LineSeries,{color:"#e2b16c",lineWidth:2,priceLineVisible:false}));
     }
     const sync=()=>{
-      const range=priceChart.timeScale().getVisibleLogicalRange();
+      const range=priceChart.timeScale().getVisibleRange();
       if(range) {
-        try{c.timeScale().setVisibleLogicalRange(range);}
+        try{c.timeScale().setVisibleRange(range);}
         catch { /* chart data may still be loading */ }
       }
     };
-    priceChart.timeScale().subscribeVisibleLogicalRangeChange(sync);
-    setPane({chart:c,lines,histogram});
+    priceChart.timeScale().subscribeVisibleTimeRangeChange(sync);
+    setPane({chart:c,parent:priceChart,lines,histogram});
     return()=>{
-      priceChart.timeScale().unsubscribeVisibleLogicalRangeChange(sync);
+      priceChart.timeScale().unsubscribeVisibleTimeRangeChange(sync);
       c.remove();
     };
   },[kind,dark,priceChart]);
 
   useEffect(()=>{
-    if(!pane)return;
+    if(!pane || pane.parent!==priceChart)return;
     if(kind==="rsi14")pane.lines[0].setData(rsi(candles,14));
     if(kind==="atr14")pane.lines[0].setData(atr(candles,14));
     if(kind==="macd"){
@@ -84,7 +84,7 @@ function IndicatorPane({kind,candles,priceChart,dark}:PaneProps){
     }
     const range=priceChart.timeScale().getVisibleLogicalRange();
     if(range){
-      try{pane.chart.timeScale().setVisibleLogicalRange(range);}
+      try{pane.chart.timeScale().setVisibleRange(range);}
       catch{/* visual sync waits for valid data */}
     }
   },[pane,candles,kind,priceChart]);
