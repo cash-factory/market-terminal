@@ -140,14 +140,15 @@ export function DrawingOverlay({
         const removable=selectedIds.filter(id=>drawings.some(d=>d.id===id&&!d.locked));
         if(removable.length){
           event.preventDefault();
-          onDeleteMany(removable);
+          if(removable.length===1)onDelete(removable[0]);
+          else onDeleteMany(removable);
           onSelectionChange([]);
         }
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [drawings, onDeleteMany, selectedIds, onSelectionChange]);
+  }, [drawings, onDelete, onDeleteMany, selectedIds, onSelectionChange]);
 
   const capture = (event: ReactPointerEvent<SVGElement>) => {
     try { svgRef.current?.setPointerCapture(event.pointerId); } catch { /* pointer was released */ }
