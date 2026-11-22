@@ -3,7 +3,7 @@ import {
   Activity, ArrowDownToLine, Bell, BookOpen, ChartCandlestick, Check,
   ChevronLeft, ChevronRight, Command, Compass, Download, Home, Layers,
   Menu, Moon, MousePointer2, Plus, RotateCcw, Search, Settings2, Sun,
-  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen
+  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2
 } from "lucide-react";
 import { ChartCanvas } from "./ChartCanvas";
 import type { Drawing, DrawingTool } from "./drawing/types";
@@ -88,13 +88,34 @@ export default function App() {
   };
   const addDrawing = (drawing: Drawing) => {
     commitDrawings([...prefs.drawings, { ...drawing, source: prefs.priceSource }], "Drawing saved locally.");
-    setDrawingTool(null);
+    if (!prefs.keepDrawingToolActive) setDrawingTool(null);
   };
   const updateDrawing = (drawing: Drawing) => {
     commitDrawings(prefs.drawings.map(d => d.id === drawing.id ? drawing : d), "Drawing updated.");
   };
   const removeDrawing = (id: string) => {
     commitDrawings(prefs.drawings.filter(d => d.id !== id), "Drawing removed. Use Undo to restore.");
+  };
+  const toggleDrawingProperty = (id: string, property: "locked" | "hidden") => {
+    const active = prefs.drawings.find(d => d.id === id);
+    if (!active) return;
+    commitDrawings(
+      prefs.drawings.map(d => d.id === id ? { ...d, [property]: !d[property] } : d),
+      property === "locked"
+        ? active.locked ? "Drawing unlocked." : "Drawing locked."
+        : active.hidden ? "Drawing shown." : "Drawing hidden."
+    );
+  };
+  const duplicateDrawing = (id: string) => {
+    const active = prefs.drawings.find(d => d.id === id);
+    if (!active) return;
+    const offset = frameSeconds[prefs.frame] * 3;
+    const copy: Drawing = {
+      ...active, id: crypto.randomUUID(), hidden: false, locked: false,
+      start: { time: active.start.time + offset, price: active.start.price * 1.001 },
+      end: { time: active.end.time + offset, price: active.end.price * 1.001 }
+    };
+    commitDrawings([...prefs.drawings, copy], "Drawing duplicated.");
   };
   const undoDrawing = () => {
     const prev = drawingHistory.current.past.pop();
@@ -141,7 +162,7 @@ export default function App() {
       const json: unknown = JSON.parse(await file.text());
       if (!json || typeof json !== "object" || Array.isArray(json) ||
         !("format" in json) || json.format !== "market-terminal-workspace" ||
-        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5) ||
+        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6) ||
         !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
       const workspace = parseWorkspace(json);
       setPrefs(workspace);
@@ -294,6 +315,12 @@ export default function App() {
               <button disabled={!currentCandles.length} title="Drag on the chart to draw a trendline" className={"compact-action " + (drawingTool === "trendline" ? "active" : "")} onClick={() => chooseDrawingTool("trendline")}><TrendingUp size={15}/> Trendline</button>
               <button disabled={!currentCandles.length} title="Drag on the chart to draw a rectangle" className={"compact-action " + (drawingTool === "rectangle" ? "active" : "")} onClick={() => chooseDrawingTool("rectangle")}><Square size={15}/> Rectangle</button>
               <button disabled={!currentCandles.length} title="Drag on the chart to draw Fibonacci levels" className={"compact-action " + (drawingTool === "fibonacci" ? "active" : "")} onClick={() => chooseDrawingTool("fibonacci")}><Ruler size={15}/> Fibonacci</button>
+              <button className={"compact-action repeat-toggle " + (prefs.keepDrawingToolActive ? "active" : "")}
+                aria-label="Keep drawing tool active" aria-pressed={prefs.keepDrawingToolActive}
+                title="Keep current drawing tool active after creating a shape"
+                onClick={() => {update({keepDrawingToolActive:!prefs.keepDrawingToolActive});notify(prefs.keepDrawingToolActive ? "Single-use drawing mode enabled." : "Continuous drawing enabled.");}}>
+                <Repeat2 size={15}/> Repeat
+              </button>
               <span className="tool-divider"/>
               <button title="Undo drawing" aria-label="Undo drawing" disabled={historyVersion < 0 || !drawingHistory.current.past.length} className="compact-action" onClick={undoDrawing}><Undo2 size={16}/></button>
               <button title="Redo drawing" aria-label="Redo drawing" disabled={!drawingHistory.current.future.length} className="compact-action" onClick={redoDrawing}><Redo2 size={16}/></button>
@@ -331,10 +358,29 @@ export default function App() {
             <div className="price-form"><input type="number" min="0" step="any" aria-label="Level price" placeholder={last.toFixed(symbols[prefs.symbol].precision)} value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === "Enter") addLevel(draft.trim() ? Number(draft) : last); }}/><button aria-label="Add price level" title="Add price level" onClick={() => addLevel(draft.trim() ? Number(draft) : last)}><Plus size={17}/></button></div>
             <div className="level-list">{currentLevels.map(level => <div key={level.id}><span className="level-swatch" style={{ background: level.color }}/><span>{level.price.toFixed(symbols[prefs.symbol].precision)}</span><button aria-label={"Remove price level " + level.price} title="Remove level" onClick={() => removeLevel(level.id)}><Trash2 size={15}/></button></div>)}</div>
             <div className="panel-head separated"><strong>Chart drawings</strong><span className="count">{currentDrawings.length}</span></div>
-            <div className="level-list">{currentDrawings.map(drawing =>
-              <div key={drawing.id}><span className="level-swatch" style={{background:drawing.color}}/><span>{drawing.tool}</span><button aria-label={"Delete " + drawing.tool} title="Delete drawing" onClick={() => removeDrawing(drawing.id)}><Trash2 size={15}/></button></div>
-            )}</div>
-            <p className="panel-note">Draw by dragging or clicking two points. Click a shape to select it, drag its body to move, drag endpoint handles to resize, or press Delete. Ctrl+Z / Ctrl+Shift+Z undo and redo.</p>
+            <div className="drawing-object-list">{currentDrawings.map((drawing,index) =>
+              <div key={drawing.id} className={"drawing-object-row " + (drawing.hidden ? "object-hidden" : "")}>
+                <span className="level-swatch" style={{background:drawing.color}}/>
+                <span className="drawing-object-name" title={drawing.tool}>{index+1}. {drawing.tool}</span>
+                <div className="drawing-object-actions">
+                  <button aria-label={(drawing.hidden ? "Show " : "Hide ") + drawing.tool + " " + (index+1)}
+                    title={drawing.hidden ? "Show drawing" : "Hide drawing"}
+                    onClick={() => toggleDrawingProperty(drawing.id,"hidden")}>
+                    {drawing.hidden ? <EyeOff size={15}/> : <Eye size={15}/>}
+                  </button>
+                  <button aria-label={(drawing.locked ? "Unlock " : "Lock ") + drawing.tool + " " + (index+1)}
+                    title={drawing.locked ? "Unlock drawing" : "Lock drawing"}
+                    onClick={() => toggleDrawingProperty(drawing.id,"locked")}>
+                    {drawing.locked ? <Lock size={15}/> : <Unlock size={15}/>}
+                  </button>
+                  <button aria-label={"Duplicate " + drawing.tool + " " + (index+1)}
+                    title="Duplicate drawing" onClick={() => duplicateDrawing(drawing.id)}><Copy size={15}/></button>
+                  <button aria-label={"Delete " + drawing.tool + " " + (index+1)}
+                    title="Delete drawing" onClick={() => removeDrawing(drawing.id)}><Trash2 size={15}/></button>
+                </div>
+              </div>
+            )}{currentDrawings.length === 0 && <p className="drawing-object-empty">No drawings on this chart yet. Choose Trendline, Rectangle or Fibonacci above.</p>}</div>
+            <p className="panel-note">Drag or click two points to draw. Lock, hide or duplicate objects here. Turn on Repeat to draw continuously. Ctrl+Z and Ctrl+Shift+Z undo and redo.</p>
           </aside>}
         </div>}
         {page === "library" && <div className="content-page">

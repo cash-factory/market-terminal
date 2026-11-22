@@ -11,6 +11,7 @@ export type Drawing = {
   end: ChartAnchor;
   color: string;
   locked: boolean;
+  hidden?: boolean;
 };
 
 const validSymbols = new Set<SymbolId>(["EURUSD", "BTCUSDT", "AAPL", "US100"]);
@@ -27,7 +28,8 @@ export function isDrawing(input: unknown): input is Drawing {
     validSymbols.has(d.symbol as SymbolId) && validTools.has(d.tool as DrawingTool) &&
     anchor(d.start) && anchor(d.end) &&
     (d.source === undefined || d.source === "demo" || d.source === "binance") && typeof d.color === "string" &&
-    /^#[a-f0-9]{6}$/i.test(d.color) && typeof d.locked === "boolean";
+    /^#[a-f0-9]{6}$/i.test(d.color) && typeof d.locked === "boolean" &&
+    (d.hidden === undefined || typeof d.hidden === "boolean");
 }
 
 export function translateDrawing(
