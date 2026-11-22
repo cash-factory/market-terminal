@@ -628,6 +628,7 @@ export default function App() {
           <MarketBoard frame={prefs.frame} selected={prefs.symbol} onOpen={openDemoMarket}/>
           <div className="overview-links">
             <button onClick={()=>setPage("risk")}><Target size={20}/><strong>Risk planner</strong></button>
+            <button onClick={()=>setPage("decisions")}><ClipboardList size={20}/><strong>Decision Desk</strong><span>{prefs.decisions.length} recorded</span></button>
             <button onClick={()=>setPage("alerts")}><Bell size={20}/><strong>Price alerts</strong><span>{activeAlertCount} armed</span></button>
             <button onClick={()=>setPage("library")}><Layers size={20}/><strong>Workspace</strong><span>{prefs.drawings.length} drawings</span></button>
           </div>
@@ -656,7 +657,14 @@ export default function App() {
                 title={replay?"Exit historical candle replay":"Study historical candles one bar at a time"}
                 onClick={replay?exitReplay:startReplay}><Film size={15}/>{replay?"Exit replay":"Replay"}</button>
               <span className="tool-divider"/>
-              {studio && <button className="compact-action studio-setup" aria-expanded={setupOpen}
+              <button className="compact-action decision-capture-action" aria-label="Capture decision"
+                 title="Freeze your current market observation and record a decision"
+                 disabled={!viewedCandles.length}
+                 onClick={()=>{setPage("decisions");notify("Decision Desk opened with your chart context.","info");}}>
+                 <ClipboardList size={16}/> Capture decision
+               </button>
+               <span className="tool-divider"/>
+               {studio && <button className="compact-action studio-setup" aria-expanded={setupOpen}
                 aria-controls="chart-configuration" onClick={()=>setSetupOpen(value=>!value)}>
                 <Settings2 size={16}/> Chart setup
               </button>}
@@ -1158,7 +1166,15 @@ export default function App() {
           onAdd={addAlert} onRemove={removeAlert} onClearTriggered={clearTriggeredAlerts}
           onOpenTerminal={()=>setPage("terminal")}
         />}
-        {page === "risk" && <RiskPlanner
+        {page === "decisions" && <DecisionDesk
+           records={prefs.decisions}
+           context={{symbol:prefs.symbol,frame:prefs.frame,source:prefs.priceSource,
+             status:replay?"historical":feed.status,replay:Boolean(replay),
+             observedClose:viewedLast>0?viewedLast:null,
+             observedAtMs:viewedCandles.length?Number(viewedCandles[viewedCandles.length-1].time)*1000:null}}
+           onCreate={createDecision} onReview={reviewDecision}
+           onDelete={deleteDecision} onOpenChart={openDecisionChart}/>}
+         {page === "risk" && <RiskPlanner
           value={prefs.riskPlanner}
           onChange={next => update({riskPlanner:next})}
           symbol={prefs.symbol}
@@ -1191,6 +1207,6 @@ export default function App() {
     if (event.key === "ArrowUp") { event.preventDefault(); setSearchIndex(i => Math.max(0,i - 1)); }
     if (event.key === "Enter" && filtered[searchIndex]) { event.preventDefault(); openInstrument(filtered[searchIndex]); }
   }}/><button onClick={() => setSearchOpen(false)} aria-label="Close search"><X size={17}/></button></div><div id="instrument-options" role="listbox" className="command-results"><small>INSTRUMENTS · SOURCE SELECTED IN TERMINAL</small>{filtered.length ? filtered.map((symbol,i) => <button id={"instrument-" + symbol} key={symbol} role="option" aria-selected={searchIndex === i} className={searchIndex === i ? "keyboard-active" : ""} onMouseEnter={() => setSearchIndex(i)} onClick={() => openInstrument(symbol)}><Compass size={18}/><span><strong>{symbols[symbol].label}</strong><small>{symbols[symbol].market}</small></span><ChevronRight size={16}/></button>) : <p className="empty-search">No matching demonstration instruments.</p>}</div><div className="command-hint"><Command size={14}/> Ctrl K to open · ↑↓ navigate · Enter select · Esc close</div></div></div>}
-    {helpOpen && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setHelpOpen(false); }}><div className="help-dialog" role="dialog" aria-modal="true" aria-label="Help and shortcuts"><button className="dialog-close" aria-label="Close help" onClick={() => setHelpOpen(false)}><X size={18}/></button><Menu size={24}/><h2>Your terminal, your rules.</h2><p>Use the left navigation to switch between overview, charting, saved workspace and preferences. Click <strong>Price level</strong> to place a horizontal level, or drag using the Trendline, Rectangle or Fibonacci tools.</p><div className="shortcut"><span>Open market search</span><kbd>Ctrl / ⌘ + K</kbd></div><div className="shortcut"><span>Exit drawing or dismiss dialog</span><kbd>Esc</kbd></div><div className="shortcut"><span>Undo / redo drawings</span><kbd>Ctrl / ⌘ + Z · Shift + Z</kbd></div><div className="shortcut"><span>Save workspace</span><strong>Automatic</strong></div><p className="help-warning">Market prices in this preview are entirely simulated. Live trading and YoungMoney3 linking are not available yet.</p><button className="primary-button" onClick={() => setHelpOpen(false)}>Start exploring <ChevronRight size={16}/></button></div></div>}
+    {helpOpen && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setHelpOpen(false); }}><div className="help-dialog" role="dialog" aria-modal="true" aria-label="Help and shortcuts"><button className="dialog-close" aria-label="Close help" onClick={() => setHelpOpen(false)}><X size={18}/></button><Menu size={24}/><h2>Your terminal, your rules.</h2><p>Use the left navigation to switch between overview, charting, saved workspace and preferences. Click <strong>Price level</strong> to place a horizontal level, or drag using the Trendline, Rectangle or Fibonacci tools.</p><div className="shortcut"><span>Open market search</span><kbd>Ctrl / ⌘ + K</kbd></div><div className="shortcut"><span>Exit drawing or dismiss dialog</span><kbd>Esc</kbd></div><div className="shortcut"><span>Undo / redo drawings</span><kbd>Ctrl / ⌘ + Z · Shift + Z</kbd></div><div className="shortcut"><span>Save workspace</span><strong>Automatic</strong></div><div className="shortcut"><span>Capture a source-aware decision</span><strong>Decision Desk</strong></div><p className="help-warning">Most instruments use synthetic demo candles. BTC/USDT has an opt-in direct Binance Spot feed. This is not a broker, and YoungMoney3 linking is not available.</p><button className="primary-button" onClick={() => setHelpOpen(false)}>Start exploring <ChevronRight size={16}/></button></div></div>}
   </div>;
 }
