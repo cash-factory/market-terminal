@@ -47,6 +47,7 @@ export const TERMINAL_COMMANDS: TerminalCommand[] = [
   chart("frame-1d","Daily Timeframe","Switch chart to daily candles","1d daily"),
   chart("objects","Chart Object Inspector","Browse and edit current drawings","drawing manager"),
   chart("tools","Drawing Tool Library","Browse tool families and pin favorite chart tools","favorites all tools"),
+  chart("context","Chart Context Lens","See distance to marked levels, arm alerts and review chart research","proximity levels evidence"),
   chart("undo","Undo Drawing Edit","Restore previous drawings","revert"),
   chart("redo","Redo Drawing Edit","Reapply a drawing edit","restore"),
   draw("trendline","Trendline","Map directional lines between two price/time anchors","trend line"),
