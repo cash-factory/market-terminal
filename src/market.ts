@@ -1,0 +1,31 @@
+import type { CandlestickData, UTCTimestamp, LineData } from "lightweight-charts";
+export type SymbolId = "EURUSD" | "BTCUSDT" | "AAPL" | "US100";
+export const symbols: Record<SymbolId, {label:string; market:string; base:number; precision:number}> = {
+ EURUSD:{label:"EUR / USD",market:"FOREX · DEMO",base:1.0842,precision:5},
+ BTCUSDT:{label:"BTC / USDT",market:"CRYPTO · DEMO",base:96250,precision:2},
+ AAPL:{label:"AAPL",market:"STOCKS · DEMO",base:252.4,precision:2},
+ US100:{label:"US100",market:"INDICES · DEMO",base:21400,precision:2}
+};
+export type Frame = "1m"|"5m"|"15m"|"1h"|"4h"|"1d";
+export const frameSeconds:Record<Frame,number>={"1m":60,"5m":300,"15m":900,"1h":3600,"4h":14400,"1d":86400};
+function noise(i:number, seed:number) { return Math.sin(i*12.9898+seed*78.233)*43758.5453%1; }
+export function demoCandles(symbol:SymbolId,frame:Frame):CandlestickData<UTCTimestamp>[] {
+ const m=symbols[symbol], step=frameSeconds[frame], end=Math.floor(Date.now()/1000/step)*step;
+ let price=m.base; const arr:CandlestickData<UTCTimestamp>[]=[];
+ const seed=Object.keys(symbols).indexOf(symbol)+1;
+ for(let i=360;i>0;i--) {
+  const k=360-i, volatility=m.base*(symbol==="EURUSD"?.00035:.0017);
+  const drift=(Math.sin(k/28)+Math.cos(k/49))*.25;
+  const change=(noise(k,seed)+drift)*volatility*1.6;
+  const open=price, close=Math.max(.000001,price+change);
+  const wiggle=Math.abs(noise(k+999,seed))*volatility;
+  arr.push({time:(end-i*step) as UTCTimestamp,open,high:Math.max(open,close)+wiggle,low:Math.min(open,close)-wiggle,close});
+  price=close;
+ }
+ return arr;
+}
+export function sma(candles:CandlestickData<UTCTimestamp>[],period:number):LineData<UTCTimestamp>[] {
+ const out:LineData<UTCTimestamp>[]=[];let total=0;
+ for(let i=0;i<candles.length;i++){total+=candles[i].close;if(i>=period)total-=candles[i-period].close;if(i>=period-1)out.push({time:candles[i].time,value:total/period});}
+ return out;
+}
