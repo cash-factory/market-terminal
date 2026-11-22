@@ -17,6 +17,7 @@ import { beginReplay,stepReplay,seekReplay,toggleReplayPlayback,setReplaySpeed,v
 import { evaluatePriceAlerts, type PriceAlert } from "./alerts/engine";
 import { defaultStudies, studyLabels, type StudySettings } from "./indicators/studies";
 import { BUILTIN_TEMPLATES, captureChartTemplate, selectTemplate } from "./indicators/templates";
+import {defaultStudyParameters,studyParameterBounds,studyParameterKeys,updateStudyParameter} from "./indicators/parameters";
 import { defaultWorkspace, loadWorkspace, parseWorkspace, serializeWorkspace, type Workspace } from "./workspace";
 
 type Page = "home" | "terminal" | "risk" | "alerts" | "library" | "settings";
@@ -188,12 +189,12 @@ export default function App() {
   const applyChartTemplate=(id:string)=>{
     const selected=selectTemplate(id,prefs.chartTemplates);
     if(!selected){notify("Chart template was not found.","error");return;}
-    update({frame:selected.frame,showSma:selected.showSma,studies:{...selected.studies}});
+    update({frame:selected.frame,showSma:selected.showSma,studies:{...selected.studies},studyParameters:{...selected.parameters}});
     notify(selected.name+" chart template applied.");
   };
   const saveChartTemplate=()=>{
     try{
-      const template=captureChartTemplate("custom:"+crypto.randomUUID(),templateName,prefs.frame,prefs.showSma,prefs.studies);
+      const template=captureChartTemplate("custom:"+crypto.randomUUID(),templateName,prefs.frame,prefs.showSma,prefs.studies,prefs.studyParameters);
       setPrefs(old=>({...old,chartTemplates:[...old.chartTemplates,template]}));
       setTemplateName("");notify(template.name+" chart template saved.");
     }catch(error){notify(error instanceof Error?error.message:"Invalid template name.","error");}
@@ -237,7 +238,7 @@ export default function App() {
       const json: unknown = JSON.parse(await file.text());
       if (!json || typeof json !== "object" || Array.isArray(json) ||
         !("format" in json) || json.format !== "market-terminal-workspace" ||
-        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12) ||
+        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13) ||
         !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
       const workspace = parseWorkspace(json);
       setPrefs(workspace);
@@ -449,6 +450,28 @@ export default function App() {
                     <button onClick={()=>{
                       update({studies:{...defaultStudies},showSma:false});notify("All technical indicators hidden.");
                     }}>Clear all</button></div>
+                  <div className="study-parameter-section">
+                    <div className="study-parameter-head"><strong>Indicator parameters</strong>
+                      <button onClick={()=>{update({studyParameters:{...defaultStudyParameters}});notify("Indicator periods reset.");}}>Reset periods</button>
+                    </div>
+                    <div className="study-parameter-grid">
+                      {studyParameterKeys.map(key=><label key={key}>
+                        <span>{studyParameterBounds[key].label}</span>
+                        <input type="number" inputMode="decimal"
+                          aria-label={studyParameterBounds[key].label}
+                          min={studyParameterBounds[key].min}
+                          max={studyParameterBounds[key].max}
+                          step={studyParameterBounds[key].step}
+                          value={prefs.studyParameters[key]}
+                          onChange={e=>{
+                            if(!e.target.value)return;
+                            try{update({studyParameters:updateStudyParameter(prefs.studyParameters,key,Number(e.target.value))});}
+                            catch(error){notify(error instanceof Error?error.message:"Invalid indicator period.","error");}
+                          }}/>
+                      </label>)}
+                    </div>
+                    <small>Changes update every chart in this workspace. MACD fast must be less than slow.</small>
+                  </div>
                   <div className="study-template-section">
                     <strong>Chart templates</strong>
                     <select aria-label="Apply chart template" value="" onChange={e=>applyChartTemplate(e.target.value)}>
@@ -528,7 +551,7 @@ export default function App() {
                   <strong>{symbols[prefs.symbol].label}</strong><small>{feed.sourceLabel}</small>
                 </div>}
                 <ChartCanvas key={replay?"historical-replay":"active-chart"} symbol={prefs.symbol} frame={prefs.frame} source={prefs.priceSource} candles={viewedCandles}
-                  dark={prefs.dark} showSma={prefs.showSma} studies={prefs.studies} levels={replay?[]:currentLevels} drawMode={drawMode} onPlaceLevel={addLevel}
+                  dark={prefs.dark} showSma={prefs.showSma} studies={prefs.studies} parameters={prefs.studyParameters} levels={replay?[]:currentLevels} drawMode={drawMode} onPlaceLevel={addLevel}
                   drawingTool={drawingTool} drawings={replayDrawings} magnetEnabled={prefs.magnetEnabled}
                   drawingColor={prefs.accent === "amber" ? "#e9b368" : prefs.accent === "teal" ? "#32c7aa" : "#9295ff"}
                   onAddDrawing={addDrawing} onUpdateDrawing={updateDrawing} onDeleteDrawing={removeDrawing}/>
@@ -552,7 +575,7 @@ export default function App() {
                 </div>
                 <ChartCanvas key={"secondary-"+prefs.secondarySymbol} symbol={prefs.secondarySymbol} frame={prefs.frame}
                   source="demo" candles={comparisonFeed.candles} dark={prefs.dark}
-                  showSma={prefs.showSma} studies={prefs.studies} levels={comparisonLevels}
+                  showSma={prefs.showSma} studies={prefs.studies} parameters={prefs.studyParameters} levels={comparisonLevels}
                   drawMode={drawMode} onPlaceLevel={addComparisonLevel}
                   drawingTool={drawingTool} drawings={comparisonDrawings} magnetEnabled={prefs.magnetEnabled}
                   drawingColor={prefs.accent === "amber" ? "#e9b368" : prefs.accent === "teal" ? "#32c7aa" : "#9295ff"}
