@@ -185,7 +185,10 @@ export function AdvancedDrawingPrimitives({
   }
   if(tool==="callout"||tool==="price-note"){
     const text=safeLabel(drawing.text??(tool==="callout"?"Observation": "Marked price"));
-    const label=tool==="price-note"?drawing.start.price.toFixed(precision)+" · "+text:text;
+    const classification=tool==="callout"&&drawing.evidenceSide==="supports"?"[SUPPORTS] ":
+      tool==="callout"&&drawing.evidenceSide==="challenges"?"[CHALLENGES] ":"";
+    const label=tool==="price-note"?drawing.start.price.toFixed(precision)+" · "+text:
+      classification+text;
     const w=Math.min(290,Math.max(95,label.length*6.5+25));
     const left=Math.min(Math.max(4,a.x+13),Math.max(4,plot.width-w-5));
     const top=Math.max(4,Math.min(plot.height-40,a.y-43));
