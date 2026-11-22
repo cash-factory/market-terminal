@@ -286,7 +286,7 @@ export function DrawingOverlay({
     <rect className="drawing-plot-surface" data-drawing-surface="true"
       x={0} y={0} width="100%" height="100%"
       fill="transparent" pointerEvents={tool ? "all" : "none"}/>
-    {drawings.filter(d => d.symbol === symbol).map(d => renderDrawing(draft?.id === d.id ? draft : d))}
+    {drawings.filter(d => d.symbol === symbol && !d.hidden).map(d => renderDrawing(draft?.id === d.id ? draft : d))}
     {draft?.id === "preview" && renderDrawing(draft)}
   </svg>;
 }
