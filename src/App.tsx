@@ -3,10 +3,11 @@ import {
   Activity, ArrowDownToLine, Bell, BookOpen, ChartCandlestick, Check,
   ChevronLeft, ChevronRight, Command, Compass, Download, Home, Layers,
   Menu, Moon, MousePointer2, Plus, RotateCcw, Search, Settings2, Sun,
-  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Target, Film, Magnet, MoveUpRight, ArrowUpRight, Columns2, Grid2X2, Shapes, Pencil
+  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Target, Film, Magnet, MoveUpRight, ArrowUpRight, Columns2, Grid2X2, Shapes, Pencil, ArrowUp, ArrowDown
 } from "lucide-react";
 import { ChartCanvas } from "./ChartCanvas";
 import type { Drawing, DrawingTool } from "./drawing/types";
+import {groupDrawings,ungroupDrawings,styleDrawings,moveDrawingLayers,updateDrawingAndGroup,type DrawingStylePatch} from "./drawing/manage";
 import { frameSeconds, symbols, type Frame, type SymbolId } from "./market";
 import { usePriceFeed } from "./data/usePriceFeed";
 import { panelWidthAfterDrag, panelWidthAfterKey } from "./layout";
@@ -43,6 +44,7 @@ export default function App() {
   const [draft, setDraft] = useState("");
   const [drawMode, setDrawMode] = useState(false);
   const [drawingTool, setDrawingTool] = useState<DrawingTool | null>(null);
+  const [selectedDrawingIds,setSelectedDrawingIds]=useState<string[]>([]);
   const drawingHistory = useRef<{ past: Drawing[][]; future: Drawing[][] }>({ past: [], future: [] });
   const [historyVersion, setHistoryVersion] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -138,10 +140,38 @@ export default function App() {
     setDrawMode(false);notify("Comparison chart price level saved.");
   };
   const updateDrawing = (drawing: Drawing) => {
-    commitDrawings(prefs.drawings.map(d => d.id === drawing.id ? drawing : d), "Drawing updated.");
+    commitDrawings(updateDrawingAndGroup(prefs.drawings,drawing),"Drawing updated.");
   };
   const removeDrawing = (id: string) => {
     commitDrawings(prefs.drawings.filter(d => d.id !== id), "Drawing removed. Use Undo to restore.");
+    setSelectedDrawingIds(ids=>ids.filter(item=>item!==id));
+  };
+  const removeDrawings=(ids:string[])=>{
+    const selection=new Set(ids);
+    commitDrawings(prefs.drawings.filter(d=>!selection.has(d.id)||d.locked),
+      "Selected unlocked drawings removed. Use Undo to restore.");
+    setSelectedDrawingIds([]);
+  };
+  const groupSelectedDrawings=()=>{
+    try{
+      const id="group:"+crypto.randomUUID();
+      commitDrawings(groupDrawings(prefs.drawings,selectedDrawingIds,id),"Drawings grouped. Drag any member to move the group.");
+    }catch(error){notify(error instanceof Error?error.message:"Choose at least two drawings.","error");}
+  };
+  const ungroupSelectedDrawings=()=>{
+    const chosen=new Set(selectedDrawingIds);
+    const groupIds=new Set(prefs.drawings.filter(d=>chosen.has(d.id)).map(d=>d.groupId).filter((id):id is string=>!!id));
+    const affected=prefs.drawings.filter(d=>chosen.has(d.id)||(d.groupId&&groupIds.has(d.groupId))).map(d=>d.id);
+    commitDrawings(ungroupDrawings(prefs.drawings,affected),"Drawing group dissolved.");
+  };
+  const setDrawingStyle=(patch:Partial<DrawingStylePatch>)=>{
+    if(!selectedDrawingIds.length)return;
+    commitDrawings(styleDrawings(prefs.drawings,selectedDrawingIds,patch),"Selected drawing style updated.");
+  };
+  const shiftDrawingLayers=(direction:"forward"|"backward")=>{
+    if(!selectedDrawingIds.length)return;
+    commitDrawings(moveDrawingLayers(prefs.drawings,selectedDrawingIds,direction),
+      direction==="forward"?"Drawings moved forward.":"Drawings moved backward.");
   };
   const toggleDrawingProperty = (id: string, property: "locked" | "hidden") => {
     const active = prefs.drawings.find(d => d.id === id);
@@ -158,7 +188,7 @@ export default function App() {
     if (!active) return;
     const offset = frameSeconds[prefs.frame] * 3;
     const copy: Drawing = {
-      ...active, id: crypto.randomUUID(), hidden: false, locked: false,
+      ...active, id: crypto.randomUUID(), hidden: false, locked: false, groupId: undefined,
       start: { time: active.start.time + offset, price: active.start.price * 1.001 },
       end: { time: active.end.time + offset, price: active.end.price * 1.001 },
       ...(active.points?{points:active.points.map(p=>({time:p.time+offset,price:p.price*1.001}))}:{})
@@ -258,7 +288,7 @@ export default function App() {
       const json: unknown = JSON.parse(await file.text());
       if (!json || typeof json !== "object" || Array.isArray(json) ||
         !("format" in json) || json.format !== "market-terminal-workspace" ||
-        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15) ||
+        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15 && json.version !== 16) ||
         !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
       const workspace = parseWorkspace(json);
       setPrefs(workspace);
@@ -600,7 +630,8 @@ export default function App() {
                   dark={prefs.dark} showSma={prefs.showSma} studies={prefs.studies} parameters={prefs.studyParameters} levels={replay?[]:currentLevels} drawMode={drawMode} onPlaceLevel={addLevel}
                   drawingTool={drawingTool} drawings={replayDrawings} magnetEnabled={prefs.magnetEnabled}
                   drawingColor={prefs.accent === "amber" ? "#e9b368" : prefs.accent === "teal" ? "#32c7aa" : "#9295ff"}
-                  onAddDrawing={addDrawing} onUpdateDrawing={updateDrawing} onDeleteDrawing={removeDrawing}/>
+                  onAddDrawing={addDrawing} onUpdateDrawing={updateDrawing} onDeleteDrawing={removeDrawing} onDeleteDrawings={removeDrawings}
+                  selectedDrawingIds={selectedDrawingIds} onDrawingSelectionChange={setSelectedDrawingIds}/>
               </section>
               {!replay&&comparisonPanels.slice(0,prefs.chartLayout==="quad"?3:prefs.chartLayout==="dual"?1:0)
                 .map(panel=><section key={panel.slot} className="chart-grid-cell"
@@ -651,8 +682,47 @@ export default function App() {
             <div className="price-form"><input type="number" min="0" step="any" aria-label="Level price" placeholder={last.toFixed(symbols[prefs.symbol].precision)} value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === "Enter") addLevel(draft.trim() ? Number(draft) : last); }}/><button aria-label="Add price level" title="Add price level" onClick={() => addLevel(draft.trim() ? Number(draft) : last)}><Plus size={17}/></button></div>
             <div className="level-list">{currentLevels.map(level => <div key={level.id}><span className="level-swatch" style={{ background: level.color }}/><span>{level.price.toFixed(symbols[prefs.symbol].precision)}</span><button aria-label={"Remove price level " + level.price} title="Remove level" onClick={() => removeLevel(level.id)}><Trash2 size={15}/></button></div>)}</div>
             <div className="panel-head separated"><strong>Chart drawings</strong><span className="count">{currentDrawings.length}</span></div>
+            <div className="drawing-bulk-toolbar">
+              <span>{selectedDrawingIds.length} selected</span>
+              <button aria-label="Select all chart drawings"
+                onClick={()=>setSelectedDrawingIds(currentDrawings.map(d=>d.id))}>Select all</button>
+              <button aria-label="Clear drawing selection" onClick={()=>setSelectedDrawingIds([])}>Clear</button>
+              <button aria-label="Group selected drawings" disabled={selectedDrawingIds.length<2}
+                onClick={groupSelectedDrawings}>Group</button>
+              <button aria-label="Ungroup selected drawings" disabled={!selectedDrawingIds.length}
+                onClick={ungroupSelectedDrawings}>Ungroup</button>
+            </div>
+            {selectedDrawingIds.length>0&&<div className="drawing-style-toolbar">
+              <label>Color <input type="color" aria-label="Selected drawing color"
+                value={prefs.drawings.find(d=>selectedDrawingIds.includes(d.id))?.color??"#9495fa"}
+                onChange={e=>setDrawingStyle({color:e.target.value})}/></label>
+              <label>Weight <select aria-label="Selected drawing weight"
+                value={prefs.drawings.find(d=>selectedDrawingIds.includes(d.id))?.strokeWidth??2}
+                onChange={e=>setDrawingStyle({strokeWidth:Number(e.target.value)})}>
+                {[1,2,3,4,5,6,7,8].map(n=><option key={n} value={n}>{n}px</option>)}
+              </select></label>
+              <label>Style <select aria-label="Selected drawing line style"
+                value={prefs.drawings.find(d=>selectedDrawingIds.includes(d.id))?.dash??"solid"}
+                onChange={e=>setDrawingStyle({dash:e.target.value as "solid"|"dashed"|"dotted"})}>
+                <option value="solid">Solid</option><option value="dashed">Dashed</option>
+                <option value="dotted">Dotted</option>
+              </select></label>
+              <label>Opacity <input type="range" aria-label="Selected drawing opacity"
+                min={.1} max={1} step={.1}
+                value={prefs.drawings.find(d=>selectedDrawingIds.includes(d.id))?.opacity??1}
+                onChange={e=>setDrawingStyle({opacity:Number(e.target.value)})}/></label>
+              <div className="drawing-layer-actions">
+                <button aria-label="Bring selected drawings forward" onClick={()=>shiftDrawingLayers("forward")}><ArrowUp size={14}/> Forward</button>
+                <button aria-label="Send selected drawings backward" onClick={()=>shiftDrawingLayers("backward")}><ArrowDown size={14}/> Backward</button>
+              </div>
+            </div>}
             <div className="drawing-object-list">{currentDrawings.map((drawing,index) =>
               <div key={drawing.id} className={"drawing-object-row " + (drawing.hidden ? "object-hidden" : "")}>
+                <input type="checkbox" className="drawing-select-checkbox"
+                  aria-label={"Select drawing "+(index+1)}
+                  checked={selectedDrawingIds.includes(drawing.id)}
+                  onChange={e=>setSelectedDrawingIds(ids=>
+                    e.target.checked?[...new Set([...ids,drawing.id])]:ids.filter(id=>id!==drawing.id))}/>
                 <span className="level-swatch" style={{background:drawing.color}}/>
                 <span className="drawing-object-name" title={drawing.tool}>
                   {index+1}. {drawing.tool}{drawing.tool==="text"?" · "+(drawing.text||"Note"):""}
