@@ -288,7 +288,7 @@ export default function App() {
     }]}));
     setDrawMode(false);notify("Comparison chart price level saved.");
   };
-  const updateDrawing = (drawing: Drawing, editKind?:"move"|"start"|"end"|"control"|"target") => {
+  const updateDrawing = (drawing: Drawing, editKind?:"move"|"start"|"end"|"control"|"target"|"vertex") => {
     commitDrawings(updateDrawingAndGroup(prefs.drawings,drawing,editKind),"Drawing updated.");
   };
   const removeDrawing = (id: string) => {
