@@ -459,3 +459,10 @@
 .chart-profile-note{padding-top:12px;margin:12px 0 0;border-top:1px solid var(--border);
   color:var(--muted);font-size:10px;line-height:1.6}
 @media(max-width:700px){.chart-profile-popover{left:auto;right:0}}
+
+
+/* Operational feedback when a user-defined study exceeds the safe chart compute budget. */
+.chart-study-warning{padding:11px 16px;display:flex;flex-direction:column;gap:5px;
+  background:rgba(219,163,89,.08);color:var(--soft);border-block:1px solid rgba(219,163,89,.22);
+  font-size:10px;line-height:1.55;overflow-wrap:anywhere}
+.chart-study-warning strong{font-size:11px;color:var(--text)}
