@@ -14,6 +14,7 @@ import type { Drawing, DrawingTool } from "./drawing/types";
 import {groupDrawings,ungroupDrawings,styleDrawings,moveDrawingLayers,updateDrawingAndGroup,type DrawingStylePatch} from "./drawing/manage";
 import { frameSeconds, symbols, type Frame, type SymbolId } from "./market";
 import { usePriceFeed } from "./data/usePriceFeed";
+import {referenceMarketHours,priceMetadata} from "./data/sessionReference";
 import { panelWidthAfterDrag, panelWidthAfterKey } from "./layout";
 import { RiskPlanner } from "./analysis/RiskPlanner";
 import {calculatePosition,defaultPositionTarget} from "./analysis/positionDrawing";
@@ -46,6 +47,11 @@ const titles: Record<Page, string> = {
 
 export default function App() {
   const [prefs, setPrefs] = useState<Workspace>(loadWorkspace);
+  const [marketClock,setMarketClock]=useState(()=>Date.now());
+  useEffect(()=>{
+    const handle=window.setInterval(()=>setMarketClock(Date.now()),60_000);
+    return ()=>window.clearInterval(handle);
+  },[]);
   const [page, setPage] = useState<Page>("terminal");
   const [draft, setDraft] = useState("");
   const [drawMode, setDrawMode] = useState(false);
@@ -75,6 +81,8 @@ export default function App() {
   const inputFile = useRef<HTMLInputElement>(null);
   const inputSearch = useRef<HTMLInputElement>(null);
   const feed = usePriceFeed(prefs.symbol, prefs.frame, prefs.priceSource);
+  const sessionReference=referenceMarketHours(prefs.symbol,prefs.priceSource,marketClock);
+  const instrumentPrecision=priceMetadata(prefs.symbol,prefs.priceSource);
   // Secondary panels are explicitly synthetic until licensed additional feeds
   // can be attached to each pane independently.
   const comparisonFeed = usePriceFeed(prefs.secondarySymbol,prefs.secondaryFrame,prefs.secondarySource);
@@ -779,6 +787,17 @@ export default function App() {
               <h1>{symbols[prefs.symbol].label} <span className={"demo-pill feed-pill " + (replay?"historical":feed.status)}>{displaySourceLabel}</span></h1>
               <p>{replay?"Paused historical snapshot · Future candles hidden until you advance":prefs.priceSource === "demo" ? "Illustrative candles, not executable quotes" : "Direct Binance public Spot data · BTC/USDT, not broker CFD prices"}</p>
             </div><div className="quote"><small>{replay?"REPLAY BAR CLOSE":prefs.priceSource === "demo" ? "SIMULATED LAST" : "BINANCE SPOT LAST"}</small><strong>{quoteText}</strong></div></div>
+            <details className="market-session-reference">
+              <summary>
+                <span>Market hours reference</span>
+                <strong>{sessionReference.summary}</strong>
+                <small>Not an execution or feed status</small>
+              </summary>
+              <p>{sessionReference.detail}</p>
+              <p>{instrumentPrecision.note}</p>
+              {sessionReference.sourceUrl&&<a href={sessionReference.sourceUrl} target="_blank"
+                rel="noopener noreferrer">View official Nasdaq calendar</a>}
+            </details>
             {prefs.priceSource === "binance" && feed.status !== "live" && <div className={"feed-message " + feed.status} role="status">
               <WifiOff size={16}/><span>{feed.message ?? "Connecting to the exchange…"}</span>
               <button onClick={feed.retry}><RefreshCw size={14}/> Retry</button>
