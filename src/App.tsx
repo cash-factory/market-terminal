@@ -263,7 +263,8 @@ export default function App() {
           <div className="summary-grid"><div><span>Current timeframe</span><strong>{prefs.frame.toUpperCase()}</strong></div><div><span>Saved price levels</span><strong>{prefs.levels.length}</strong></div><div><span>Core drawing quota</span><strong>None</strong></div></div>
           <p className="data-caveat"><Activity size={16}/> Demo instruments use synthetic prices. Opt-in Binance Spot BTC/USDT is available in the terminal; forex, equities and indices are not connected to live feeds.</p>
         </div>}
-        {page === "terminal" && <div className="terminal-layout">
+        {page === "terminal" && <div className={"terminal-layout " + (prefs.rightPanelOpen ? "" : "panel-closed")}
+          style={{"--right-panel-width": prefs.rightPanelWidth + "px"} as CSSProperties}>
           <section className="terminal-center">
             <div className="terminal-toolbar">
               <button className="symbol-button" onClick={() => setSearchOpen(true)}><span>{symbols[prefs.symbol].label}</span><Search size={15}/></button>
@@ -278,6 +279,14 @@ export default function App() {
                   onClick={() => { update({priceSource:"binance"}); setDrawingTool(null); setDrawMode(false); notify("Connecting to Binance Spot BTC/USDT…", "info"); }}>Binance Spot</button>
               </div>
               <div className="timeframes">{frames.map(frame => <button key={frame} className={frame === prefs.frame ? "active" : ""} onClick={() => update({ frame })}>{frame}</button>)}</div>
+              <span className="tool-divider"/>
+              <button className="compact-action panel-toggle" title={prefs.rightPanelOpen ? "Hide watchlist" : "Show watchlist"}
+                aria-label={prefs.rightPanelOpen ? "Hide watchlist" : "Show watchlist"}
+                aria-pressed={prefs.rightPanelOpen}
+                onClick={() => { update({rightPanelOpen: !prefs.rightPanelOpen}); notify(prefs.rightPanelOpen ? "Watchlist hidden." : "Watchlist opened."); }}>
+                {prefs.rightPanelOpen ? <PanelRightClose size={16}/> : <PanelRightOpen size={16}/>}
+                <span>{prefs.rightPanelOpen ? "Hide panel" : "Show panel"}</span>
+              </button>
               <span className="tool-divider"/>
               <button className={"compact-action " + (prefs.showSma ? "active" : "")} onClick={() => { update({ showSma: !prefs.showSma }); notify(!prefs.showSma ? "SMA 20 enabled." : "SMA 20 hidden."); }}>SMA 20</button>
               <button disabled={!currentCandles.length} className={"compact-action draw-toggle " + (drawMode ? "active" : "")} onClick={() => { setDrawingTool(null); setDrawMode(!drawMode); notify(!drawMode ? "Drawing armed: click the chart to place a horizontal level." : "Drawing cancelled.", "info"); }}><Plus size={15}/> Price level</button>
@@ -309,7 +318,13 @@ export default function App() {
               onAddDrawing={addDrawing} onUpdateDrawing={updateDrawing} onDeleteDrawing={removeDrawing}/>
             <div className="chart-footer"><span><span className="sync-point">●</span> Locally saved</span><span>Source: {feed.sourceLabel} · {frameSeconds[prefs.frame] / 60}m candle interval · {feed.status}{feed.lastUpdatedMs ? " · Updated " + new Date(feed.lastUpdatedMs).toLocaleTimeString() : ""}</span></div>
           </section>
-          <aside className="right-panel">
+          {prefs.rightPanelOpen && <aside className="right-panel">
+            <div className="panel-resizer" role="separator" tabIndex={0} aria-label="Resize watchlist panel"
+              aria-orientation="vertical" aria-valuenow={prefs.rightPanelWidth} aria-valuemin={220} aria-valuemax={460}
+              title="Drag to resize watchlist, or use arrow keys"
+              onPointerDown={onResizeStart} onPointerMove={onResizeMove}
+              onPointerUp={onResizeStop} onPointerCancel={onResizeStop}
+              onKeyDown={onResizeKey}/>
             <div className="panel-head"><strong>Watchlist</strong><button aria-label="Search instruments" title="Search instruments" className="mini-button" onClick={() => setSearchOpen(true)}><Search size={16}/></button></div>
             <div className="watchlist">{marketList.map(symbol => <button key={symbol} onClick={() => openInstrument(symbol)} className={symbol === prefs.symbol ? "selected" : ""}><span><b>{symbols[symbol].label}</b><small>{symbols[symbol].market.split(" · ")[0]}</small></span><ChevronRight size={15}/></button>)}</div>
             <div className="panel-head separated"><strong>Price levels</strong><span className="count">{currentLevels.length}</span></div>
@@ -320,7 +335,7 @@ export default function App() {
               <div key={drawing.id}><span className="level-swatch" style={{background:drawing.color}}/><span>{drawing.tool}</span><button aria-label={"Delete " + drawing.tool} title="Delete drawing" onClick={() => removeDrawing(drawing.id)}><Trash2 size={15}/></button></div>
             )}</div>
             <p className="panel-note">Drag to place drawings. Click a shape to select it, drag to move, drag endpoints to resize, or press Delete. Ctrl+Z / Ctrl+Shift+Z undo and redo.</p>
-          </aside>
+          </aside>}
         </div>}
         {page === "library" && <div className="content-page">
           <div className="section-head first"><div><small>LOCAL-FIRST</small><h1>My workspace</h1><p>Save, restore and manage your trading setup without a subscription.</p></div></div>
