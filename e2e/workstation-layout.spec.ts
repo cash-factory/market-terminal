@@ -6,7 +6,7 @@ test("market setup and drawing tools have separate workstation control bands",as
   const drawings=page.getByRole("group",{name:"Drawing and editing tools"});
   await expect(market).toBeVisible();
   await expect(drawings).toBeVisible();
-  await expect(market.getByRole("button",{name:"Replay"})).toBeVisible();
+  await expect(market.getByRole("button",{name:"Start replay"})).toBeVisible();
   await expect(drawings.getByRole("button",{name:"Trendline"})).toBeVisible();
   const first=await market.boundingBox();
   const second=await drawings.boundingBox();
