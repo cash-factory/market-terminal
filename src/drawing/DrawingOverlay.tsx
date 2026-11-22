@@ -11,10 +11,11 @@ import {
   inChartPlot, logicalFromTime, pointerDistance, timeFromLogical, type ChartPoint
 } from "./geometry";
 import { snapAnchorToOhlc, rayEndpoint, measurement } from "./snap";
+import {calculatePosition,defaultPositionTarget,positionTargetAnchor} from "../analysis/positionDrawing";
 
 type Projected = { a: ChartPoint; b: ChartPoint };
 type Gesture = {
-  kind: "create" | "move" | "start" | "end" | "control";
+  kind: "create" | "move" | "start" | "end" | "control" | "target";
   origin: ChartPoint;
   original?: Drawing;
   first?: ChartAnchor;
@@ -33,7 +34,7 @@ interface Props {
   color: string;
   magnetEnabled: boolean;
   onAdd: (drawing: Drawing) => void;
-  onUpdate: (drawing: Drawing,editKind?:"move"|"start"|"end"|"control") => void;
+  onUpdate: (drawing: Drawing,editKind?:"move"|"start"|"end"|"control"|"target") => void;
   onDelete: (id: string) => void;
   onDeleteMany: (ids: string[]) => void;
   selectedIds: string[];
@@ -245,6 +246,19 @@ export function DrawingOverlay({
     if (!originalProjected) return;
     const dx = point.x - active.origin.x;
     const dy = point.y - active.origin.y;
+    if(active.kind==="target"){
+      const prior=active.original.target??
+        (active.original.tool==="long-position"||active.original.tool==="short-position"?
+          positionTargetAnchor(active.original.tool,active.original.start,active.original.end):undefined);
+      if(prior){
+        const projected=project({...active.original,start:prior,end:prior});
+        if(projected){
+          const target=anchorAt({x:projected.a.x+dx,y:projected.a.y+dy});
+          if(target)setDraft({...active.original,target});
+        }
+      }
+      return;
+    }
     if(active.kind==="control"&&active.original.control){
       const controlProjected=project({...active.original,start:active.original.control,end:active.original.control});
       if(controlProjected){
@@ -294,7 +308,10 @@ export function DrawingOverlay({
             setDraft({...completed,control:completed.start});
           }else{
             setDraft(null);
-            onAdd({ ...completed, id: crypto.randomUUID() });
+            const positionTarget=(tool==="long-position"||tool==="short-position")?
+              positionTargetAnchor(tool,completed.start,completed.end):undefined;
+            onAdd({...completed,...(positionTarget?{target:positionTarget}:{}),
+              id:crypto.randomUUID()});
           }
         }else setDraft(null);
       } else {
