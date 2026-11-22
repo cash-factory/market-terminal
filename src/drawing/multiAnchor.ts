@@ -14,7 +14,8 @@ export function multiPointCount(tool:DrawingTool):number{
 export function isCompleteMultiPointDrawing(drawing:Drawing):boolean{
   const expected=MULTI_POINT_COUNTS[drawing.tool];
   if(!expected)return true;
-  if(!drawing.points||drawing.points.length!==expected)return false;
+  if(!Array.isArray(drawing.points)||drawing.points.length!==expected||
+     !drawing.points[0]||!drawing.points[1])return false;
   return drawing.points[0].time===drawing.start.time&&
     drawing.points[0].price===drawing.start.price&&
     drawing.points[1].time===drawing.end.time&&
