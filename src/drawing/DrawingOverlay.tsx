@@ -4,19 +4,21 @@ import type {
 } from "lightweight-charts";
 import { frameSeconds, symbols, type Frame } from "../market";
 import {
-  FIBONACCI_LEVELS, fibonacciPrices, translateDrawing,
+  translateDrawing,
   type ChartAnchor, type Drawing, type DrawingTool
 } from "./types";
 import {
   inChartPlot, logicalFromTime, pointerDistance, timeFromLogical, type ChartPoint
 } from "./geometry";
-import { snapAnchorToOhlc, rayEndpoint, measurement } from "./snap";
-import { clippedExtendedLine, horizontalReference, verticalReference,
+import { snapAnchorToOhlc, measurement } from "./snap";
+import { horizontalReference, verticalReference,
   observedBarCount, formatElapsedDuration } from "./precision";
 import { ONE_ANCHOR_TOOLS } from "./toolDefinitions";
 import { isDrawingVisibleAtFrame } from "./drawingSettings";
 import { addMultiPointAnchor, multiPointCount, requiresMultiPoint } from "./multiAnchor";
 import { AdvancedDrawingPrimitives } from "./AdvancedDrawingPrimitives";
+import {effectiveLevels,formatFibLabel,measurementSegments} from "./toolProperties";
+import {projectedSegment} from "./projection";
 import {calculatePosition,defaultPositionTarget,positionTargetAnchor} from "../analysis/positionDrawing";
 
 type Projected = { a: ChartPoint; b: ChartPoint };
@@ -542,7 +544,7 @@ export function DrawingOverlay({
       })()}
       {(["extended-line","horizontal-line","horizontal-ray","vertical-line","cross-line"] as string[])
          .includes(drawing.tool) && (() => {
-         const first=drawing.tool==="extended-line"?clippedExtendedLine(a,b,plot):
+         const first=drawing.tool==="extended-line"?projectedSegment(a,b,plot,drawing.projection??"both"):
            drawing.tool==="horizontal-line"?horizontalReference(a,plot,false):
            drawing.tool==="horizontal-ray"?horizontalReference(a,plot,true):
            verticalReference(a,plot);
@@ -597,13 +599,13 @@ export function DrawingOverlay({
              pointerEvents="none">{elapsed+" · "+bars+" observed bars"}</text>
          </>;
        })()}
-       {drawing.tool === "ray" && (() => {
-        const endpoint=rayEndpoint(a,b,chart.timeScale().width(),
-          Math.max(0,(svgRef.current?.clientHeight ?? 0)-chart.timeScale().height()));
+      {drawing.tool === "ray" && (() => {
+        const line=projectedSegment(a,b,plot,drawing.projection??"right");
+        if(!line)return null;
         return <>
-          <line x1={a.x} y1={a.y} x2={endpoint.x} y2={endpoint.y}
+          <line x1={line.start.x} y1={line.start.y} x2={line.end.x} y2={line.end.y}
             stroke="transparent" strokeWidth={16} className="drawing-hit"/>
-          <line x1={a.x} y1={a.y} x2={endpoint.x} y2={endpoint.y}
+          <line x1={line.start.x} y1={line.start.y} x2={line.end.x} y2={line.end.y}
             {...common} className="drawing-line"/>
         </>;
       })()}
@@ -625,26 +627,32 @@ export function DrawingOverlay({
           </text>
         </>;
       })()}
-      {drawing.tool === "trendline" && <>
-        <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="transparent"
-          strokeWidth={16} className="drawing-hit" />
-        <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} {...common} className="drawing-line"/>
-      </>}
+      {drawing.tool === "trendline" && (() => {
+        const line=projectedSegment(a,b,plot,drawing.projection??"segment");
+        if(!line)return null;
+        return <>
+          <line x1={line.start.x} y1={line.start.y} x2={line.end.x} y2={line.end.y}
+            stroke="transparent" strokeWidth={16} className="drawing-hit"/>
+          <line x1={line.start.x} y1={line.start.y} x2={line.end.x} y2={line.end.y}
+            {...common} className="drawing-line"/>
+        </>;
+      })()}
       {drawing.tool === "rectangle" && <rect x={Math.min(a.x,b.x)} y={Math.min(a.y,b.y)}
         width={Math.max(1,Math.abs(b.x-a.x))} height={Math.max(1,Math.abs(b.y-a.y))}
         fill={drawing.color} fillOpacity={drawing.fillOpacity??.08} {...common} className="drawing-rectangle"/>}
-      {drawing.tool === "fibonacci" && FIBONACCI_LEVELS.map((level, i) => {
-        const y = fibonacciPrices(a.y, b.y)[i];
-        const x1 = Math.min(a.x, b.x);
-        const x2 = Math.max(a.x, b.x);
-        return <g key={level}>
+      {drawing.tool === "fibonacci" && effectiveLevels(drawing).map((level,i)=>{
+        if(!level.visible)return null;
+        const price=drawing.start.price+(drawing.end.price-drawing.start.price)*level.ratio;
+        const y=series.priceToCoordinate(price);
+        if(y===null||y< -30||y>plot.height+30)return null;
+        const x1=Math.min(a.x,b.x),x2=Math.max(a.x,b.x);
+        return <g key={i}>
           <line x1={x1} x2={x2} y1={y} y2={y} stroke="transparent"
             strokeWidth={12} className="drawing-hit"/>
-          <line x1={x1} x2={x2} y1={y} y2={y} {...common}
-            strokeOpacity={i === 0 || i === FIBONACCI_LEVELS.length - 1 ? 1 : .75}
-            className="drawing-line"/>
-          {drawing.showLabels!==false&&          <text x={x2+6} y={y-4} fill={drawing.color} fontSize={10}
-            pointerEvents="none">{(level*100).toFixed(1)}%</text>}
+          <line x1={x1} x2={x2} y1={y} y2={y} {...common} stroke={level.color}
+            strokeOpacity={level.ratio===0||level.ratio===1?1:.75} className="drawing-fib-level"/>
+          {drawing.showLabels!==false&&<text x={x2+6} y={y-4} fill={level.color} fontSize={10}
+            pointerEvents="none">{formatFibLabel(level.ratio,price,symbols[symbol].precision,drawing.labelMode)}</text>}
         </g>;
       })}
       {drawing.tool==="rectangle"&&drawing.showMidline&&
