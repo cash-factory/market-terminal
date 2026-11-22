@@ -7,6 +7,7 @@ import { parseCustomStudies } from "../indicators/formula";
 
 export type ProfileSettings = Pick<Workspace,
   "symbol"|"frame"|"priceSource"|"chartLayout"|"chartDisplayStyle"|
+  "comparisonOverlaySymbol"|"comparisonOverlaySource"|
   "secondarySymbol"|"tertiarySymbol"|"quaternarySymbol"|
   "secondaryFrame"|"tertiaryFrame"|"quaternaryFrame"|
   "secondarySource"|"tertiarySource"|"quaternarySource"|
@@ -48,6 +49,8 @@ export function parseProfileSettings(value:unknown):ProfileSettings|null{
     symbol:primary,frame:mainFrame,priceSource:source(value.priceSource,primary),
     chartLayout:value.chartLayout,
     chartDisplayStyle:parseChartDisplayStyle(value.chartDisplayStyle),
+    comparisonOverlaySymbol:sym(value.comparisonOverlaySymbol),
+    comparisonOverlaySource:value.comparisonOverlaySymbol==="BTCUSDT"&&value.comparisonOverlaySource==="binance"?"binance":"demo",
     secondarySymbol:secondary,tertiarySymbol:tertiary,quaternarySymbol:fourth,
     secondaryFrame:secondFrame,tertiaryFrame:thirdFrame,quaternaryFrame:fourthFrame,
     secondarySource:source(value.secondarySource,secondary),
@@ -66,6 +69,8 @@ export function captureProfileSettings(w:Workspace):ProfileSettings{
   const settings:ProfileSettings={
     symbol:w.symbol,frame:w.frame,priceSource:w.priceSource,
     chartLayout:w.chartLayout,chartDisplayStyle:w.chartDisplayStyle,
+    comparisonOverlaySymbol:w.comparisonOverlaySymbol,
+    comparisonOverlaySource:w.comparisonOverlaySource,
     secondarySymbol:w.secondarySymbol,tertiarySymbol:w.tertiarySymbol,
     quaternarySymbol:w.quaternarySymbol,
     secondaryFrame:w.secondaryFrame,tertiaryFrame:w.tertiaryFrame,
