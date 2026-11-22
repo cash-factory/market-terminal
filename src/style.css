@@ -86,3 +86,63 @@
 .drawing-object-empty{margin:10px 2px 8px;color:var(--muted);font-size:11px;line-height:1.6}
 .compact-action.repeat-toggle.active{color:var(--accent);background:var(--accent-dim);border-color:var(--accent-border)}
 @media(max-width:1220px){.drawing-object-actions button{width:24px}}
+
+
+/* Risk Planner: clear step-by-step decision support, distinct from charting. */
+.risk-screen{max-width:1360px}
+.risk-intro{display:flex;justify-content:space-between;align-items:center;gap:25px;margin:0 0 28px;padding:10px 0 14px}
+.risk-intro h1{font-weight:600;font-size:clamp(27px,3.3vw,41px);letter-spacing:-1px;line-height:1.16;margin:13px 0}
+.risk-intro p{max-width:655px;color:var(--muted);font-size:13px;line-height:1.8;margin:0}
+.risk-intro-icon{width:61px;height:61px;border:1px solid var(--accent-border);border-radius:14px;background:var(--accent-dim);color:var(--accent);display:grid;place-items:center;flex-shrink:0}
+.risk-workspace-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(320px,.95fr);gap:18px;align-items:stretch}
+.risk-input-panel,.risk-results-panel{background:var(--panel);border:1px solid var(--border);border-radius:13px;padding:clamp(18px,2.25vw,30px);min-width:0}
+.risk-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:23px}
+.risk-section-head h2{font-size:21px;letter-spacing:-.5px;margin:7px 0 0}
+.risk-reset{display:inline-flex;align-items:center;gap:6px;background:var(--raised);border:1px solid var(--border);color:var(--soft);padding:9px 11px;border-radius:7px;font-size:11px}
+.risk-reset:hover{border-color:var(--accent-border);color:var(--accent)}
+.risk-instrument-strip{display:flex;gap:25px;justify-content:space-between;padding:15px 18px;border:1px solid var(--border);background:var(--bg);border-radius:9px;margin-bottom:23px}
+.risk-instrument-strip>div{display:flex;flex-direction:column;gap:6px}
+.risk-instrument-strip>div:last-child{text-align:right}
+.risk-instrument-strip span{font-size:9px;color:var(--muted);letter-spacing:.6px}
+.risk-instrument-strip strong{font-size:13px;font-weight:600}
+.risk-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.risk-field{display:flex;flex-direction:column;gap:7px;min-width:0}
+.risk-field>span{font-weight:600;font-size:12px;color:var(--text)}
+.risk-field input{min-width:0;width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-weight:600;font-size:15px;font-variant-numeric:tabular-nums;padding:12px 13px;height:44px;transition:border-color .15s}
+.risk-field input:hover{border-color:var(--soft)}
+.risk-field input:focus{border-color:var(--accent);outline:2px solid var(--accent-dim);outline-offset:0}
+.risk-field small{font-size:10px;color:var(--muted);line-height:1.4}
+.risk-chart-link{margin-top:25px;padding:15px 0;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:18px}
+.risk-chart-link>div{display:flex;flex-direction:column;gap:5px}
+.risk-chart-link strong{font-size:12px}
+.risk-chart-link small{color:var(--muted);font-size:10px}
+.risk-chart-link button{display:inline-flex;align-items:center;gap:6px;background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent-border);border-radius:7px;padding:10px 12px;font-size:11px;font-weight:600;white-space:nowrap}
+.risk-chart-link button:hover:not(:disabled){filter:brightness(1.15)}
+.risk-footnote{display:flex;gap:10px;line-height:1.7;font-size:10px;color:var(--muted);background:var(--raised);border-radius:8px;padding:13px 14px}
+.risk-footnote svg{flex-shrink:0;color:var(--accent);margin-top:1px}
+.risk-valid{display:inline-flex;gap:5px;align-items:center;font-size:10px;background:rgba(44,199,154,.13);border-radius:6px;color:var(--positive);padding:6px 9px}
+.risk-direction{border:1px solid var(--accent-border);background:var(--accent-dim);border-radius:10px;padding:17px;display:flex;gap:15px;justify-content:space-between;align-items:center}
+.risk-direction>span{color:var(--accent);font-size:11px;font-weight:700;letter-spacing:1px}
+.risk-direction strong{font-size:23px;font-weight:650;letter-spacing:-.7px}
+.risk-direction strong small{display:block;font-size:8px;letter-spacing:1px;color:var(--muted);text-align:right;margin-top:3px;font-weight:500}
+.risk-primary-result{display:flex;flex-direction:column;gap:9px;padding:27px 0;border-bottom:1px solid var(--border)}
+.risk-primary-result>span{font-size:10px;letter-spacing:1px;color:var(--muted)}
+.risk-primary-result strong{font-size:clamp(27px,3vw,40px);letter-spacing:-1.1px;font-weight:600;font-variant-numeric:tabular-nums;word-break:break-word}
+.risk-primary-result small{font-size:10px;color:var(--muted)}
+.risk-result-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:18px}
+.risk-result-grid>div{border:1px solid var(--border);border-radius:9px;background:var(--bg);padding:16px;min-width:0;display:flex;flex-direction:column;gap:10px}
+.risk-result-grid svg{color:var(--accent)}
+.risk-result-grid span:not(.risk-loss-dot,.risk-gain-dot){font-size:10px;color:var(--muted)}
+.risk-result-grid strong{font-size:14px;font-weight:650;font-variant-numeric:tabular-nums;word-break:break-word}
+.risk-loss-dot,.risk-gain-dot{width:15px;height:15px;border-radius:5px;background:rgba(233,119,131,.12);border:1px solid var(--negative)}
+.risk-gain-dot{background:rgba(44,199,154,.12);border-color:var(--positive)}
+.risk-result-summary{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:18px;padding:15px;border-top:1px solid var(--border);font-size:11px}
+.risk-result-summary span{color:var(--muted)}
+.risk-result-summary strong{font-size:13px}
+.risk-output-note{line-height:1.7;color:var(--muted);font-size:10px;margin:12px 0 0}
+.risk-empty-result{min-height:420px;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:30px 20px}
+.risk-empty-symbol{width:72px;height:72px;display:grid;place-items:center;color:var(--accent);background:var(--accent-dim);border:1px solid var(--accent-border);border-radius:18px}
+.risk-empty-result h3{font-size:17px;margin:22px 0 7px}
+.risk-empty-result p{font-size:12px;color:var(--muted);line-height:1.8;max-width:350px}
+@media(max-width:1150px){.risk-workspace-grid{grid-template-columns:1fr}}
+@media(max-width:620px){.risk-intro-icon{display:none}.risk-screen{padding:23px 15px}.risk-form-grid{grid-template-columns:1fr}.risk-instrument-strip{gap:12px}.risk-results-panel,.risk-input-panel{padding:19px}.risk-chart-link{align-items:flex-start;flex-direction:column}.risk-result-grid{grid-template-columns:1fr}.risk-empty-result{min-height:270px}}

@@ -1,6 +1,7 @@
 import type { Frame, SymbolId } from "./market";
 import { clampPanelWidth } from "./layout";
 import { isDrawing, type Drawing } from "./drawing/types";
+import { emptyRiskInputs, parseRiskInputs, type RiskPlannerInputs } from "./analysis/risk";
 
 export type Level = { id: string; symbol: SymbolId; price: number; color: string; source?: "demo" | "binance" };
 export type Workspace = {
@@ -16,6 +17,7 @@ export type Workspace = {
   rightPanelOpen: boolean;
   rightPanelWidth: number;
   keepDrawingToolActive: boolean;
+  riskPlanner: RiskPlannerInputs;
 };
 export const defaultWorkspace: Workspace = {
   symbol: "EURUSD",
@@ -30,6 +32,7 @@ export const defaultWorkspace: Workspace = {
   rightPanelOpen: true,
   rightPanelWidth: 270,
   keepDrawingToolActive: false,
+  riskPlanner: {...emptyRiskInputs},
 };
 const SYMBOLS = ["EURUSD", "BTCUSDT", "AAPL", "US100"] as const;
 const FRAMES = ["1m", "5m", "15m", "1h", "4h", "1d"] as const;
@@ -64,6 +67,7 @@ export function parseWorkspace(value: unknown): Workspace {
     rightPanelOpen: typeof raw.rightPanelOpen === "boolean" ? raw.rightPanelOpen : true,
     rightPanelWidth: typeof raw.rightPanelWidth === "number" ? clampPanelWidth(raw.rightPanelWidth) : 270,
     keepDrawingToolActive: typeof raw.keepDrawingToolActive === "boolean" ? raw.keepDrawingToolActive : false,
+    riskPlanner: parseRiskInputs(raw.riskPlanner),
   };
 }
 export function loadWorkspace(): Workspace {
@@ -75,5 +79,5 @@ export function loadWorkspace(): Workspace {
   }
 }
 export function serializeWorkspace(workspace: Workspace): string {
-  return JSON.stringify({ format: "market-terminal-workspace", version: 6, preferences: workspace }, null, 2);
+  return JSON.stringify({ format: "market-terminal-workspace", version: 7, preferences: workspace }, null, 2);
 }

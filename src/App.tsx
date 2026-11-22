@@ -3,27 +3,29 @@ import {
   Activity, ArrowDownToLine, Bell, BookOpen, ChartCandlestick, Check,
   ChevronLeft, ChevronRight, Command, Compass, Download, Home, Layers,
   Menu, Moon, MousePointer2, Plus, RotateCcw, Search, Settings2, Sun,
-  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2
+  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Target
 } from "lucide-react";
 import { ChartCanvas } from "./ChartCanvas";
 import type { Drawing, DrawingTool } from "./drawing/types";
 import { frameSeconds, symbols, type Frame, type SymbolId } from "./market";
 import { usePriceFeed } from "./data/usePriceFeed";
 import { panelWidthAfterDrag, panelWidthAfterKey } from "./layout";
+import { RiskPlanner } from "./analysis/RiskPlanner";
 import { defaultWorkspace, loadWorkspace, parseWorkspace, serializeWorkspace, type Workspace } from "./workspace";
 
-type Page = "home" | "terminal" | "library" | "settings";
+type Page = "home" | "terminal" | "risk" | "library" | "settings";
 type Notice = { id: number; message: string; kind: "success" | "info" | "error" };
 const frames: Frame[] = ["1m", "5m", "15m", "1h", "4h", "1d"];
 const menu: { id: Page; label: string; Icon: typeof Home }[] = [
   { id: "home", label: "Overview", Icon: Home },
   { id: "terminal", label: "Terminal", Icon: ChartCandlestick },
+  { id: "risk", label: "Risk Planner", Icon: Target },
   { id: "library", label: "Workspace", Icon: Layers },
   { id: "settings", label: "Preferences", Icon: Settings2 },
 ];
 const marketList = Object.keys(symbols) as SymbolId[];
 const titles: Record<Page, string> = {
-  home: "Market overview", terminal: "Trading terminal", library: "My workspace", settings: "Preferences"
+  home: "Market overview", terminal: "Trading terminal", risk: "Risk planner", library: "My workspace", settings: "Preferences"
 };
 
 export default function App() {
@@ -162,7 +164,7 @@ export default function App() {
       const json: unknown = JSON.parse(await file.text());
       if (!json || typeof json !== "object" || Array.isArray(json) ||
         !("format" in json) || json.format !== "market-terminal-workspace" ||
-        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6) ||
+        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7) ||
         !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
       const workspace = parseWorkspace(json);
       setPrefs(workspace);
@@ -383,6 +385,13 @@ export default function App() {
             <p className="panel-note">Drag or click two points to draw. Lock, hide or duplicate objects here. Turn on Repeat to draw continuously. Ctrl+Z and Ctrl+Shift+Z undo and redo.</p>
           </aside>}
         </div>}
+        {page === "risk" && <RiskPlanner
+          value={prefs.riskPlanner}
+          onChange={next => update({riskPlanner:next})}
+          symbol={prefs.symbol}
+          quotePrice={last}
+          sourceLabel={feed.sourceLabel}
+        />}
         {page === "library" && <div className="content-page">
           <div className="section-head first"><div><small>LOCAL-FIRST</small><h1>My workspace</h1><p>Save, restore and manage your trading setup without a subscription.</p></div></div>
           <div className="workspace-card"><div className="workspace-icon"><Layers size={26}/></div><div className="workspace-info"><span className="eyebrow">CURRENT WORKSPACE</span><h2>Personal terminal</h2><p>{symbols[prefs.symbol].label} · {prefs.frame.toUpperCase()} · {prefs.levels.length} levels · {prefs.drawings.length} drawings</p></div><button className="primary-button" onClick={() => setPage("terminal")}>Open <ChevronRight size={16}/></button></div>
