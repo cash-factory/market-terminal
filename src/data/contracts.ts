@@ -1,5 +1,6 @@
 /** Source-aware market-data contracts. No provider may silently masquerade as another venue. */
 export const INTERVAL_MS = {
+  "1s":1_000,"5s":5_000,"10s":10_000,"15s":15_000,"30s":30_000,"45s":45_000,
   "1m": 60_000,
   "5m": 300_000,
   "15m": 900_000,
