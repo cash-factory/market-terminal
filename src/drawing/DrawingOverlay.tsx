@@ -15,11 +15,14 @@ import { clippedExtendedLine, horizontalReference, verticalReference,
   observedBarCount, formatElapsedDuration } from "./precision";
 import { ONE_ANCHOR_TOOLS } from "./toolDefinitions";
 import { isDrawingVisibleAtFrame } from "./drawingSettings";
+import { addMultiPointAnchor, multiPointCount, requiresMultiPoint,
+  FIB_EXTENSION_LEVELS,FIB_TIME_SEQUENCE,fibExtensionPrices,patternPriceRatios } from "./multiAnchor";
 import {calculatePosition,defaultPositionTarget,positionTargetAnchor} from "../analysis/positionDrawing";
 
 type Projected = { a: ChartPoint; b: ChartPoint };
 type Gesture = {
-  kind: "create" | "move" | "start" | "end" | "control" | "target";
+  kind: "create" | "move" | "start" | "end" | "control" | "target" | "vertex";
+  vertexIndex?:number;
   origin: ChartPoint;
   original?: Drawing;
   first?: ChartAnchor;
@@ -38,7 +41,7 @@ interface Props {
   color: string;
   magnetEnabled: boolean;
   onAdd: (drawing: Drawing) => void;
-  onUpdate: (drawing: Drawing,editKind?:"move"|"start"|"end"|"control"|"target") => void;
+  onUpdate: (drawing: Drawing,editKind?:"move"|"start"|"end"|"control"|"target"|"vertex") => void;
   onDelete: (id: string) => void;
   onDeleteMany: (ids: string[]) => void;
   selectedIds: string[];
@@ -54,6 +57,7 @@ export function DrawingOverlay({
   const draftRef = useRef<Drawing | null>(null);
   const pendingRef = useRef<PendingClick | null>(null);
   const pendingChannelRef=useRef<PendingChannel|null>(null);
+  const pendingMultiRef=useRef<{tool:DrawingTool;points:ChartAnchor[];required:number}|null>(null);
   const [draft, setDraftState] = useState<Drawing | null>(null);
   const candleTimes=useMemo(()=>candles.map(c=>Number(c.time)),[candles]);
   const [, setRevision] = useState(0);
@@ -131,6 +135,7 @@ export function DrawingOverlay({
     gestureRef.current = null;
     pendingRef.current = null;
     pendingChannelRef.current=null;
+    pendingMultiRef.current=null;
     setDraft(null);
     if (tool) onSelectionChange([]);
   }, [symbol, tool, frame]);
@@ -144,6 +149,7 @@ export function DrawingOverlay({
         gestureRef.current = null;
         pendingRef.current = null;
         pendingChannelRef.current=null;
+    pendingMultiRef.current=null;
         setDraft(null);
         onSelectionChange([]);
         return;
@@ -167,7 +173,7 @@ export function DrawingOverlay({
   const capture = (event: ReactPointerEvent<SVGElement>) => {
     try { svgRef.current?.setPointerCapture(event.pointerId); } catch { /* pointer was released */ }
   };
-  const beginEdit = (event: ReactPointerEvent<SVGElement>, drawing: Drawing, kind: Gesture["kind"]) => {
+  const beginEdit = (event: ReactPointerEvent<SVGElement>, drawing: Drawing, kind: Gesture["kind"],vertexIndex?:number) => {
     if (tool || event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
@@ -183,7 +189,7 @@ export function DrawingOverlay({
     onSelectionChange(linked);
     if(drawing.locked)return;
     capture(event);
-    gestureRef.current = { kind, origin: pointFromEvent(event), original: drawing };
+    gestureRef.current = { kind, origin: pointFromEvent(event), original: drawing,vertexIndex };
     setDraft(null);
   };
   const onPointerDown = (event: ReactPointerEvent<SVGSVGElement>) => {
@@ -200,6 +206,7 @@ export function DrawingOverlay({
     if(tool==="channel"&&pendingChannelRef.current){
       const {first,second}=pendingChannelRef.current;
       pendingChannelRef.current=null;
+    pendingMultiRef.current=null;
       pendingRef.current=null;
       setDraft(null);
       onAdd({...makeDrawing(first,second,"channel"),control:anchor,id:crypto.randomUUID()});
@@ -346,6 +353,7 @@ export function DrawingOverlay({
     gestureRef.current = null;
     pendingRef.current = null;
     pendingChannelRef.current=null;
+    pendingMultiRef.current=null;
     setDraft(null);
   };
 
