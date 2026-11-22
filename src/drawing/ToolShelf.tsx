@@ -14,10 +14,11 @@ type Props={
   onSelect:(tool:DrawingTool)=>void;
   onFavorite:(tool:DrawingTool)=>void;
   onClose:()=>void;
+  initialGroup?:ToolGroup|null;
 };
 
 export function ToolShelf({
-  active,favorites,recent,disabled,onSelect,onFavorite,onClose
+  active,favorites,recent,disabled,onSelect,onFavorite,onClose,initialGroup=null
 }:Props){
   const [query,setQuery]=useState("");
   const searchRef=useRef<HTMLInputElement>(null);
@@ -26,7 +27,8 @@ export function ToolShelf({
     searchRef.current?.focus();
     return ()=>{if(previous?.isConnected)previous.focus();};
   },[]);
-  const [group,setGroup]=useState<ToolGroup|null>(null);
+  const [group,setGroup]=useState<ToolGroup|null>(initialGroup);
+  useEffect(()=>{setGroup(initialGroup);setQuery("");},[initialGroup]);
   const visible=useMemo(()=>filterDrawingTools(query,group??undefined),[query,group]);
   const favoriteTools=favorites.map(id=>TOOL_BY_ID.get(id)).filter(
     (tool):tool is ToolDefinition=>Boolean(tool)
@@ -44,7 +46,7 @@ export function ToolShelf({
     <div className="tool-shelf-filter">
       <label className="tool-shelf-search"><Search size={16}/>
         <input ref={searchRef} type="search" aria-label="Search drawing tools" placeholder="Search tools and techniques…"
-          value={query} onChange={event=>setQuery(event.target.value)}/></label>
+          value={query} onChange={event=>{setQuery(event.target.value);if(event.target.value)setGroup(null);}}/></label>
       <div className="tool-shelf-groups" role="group" aria-label="Drawing tool category">
         <button type="button" className={!group?"active":""} aria-pressed={!group}
           onClick={()=>setGroup(null)}>All tools</button>
