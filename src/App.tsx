@@ -183,7 +183,16 @@ export default function App() {
       }
     }finally{syncingChartsRef.current=false;}
   };
-  const update = (patch: Partial<Workspace>) => setPrefs(old => ({ ...old, ...patch }));
+  const update = (patch: Partial<Workspace>) => {
+    // A replay snapshot is tied to one instrument, timeframe and data provider.
+    // Changing any of them must never relabel old candles as a new market.
+    if(replay && (
+      (patch.symbol!==undefined && patch.symbol!==replay.symbol) ||
+      (patch.frame!==undefined && patch.frame!==replay.frame) ||
+      (patch.priceSource!==undefined && patch.priceSource!==replay.source)
+    ))setReplay(null);
+    setPrefs(old => ({ ...old, ...patch }));
+  };
   const notify = (message: string, kind: Notice["kind"] = "success") =>
     setNotice({ id: Date.now(), message, kind });
   const createDecision=(setup:DecisionSetup):string|null=>{
@@ -502,6 +511,7 @@ export default function App() {
         !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15 && json.version !== 16 && json.version !== 17 && json.version !== 18 && json.version !== 19 && json.version !== 20 && json.version !== 21 && json.version !== 22 && json.version !== 23 && json.version !== 24) ||
         !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
       const workspace = parseWorkspace(json);
+      setReplay(null);
       setPrefs(workspace);
       drawingHistory.current = { past: [], future: [] };
       setHistoryVersion(v => v + 1);
