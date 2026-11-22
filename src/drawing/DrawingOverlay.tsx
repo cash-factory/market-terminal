@@ -332,8 +332,14 @@ export function DrawingOverlay({
         const x1=Math.min(a.x,b.x),width=Math.max(40,Math.abs(a.x-b.x));
         const target=entry+(entry-stop)*2;
         const targetY=series.priceToCoordinate(target);
-        if(!correct||targetY===null)return <text x={x1} y={a.y-12} fill="#e66a77"
-          fontSize={11} pointerEvents="none">Move stop {isLong?"below":"above"} entry</text>;
+        if(!correct||targetY===null)return <>
+          <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="transparent"
+            strokeWidth={18} className="drawing-hit"/>
+          <line x1={a.x} y1={a.y} x2={b.x} y2={b.y}
+            {...common} className="drawing-line"/>
+          <text x={x1} y={a.y-12} fill="#e66a77"
+            fontSize={11} pointerEvents="none">Move stop {isLong?"below":"above"} entry</text>
+        </>;
         const riskTop=Math.min(a.y,b.y),rewardTop=Math.min(a.y,targetY);
         return <>
           <rect x={x1} y={riskTop} width={width} height={Math.abs(b.y-a.y)}
