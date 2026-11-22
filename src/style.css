@@ -315,3 +315,35 @@
   .chart-grid-quad .indicator-pane{height:145px}
 }
 @media(max-width:600px){.chart-grid-quad .chart-surface{height:355px;min-height:325px}}
+
+
+/* Advanced drawing tools: compact, human-operated menu instead of toolbar sprawl. */
+.advanced-tool-picker{position:relative}
+.advanced-tool-menu{position:absolute;z-index:25;top:calc(100% + 8px);left:0;
+  width:min(300px,90vw);max-height:min(470px,70vh);overflow-y:auto;padding:8px;
+  display:flex;flex-direction:column;gap:3px;border:1px solid var(--border);
+  border-radius:10px;background:var(--panel);box-shadow:0 22px 46px rgba(0,0,0,.24)}
+.advanced-tool-item{background:transparent;color:var(--text);text-align:left;
+  border:1px solid transparent;border-radius:7px;padding:11px 12px;display:flex;
+  flex-direction:column;gap:4px;cursor:pointer}
+.advanced-tool-item strong{font-weight:600;font-size:12px}
+.advanced-tool-item small{color:var(--muted);font-size:10px;line-height:1.4}
+.advanced-tool-item:hover,.advanced-tool-item:focus-visible,.advanced-tool-item.active{
+  background:var(--accent-dim);border-color:var(--accent-border);outline:0}
+.drawing-object-row:has(.drawing-note-edit){flex-wrap:wrap}
+.drawing-note-edit{flex-basis:100%;display:flex;flex-direction:column;gap:7px;width:100%;
+  padding:8px 0 3px}
+.drawing-note-edit textarea{min-height:63px;max-height:125px;resize:vertical;width:100%;
+  border-radius:6px;border:1px solid var(--border);background:var(--bg);
+  color:var(--text);padding:9px;font-size:11px;line-height:1.5}
+.drawing-note-edit textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.drawing-note-edit button{align-self:flex-end;background:var(--accent-dim);color:var(--accent);
+  border:1px solid var(--accent-border);border-radius:6px;padding:7px 10px;font-size:11px}
+.drawing-brush{pointer-events:none}
+.drawing-position-risk,.drawing-position-reward{pointer-events:all}
+@media(max-width:700px){.advanced-tool-menu{left:auto;right:0}}
+
+/* In create mode, ALL existing drawing descendants must yield hit tests to the
+   plot surface. This includes risk rectangles, arrows, notes and brush strokes. */
+.drawing-overlay.armed .drawing-shape,
+.drawing-overlay.armed .drawing-shape *{pointer-events:none!important}
