@@ -146,3 +146,15 @@
    position:fixed!important;inset:auto 7px 7px 7px!important;
    width:auto!important;max-height:76dvh!important}
 }
+
+/* Screenshot QA: the flyout must not cover symbol/source identification or market controls. */
+@media(min-width:701px) and (min-height:721px){
+  .studio .terminal-toolbar-drawing .studio-rail-root .tool-shelf{
+    top:232px!important;bottom:10px!important;
+  }
+}
+@media(min-width:701px) and (max-height:720px){
+  .studio .terminal-toolbar-drawing .studio-rail-root .tool-shelf{
+    top:156px!important;bottom:8px!important;
+  }
+}
