@@ -55,6 +55,20 @@ export default function App() {
   },[]);
   const [page, setPage] = useState<Page>("terminal");
   const [focusMode,setFocusMode]=useState(false);
+  useEffect(()=>{
+    const onFocusShortcut=(event:KeyboardEvent)=>{
+      const target=event.target;
+      if(!(target instanceof HTMLElement) || target.closest("input,textarea,select,[contenteditable='true']"))return;
+      if(event.key.toLowerCase()==="f"&&event.shiftKey&&!event.ctrlKey&&!event.metaKey&&!event.altKey){
+        event.preventDefault();
+        setPage("terminal");
+        setFocusMode(current=>!current);
+      }
+    };
+    window.addEventListener("keydown",onFocusShortcut);
+    return ()=>window.removeEventListener("keydown",onFocusShortcut);
+  },[]);
+
   const [draft, setDraft] = useState("");
   const [drawMode, setDrawMode] = useState(false);
   const [drawingTool, setDrawingTool] = useState<DrawingTool | null>(null);
