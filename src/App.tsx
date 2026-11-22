@@ -107,6 +107,33 @@ export default function App() {
   const replayDrawings=useMemo(()=>replay?
     currentDrawings.filter(d=>d.start.time<=replayTime&&d.end.time<=replayTime):currentDrawings,
     [replay,currentDrawings,replayTime]);
+  const registerChartSurface=(id:string,surface:ChartSurface|null)=>{
+    if(surface)linkedChartRefs.current[id]=surface;
+    else delete linkedChartRefs.current[id];
+  };
+  const onChartRangeChanged=(id:string,range:ChartRange)=>{
+    if(!prefs.linkTimeRanges||!range||syncingChartsRef.current)return;
+    syncingChartsRef.current=true;
+    try{
+      for(const [otherId,surface] of Object.entries(linkedChartRefs.current)){
+        if(otherId===id)continue;
+        try{surface.chart.timeScale().setVisibleRange(range);}
+        catch{ /* Target may have fewer history candles; do not fabricate them. */ }
+      }
+    }finally{syncingChartsRef.current=false;}
+  };
+  const onChartCrosshairChanged=(id:string,time:number|null)=>{
+    if(!prefs.linkCrosshairs||syncingChartsRef.current)return;
+    syncingChartsRef.current=true;
+    try{
+      for(const [otherId,surface] of Object.entries(linkedChartRefs.current)){
+        if(otherId===id)continue;
+        const bar=time===null?null:nearestCrosshairBar(paneCandlesRef.current[otherId]??[],time);
+        if(bar)surface.chart.setCrosshairPosition(bar.close,bar.time,surface.series);
+        else surface.chart.clearCrosshairPosition();
+      }
+    }finally{syncingChartsRef.current=false;}
+  };
   const update = (patch: Partial<Workspace>) => setPrefs(old => ({ ...old, ...patch }));
   const notify = (message: string, kind: Notice["kind"] = "success") =>
     setNotice({ id: Date.now(), message, kind });
