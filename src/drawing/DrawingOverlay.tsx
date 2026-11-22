@@ -318,7 +318,7 @@ export function DrawingOverlay({
           if(t===null)return null;
           const x=chart.timeScale().logicalToCoordinate(t as Logical),y=series.priceToCoordinate(p.price);
           return x===null||y===null?null:{x,y};
-        }).filter((p):p is ChartPoint=>p!==null);
+        }).filter(p=>p!==null);
         if(xy.length<2)return null;
         const d=xy.map((p,i)=>(i?"L":"M")+p.x+" "+p.y).join(" ");
         return <>
