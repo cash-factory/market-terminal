@@ -47,7 +47,7 @@ export function CommandPalette({onClose,onOpenInstrument,onExecuteCommand}:Props
   };
   const keyDown=(event:KeyboardEvent<HTMLInputElement>)=>{
     if(event.key==="Escape"){event.preventDefault();onClose();return;}
-    if(event.key==="ArrowDown"){event.preventDefault();setActiveIndex(i=>Math.min(results.length-1, i+1));}
+    if(event.key==="ArrowDown"){event.preventDefault();setActiveIndex(i=>Math.min(Math.max(0,results.length-1), i+1));}
     if(event.key==="ArrowUp"){event.preventDefault();setActiveIndex(i=>Math.max(0,i-1));}
     if(event.key==="Enter"&&results[activeIndex]){
       event.preventDefault();select(results[activeIndex]);
