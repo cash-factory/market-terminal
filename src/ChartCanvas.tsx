@@ -12,7 +12,7 @@ import { bollingerBands, ema, type StudySettings } from "./indicators/studies";
 import { IndicatorPanels } from "./indicators/IndicatorPanels";
 import type { StudyParameters } from "./indicators/parameters";
 import {closeLineData,heikinAshi,type ChartDisplayStyle} from "./charts/display";
-import {evaluateFormula,type CustomStudy} from "./indicators/formula";
+import {evaluateFormula,formulaWorkUnits,MAX_FORMULA_WORK_UNITS,type CustomStudy} from "./indicators/formula";
 
 export type ChartSurface = {chart:IChartApi;series:ISeriesApi<"Candlestick">};
 export type ChartRange=ReturnType<ReturnType<IChartApi["timeScale"]>["getVisibleRange"]>;
@@ -68,6 +68,7 @@ export function ChartCanvas({
   const studyLines = useRef<{ ema?: ISeriesApi<"Line">; bb?: [ISeriesApi<"Line">, ISeriesApi<"Line">, ISeriesApi<"Line">] }>({});
   const priceLines = useRef<IPriceLine[]>([]);
   const formulaLines=useRef(new Map<string,ISeriesApi<"Line">>());
+  const [studyWarnings,setStudyWarnings]=useState<string[]>([]);
   const fitted = useRef(false);
   const [surface, setSurface] = useState<Surface | null>(null);
   const callback = useRef(onPlaceLevel);
@@ -198,6 +199,8 @@ export function ChartCanvas({
         c.removeSeries(line);formulaLines.current.delete(id);
       }
     }
+    const warnings:string[]=[];
+    let remaining=MAX_FORMULA_WORK_UNITS*2;
     for(const study of enabled){
       let line=formulaLines.current.get(study.id);
       if(!line){
@@ -208,9 +211,17 @@ export function ChartCanvas({
         formulaLines.current.set(study.id,line);
       }
       line.applyOptions({color:study.color,title:study.name});
-      try{line.setData(evaluateFormula(study.expression,candles));}
-      catch{line.setData([]);}
+      try{
+        const cost=formulaWorkUnits(study.expression,candles.length);
+        if(cost>remaining)throw new Error("Combined study workload exceeds the chart budget.");
+        line.setData(evaluateFormula(study.expression,candles));
+        remaining-=cost;
+      }catch(error){
+        line.setData([]);
+        warnings.push(study.name+": "+(error instanceof Error?error.message:"Calculation failed."));
+      }
     }
+    setStudyWarnings(old=>old.join("\n")===warnings.join("\n")?old:warnings);
   },[customStudies,candles,symbol,frame,source,chartStyle,dark,showSma,studies.ema20,studies.bollinger20]);
   return <div className="technical-chart-stack" data-visible-candles={candles.length}><div className="chart-surface">
     <div ref={host} className={drawMode ? "chart-canvas drawing-armed" : "chart-canvas"}
@@ -224,6 +235,11 @@ export function ChartCanvas({
       selectedIds={selectedDrawingIds} onSelectionChange={onDrawingSelectionChange}
     />}
   </div>
+  {studyWarnings.length>0&&<div className="chart-study-warning" role="status">
+    <strong>{studyWarnings.length} formula {studyWarnings.length===1?"study was":"studies were"} paused.</strong>
+    {studyWarnings.slice(0,3).map(message=><span key={message}>{message}</span>)}
+    {studyWarnings.length>3&&<span>+{studyWarnings.length-3} more study warnings</span>}
+  </div>}
   {surface && surface.chart === chart.current && <IndicatorPanels
     chart={surface.chart} candles={candles} dark={dark} studies={studies} parameters={parameters}
   />}

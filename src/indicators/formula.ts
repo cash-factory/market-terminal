@@ -24,10 +24,28 @@ type Node=
 
 const fields=new Set(["open","high","low","close","hl2","ohlc4"]);
 const hex=/^#[0-9a-fA-F]{6}$/;
+const compiledCache=new Map<string,Node>();
+const MAX_AST_CACHE=128;
+export const MAX_FORMULA_WORK_UNITS=6_000_000;
+function nodeWeight(node:Node):number{
+  switch(node.kind){
+    case "number":case "field":return 1;
+    case "unary":case "abs":return 1+nodeWeight(node.input);
+    case "sma":case "ema":return 4+nodeWeight(node.input);
+    case "min":case "max":case "binary":
+      return 2+nodeWeight(node.left)+nodeWeight(node.right);
+  }
+}
+export function formulaWorkUnits(expression:string,count:number):number{
+  if(!Number.isSafeInteger(count)||count<0)throw new Error("Invalid candle count.");
+  return nodeWeight(compileFormula(expression))*count;
+}
 
 export function compileFormula(expression:string):Node {
   if(typeof expression!=="string"||!expression.trim()||expression.length>256)
     throw new Error("Formula must contain 1–256 characters.");
+  const cached=compiledCache.get(expression);
+  if(cached)return cached;
   const tokens:string[]=[];
   const token=/\s*([A-Za-z_][A-Za-z_0-9]*|(?:\d+(?:\.\d+)?|\.\d+)|[()+\-*/,])\s*/y;
   for(let i=0;i<expression.length;){
@@ -100,6 +118,11 @@ export function compileFormula(expression:string):Node {
   };
   const ast=parseExpression(0);
   if(cursor!==tokens.length)throw new Error("Unexpected token after formula.");
+  if(compiledCache.size>=MAX_AST_CACHE){
+    const oldest=compiledCache.keys().next().value;
+    if(oldest!==undefined)compiledCache.delete(oldest);
+  }
+  compiledCache.set(expression,ast);
   return ast;
 }
 
@@ -108,6 +131,10 @@ export function evaluateFormula(
 ):LineData<UTCTimestamp>[] {
   const ast=compileFormula(expression);
   if(!bars.length)return [];
+  const cost=nodeWeight(ast)*bars.length;
+  if(cost>MAX_FORMULA_WORK_UNITS)
+    throw new Error("Study workload exceeds the safe chart budget ("+cost.toLocaleString()+
+      " operations). Reduce loaded history or simplify the formula.");
   const n=bars.length;
   const evaluate=(node:Node):number[]=>{
     switch(node.kind){
