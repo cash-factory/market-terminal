@@ -88,3 +88,21 @@
    top:clamp(205px,30.5vh,254px)!important;bottom:12px!important;
  }
 }
+
+/* Screenshot-driven density: keep the header unobstructed while exposing more tools. */
+@media(min-width:701px){
+ .tool-shelf-head{padding:10px 14px 9px}
+ .tool-shelf-symbol{width:34px;height:34px}
+ .tool-shelf-filter{padding:9px 12px 8px}
+ .tool-shelf-search{height:34px}
+ .tool-shelf-groups{padding-top:7px}
+ .tool-shelf-groups button{padding:6px 7px}
+ .tool-shelf-pinned{padding:8px 12px}
+ .tool-shelf-pinned-list{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin;margin-top:7px;gap:6px}
+ .tool-shelf-chip{padding:6px 9px;flex-shrink:0}
+ .tool-shelf-recents{margin-top:7px}
+ .tool-shelf-scroll{padding-top:7px}
+ .tool-shelf-section{padding-top:6px}
+ .tool-shelf-select{padding-block:7px}
+ .tool-shelf-foot{padding:8px 12px}
+}
