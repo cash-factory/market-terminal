@@ -13,7 +13,7 @@ test("Chart Context Lens converts marked levels into measured distances and acti
   await page.getByRole("button",{name:"Add price level"}).click();
   await page.getByRole("tab",{name:"Context"}).click();
   const panel=page.getByRole("tabpanel",{name:"Chart Context Lens"});
-  await expect(panel.getByText("Marked price levels")).toBeVisible();
+  await expect(panel.getByRole("heading",{name:"Marked price levels"})).toBeVisible();
   await expect(panel.getByText("Above observed close")).toBeVisible();
   await expect(panel.getByText("Below observed close")).toBeVisible();
   await expect(panel.getByText("Synthetic demonstration candles")).toBeVisible();
