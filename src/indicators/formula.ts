@@ -22,7 +22,6 @@ type Node=
   |{kind:"abs";input:Node}
   |{kind:"min"|"max";left:Node;right:Node};
 
-const operators=new Set(["+","-","*","/"]);
 const fields=new Set(["open","high","low","close","hl2","ohlc4"]);
 const hex=/^#[0-9a-fA-F]{6}$/;
 
