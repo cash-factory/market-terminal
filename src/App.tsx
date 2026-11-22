@@ -16,6 +16,7 @@ import { ReplayControls } from "./replay/ReplayControls";
 import { beginReplay,stepReplay,seekReplay,toggleReplayPlayback,setReplaySpeed,visibleReplayCandles,type ReplayState,type ReplaySpeed } from "./replay/model";
 import { evaluatePriceAlerts, type PriceAlert } from "./alerts/engine";
 import { defaultStudies, studyLabels, type StudySettings } from "./indicators/studies";
+import { BUILTIN_TEMPLATES, captureChartTemplate, selectTemplate } from "./indicators/templates";
 import { defaultWorkspace, loadWorkspace, parseWorkspace, serializeWorkspace, type Workspace } from "./workspace";
 
 type Page = "home" | "terminal" | "risk" | "alerts" | "library" | "settings";
@@ -51,6 +52,7 @@ export default function App() {
   const [notice, setNotice] = useState<Notice | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [studyMenuOpen, setStudyMenuOpen] = useState(false);
+  const [templateName,setTemplateName]=useState("");
   const [replay,setReplay] = useState<ReplayState|null>(null);
   const inputFile = useRef<HTMLInputElement>(null);
   const inputSearch = useRef<HTMLInputElement>(null);
@@ -183,6 +185,23 @@ export default function App() {
     }catch(error){notify(error instanceof Error?error.message:"Not enough bars to replay.","error");}
   };
   const exitReplay=()=>{setReplay(null);notify("Returned to the active market chart.","info");};
+  const applyChartTemplate=(id:string)=>{
+    const selected=selectTemplate(id,prefs.chartTemplates);
+    if(!selected){notify("Chart template was not found.","error");return;}
+    update({frame:selected.frame,showSma:selected.showSma,studies:{...selected.studies}});
+    notify(selected.name+" chart template applied.");
+  };
+  const saveChartTemplate=()=>{
+    try{
+      const template=captureChartTemplate("custom:"+crypto.randomUUID(),templateName,prefs.frame,prefs.showSma,prefs.studies);
+      setPrefs(old=>({...old,chartTemplates:[...old.chartTemplates,template]}));
+      setTemplateName("");notify(template.name+" chart template saved.");
+    }catch(error){notify(error instanceof Error?error.message:"Invalid template name.","error");}
+  };
+  const deleteChartTemplate=(id:string)=>{
+    setPrefs(old=>({...old,chartTemplates:old.chartTemplates.filter(t=>t.id!==id)}));
+    notify("Chart template removed.");
+  };
   const addAlert = (alert:PriceAlert) => {
     setPrefs(old=>({...old,alerts:[...old.alerts,alert]}));
     notify("Price alert armed for "+symbols[alert.symbol].label+".");
@@ -218,7 +237,7 @@ export default function App() {
       const json: unknown = JSON.parse(await file.text());
       if (!json || typeof json !== "object" || Array.isArray(json) ||
         !("format" in json) || json.format !== "market-terminal-workspace" ||
-        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11) ||
+        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12) ||
         !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
       const workspace = parseWorkspace(json);
       setPrefs(workspace);
@@ -430,6 +449,31 @@ export default function App() {
                     <button onClick={()=>{
                       update({studies:{...defaultStudies},showSma:false});notify("All technical indicators hidden.");
                     }}>Clear all</button></div>
+                  <div className="study-template-section">
+                    <strong>Chart templates</strong>
+                    <select aria-label="Apply chart template" value="" onChange={e=>applyChartTemplate(e.target.value)}>
+                      <option value="" disabled>Choose a saved setup…</option>
+                      <optgroup label="Built-in setups">
+                        {BUILTIN_TEMPLATES.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}
+                      </optgroup>
+                      {prefs.chartTemplates.length>0&&<optgroup label="Your templates">
+                        {prefs.chartTemplates.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}
+                      </optgroup>}
+                    </select>
+                    <div className="study-template-save">
+                      <input aria-label="Template name" placeholder="Name this configuration"
+                        maxLength={80} value={templateName} onChange={e=>setTemplateName(e.target.value)}
+                        onKeyDown={e=>{if(e.key==="Enter")saveChartTemplate();}}/>
+                      <button aria-label="Save study template" onClick={saveChartTemplate}>Save</button>
+                    </div>
+                    {prefs.chartTemplates.length>0&&<div className="study-template-list">
+                      {prefs.chartTemplates.map(t=><div key={t.id}>
+                        <span title={t.name}>{t.name}</span>
+                        <button aria-label={"Delete template "+t.name} title="Delete study template"
+                          onClick={()=>deleteChartTemplate(t.id)}><Trash2 size={14}/></button>
+                      </div>)}
+                    </div>}
+                  </div>
                 </div>}
               </div>
               <button disabled={!currentCandles.length} className={"compact-action draw-toggle " + (drawMode ? "active" : "")} onClick={() => { setDrawingTool(null); setDrawMode(!drawMode); notify(!drawMode ? "Drawing armed: click the chart to place a horizontal level." : "Drawing cancelled.", "info"); }}><Plus size={15}/> Price level</button>
