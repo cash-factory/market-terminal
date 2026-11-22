@@ -271,3 +271,6 @@
   .chart-cell-label>small{width:100%;margin-left:0}
   .chart-grid-dual .chart-surface{height:360px;min-height:330px}
 }
+
+.chart-make-primary{font-size:10px;border:1px solid var(--accent-border);background:var(--accent-dim);color:var(--accent);border-radius:6px;padding:7px 9px;cursor:pointer;white-space:nowrap}
+.chart-make-primary:hover{filter:brightness(1.12)}
