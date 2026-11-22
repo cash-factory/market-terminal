@@ -1,12 +1,16 @@
 import type { SymbolId, Frame } from "../market";
 import { TOOL_BY_ID } from "./toolDefinitions";
+import { isCompleteMultiPointDrawing } from "./multiAnchor";
 
 export type DrawingTool =
   | "trendline" | "rectangle" | "fibonacci" | "ray" | "measure"
   | "arrow" | "ellipse" | "text" | "long-position" | "short-position"
   | "brush" | "channel" | "extended-line" | "horizontal-line"
   | "horizontal-ray" | "vertical-line" | "cross-line"
-  | "price-range" | "date-range";
+  | "price-range" | "date-range" | "info-line" | "pitchfork"
+  | "fib-extension" | "fib-timezone" | "fib-circles" | "gann-box"
+  | "triangle" | "pattern-abcd" | "pattern-xabcd" | "elliott-impulse"
+  | "cyclic-lines" | "callout" | "price-note" | "arrow-marker" | "date-price-range";
 export type ChartAnchor = { time: number; price: number };
 export type Drawing = {
   id: string;
@@ -52,6 +56,7 @@ export function isDrawing(input: unknown): input is Drawing {
     (d.control === undefined || anchor(d.control)) &&
     (d.target === undefined || anchor(d.target)) &&
     (d.tool !== "channel" || anchor(d.control)) &&
+    isCompleteMultiPointDrawing(d as Drawing) &&
     (d.points === undefined || (Array.isArray(d.points) &&
       d.points.length <= 100000 && d.points.every(anchor))) &&
     (d.groupId === undefined || (typeof d.groupId === "string" && d.groupId.length > 0 && d.groupId.length <= 128)) &&
