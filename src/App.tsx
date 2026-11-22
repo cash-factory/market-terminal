@@ -15,6 +15,8 @@ import {applyChartProfile,createChartProfile} from "./charts/profiles";
 import { nearestCrosshairBar } from "./charts/sync";
 import type { Drawing, DrawingTool } from "./drawing/types";
 import { ToolShelf } from "./drawing/ToolShelf";
+import { StudioDrawingRail } from "./drawing/StudioDrawingRail";
+import type { ToolGroup } from "./drawing/toolDefinitions";
 import { DrawingSettingsDialog } from "./drawing/DrawingSettingsDialog";
 import { validateDrawingSettings } from "./drawing/drawingSettings";
 import { TOOL_BY_ID } from "./drawing/toolDefinitions";
@@ -104,6 +106,7 @@ export default function App() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [studyMenuOpen, setStudyMenuOpen] = useState(false);
   const [moreToolsOpen,setMoreToolsOpen]=useState(false);
+  const [toolFamily,setToolFamily]=useState<ToolGroup|null>(null);
   const toolPickerRef=useRef<HTMLDivElement>(null);
   const [recentDrawingTools,setRecentDrawingTools]=useState<DrawingTool[]>([]);
   const [noteEditingId,setNoteEditingId]=useState<string|null>(null);
@@ -409,6 +412,10 @@ export default function App() {
         :"Drag or click two points to place "+(definition?.label??selected)+".")
       : "Drawing tool dismissed.","info");
   };
+  const toggleToolFamily=(id:ToolGroup|null)=>{
+    if(moreToolsOpen&&toolFamily===id){setMoreToolsOpen(false);return;}
+    setToolFamily(id);setMoreToolsOpen(true);
+  };
   const toggleFavoriteDrawingTool=(selected:DrawingTool)=>{
     const exists=prefs.favoriteDrawingTools.includes(selected);
     if(!exists&&prefs.favoriteDrawingTools.length>=12){
@@ -474,7 +481,7 @@ export default function App() {
         notify(prefs.linkTimeRanges?"Independent time windows enabled.":"Chart time windows linked.");break;
       case "objects":setPanelTab("objects");update({rightPanelOpen:true});
         notify("Drawing inspector opened.","info");break;
-      case "tools":setMoreToolsOpen(true);notify("Drawing Tool Library opened.","info");break;
+      case "tools":setToolFamily(null);setMoreToolsOpen(true);notify("Drawing Tool Library opened.","info");break;
       case "context":setPanelTab("context");update({rightPanelOpen:true});
         notify("Chart Context Lens opened.","info");break;
       case "undo":undoDrawing();break;
@@ -1003,6 +1010,24 @@ export default function App() {
             </div>
             <div className="studio-body terminal-toolbar">
               <div className="terminal-toolbar-drawing" role="group" aria-label="Drawing and editing tools">
+              {studio ? <StudioDrawingRail
+                containerRef={toolPickerRef}
+                active={drawingTool} opened={moreToolsOpen} category={toolFamily}
+                favorites={prefs.favoriteDrawingTools} recent={recentDrawingTools}
+                magnet={prefs.magnetEnabled} repeat={prefs.keepDrawingToolActive}
+                canUndo={drawingHistory.current.past.length>0}
+                canRedo={drawingHistory.current.future.length>0}
+                disabled={!currentCandles.length}
+                onToggleCategory={toggleToolFamily}
+                onSelect={chooseDrawingTool} onFavorite={toggleFavoriteDrawingTool}
+                onCursor={()=>{setDrawingTool(null);setDrawMode(false);setMoreToolsOpen(false);notify("Cursor ready: select or edit existing chart objects.","info");}}
+                onMagnet={()=>{update({magnetEnabled:!prefs.magnetEnabled});notify(prefs.magnetEnabled?"OHLC magnet disabled.":"OHLC magnet enabled.");}}
+                onRepeat={()=>{update({keepDrawingToolActive:!prefs.keepDrawingToolActive});notify(prefs.keepDrawingToolActive?"Single-use drawing enabled.":"Continuous drawing enabled.");}}
+                onUndo={undoDrawing} onRedo={redoDrawing}
+                onObjects={()=>{setPanelTab("objects");update({rightPanelOpen:true});notify("Object inspector opened.");}}
+                onClose={()=>setMoreToolsOpen(false)}/>
+              : <>
+
               <span className="toolbar-group-label">DRAW</span>
               <button disabled={!currentCandles.length} className={"compact-action draw-toggle " + (drawMode ? "active" : "")} onClick={() => { setDrawingTool(null); setDrawMode(!drawMode); notify(!drawMode ? "Drawing armed: click the chart to place a horizontal level." : "Drawing cancelled.", "info"); }}><Plus size={15}/> Price level</button>
               <span className="tool-divider"/>
@@ -1039,6 +1064,7 @@ export default function App() {
               <span className="tool-divider"/>
               <button title="Undo drawing" aria-label="Undo drawing" disabled={historyVersion < 0 || !drawingHistory.current.past.length} className="compact-action" onClick={undoDrawing}><Undo2 size={16}/></button>
               <button title="Redo drawing" aria-label="Redo drawing" disabled={!drawingHistory.current.future.length} className="compact-action" onClick={redoDrawing}><Redo2 size={16}/></button>
+              </>}
               </div>
             <div className="studio-chart-column">
             {!studio && <div className="chart-heading"><div>
