@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Clock3, Compass, Pin, Search, Star, X } from "lucide-react";
 import type { DrawingTool } from "./types";
 import {
@@ -20,6 +20,8 @@ export function ToolShelf({
   active,favorites,recent,disabled,onSelect,onFavorite,onClose
 }:Props){
   const [query,setQuery]=useState("");
+  const searchRef=useRef<HTMLInputElement>(null);
+  useEffect(()=>{searchRef.current?.focus();},[]);
   const [group,setGroup]=useState<ToolGroup|null>(null);
   const visible=useMemo(()=>filterDrawingTools(query,group??undefined),[query,group]);
   const favoriteTools=favorites.map(id=>TOOL_BY_ID.get(id)).filter(
@@ -37,7 +39,7 @@ export function ToolShelf({
     </header>
     <div className="tool-shelf-filter">
       <label className="tool-shelf-search"><Search size={16}/>
-        <input type="search" aria-label="Search drawing tools" placeholder="Search tools and techniques…"
+        <input ref={searchRef} type="search" aria-label="Search drawing tools" placeholder="Search tools and techniques…"
           value={query} onChange={event=>setQuery(event.target.value)}/></label>
       <div className="tool-shelf-groups" role="group" aria-label="Drawing tool category">
         <button type="button" className={!group?"active":""} aria-pressed={!group}
