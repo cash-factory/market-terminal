@@ -102,6 +102,7 @@ export default function App() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [studyMenuOpen, setStudyMenuOpen] = useState(false);
   const [moreToolsOpen,setMoreToolsOpen]=useState(false);
+  const toolPickerRef=useRef<HTMLDivElement>(null);
   const [recentDrawingTools,setRecentDrawingTools]=useState<DrawingTool[]>([]);
   const [noteEditingId,setNoteEditingId]=useState<string|null>(null);
   const [noteDraft,setNoteDraft]=useState("");
@@ -621,11 +622,20 @@ export default function App() {
         event.preventDefault();
         setSearchOpen(value => !value);
       }
-      if (event.key === "Escape") { setSearchOpen(false); setHelpOpen(false); setDrawMode(false); setDrawingTool(null); setStudyMenuOpen(false); }
+      if (event.key === "Escape") { setSearchOpen(false); setHelpOpen(false); setDrawMode(false); setDrawingTool(null); setStudyMenuOpen(false); setMoreToolsOpen(false); }
     };
     window.addEventListener("keydown", shortcut);
     return () => window.removeEventListener("keydown", shortcut);
   }, []);
+  useEffect(()=>{
+    if(!moreToolsOpen)return;
+    const dismiss=(event:PointerEvent)=>{
+      if(event.target instanceof Node&&!toolPickerRef.current?.contains(event.target))
+        setMoreToolsOpen(false);
+    };
+    document.addEventListener("pointerdown",dismiss);
+    return ()=>document.removeEventListener("pointerdown",dismiss);
+  },[moreToolsOpen]);
   useEffect(() => {
     const drawingShortcuts = (event: KeyboardEvent) => {
       if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "z") return;
@@ -972,7 +982,7 @@ export default function App() {
                 onClick={() => chooseDrawingTool("ray")}><MoveUpRight size={15}/> Ray</button>
               <button disabled={!currentCandles.length} title="Measure the price and percentage difference between two points" className={"compact-action " + (drawingTool === "measure" ? "active" : "")}
                 onClick={() => chooseDrawingTool("measure")}><ArrowUpRight size={15}/> Measure</button>
-              <div className="study-picker advanced-tool-picker">
+              <div ref={toolPickerRef} className="study-picker advanced-tool-picker">
                 <button className={"compact-action "+(moreToolsOpen?"active":"")}
                   aria-label="More drawing tools" title="Browse precise chart tools and your favorites" aria-expanded={moreToolsOpen}
                   onClick={()=>setMoreToolsOpen(open=>!open)}><Shapes size={15}/> Tool library</button>
