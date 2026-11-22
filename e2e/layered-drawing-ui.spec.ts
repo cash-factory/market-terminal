@@ -56,7 +56,7 @@ test("Mobile category rail, layered library and settings fit the phone",async({p
   await page.goto("/market-terminal/");
   await page.getByRole("button",{name:"Open Fib / Gann tools"}).click();
   const library=page.getByRole("group",{name:"Advanced drawing tools"});
-  await expect(library.getByRole("button",{name:"Trend-based fib extension"})).toBeVisible();
+  await expect(library.getByRole("button",{name:"Trend-based fib extension",exact:true})).toBeVisible();
   const size=await library.boundingBox();
   if(!size)throw new Error("Tool library missing");
   expect(size.x).toBeGreaterThanOrEqual(-2);
