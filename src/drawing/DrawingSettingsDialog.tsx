@@ -194,7 +194,7 @@ export function DrawingSettingsDialog({drawing,onSave,onClose}:Props){
           <legend>{name==="start"?"Anchor 1":name==="end"?"Anchor 2":
             name==="control"?"Control anchor":name==="target"?"Target anchor":name.startsWith("vertex-")?"Pivot "+(Number(name.slice(7))+1):"Target anchor"}</legend>
           <label>Time (UTC)
-            <input type="datetime-local" aria-label={name+" UTC time"} value={field.time}
+            <input type="datetime-local" step="1" aria-label={name+" UTC time"} value={field.time}
               onChange={e=>setCoordinate(name,"time",e.target.value)}/>
           </label>
           <label>Price
