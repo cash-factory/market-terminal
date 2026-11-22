@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Clock3, Eye, EyeOff, LayoutGrid, Lock, Paintbrush, RotateCcw, SlidersHorizontal, X } from "lucide-react";
+import { Bookmark, Check, Clock3, Eye, EyeOff, LayoutGrid, Lock, Paintbrush, RotateCcw, SlidersHorizontal, X } from "lucide-react";
 import { symbols } from "../market";
 import { TOOL_BY_ID, ONE_ANCHOR_TOOLS } from "./toolDefinitions";
 import {ToolSpecificProperties} from "./ToolSpecificProperties";
 import "./toolSpecificProperties.css";
-import { type ChartAnchor, type Drawing } from "./types";
+import { type ChartAnchor, type Drawing, type DrawingTool } from "./types";
 import { AVAILABLE_FRAMES, editDrawingAnchor, editPatternPoint, formatAnchorUtc, parseAnchorUtc,
   validateDrawingSettings } from "./drawingSettings";
 import "./drawingSettings.css";
@@ -13,6 +13,9 @@ type Tab="style"|"coordinates"|"visibility";
 type Props={
   drawing:Drawing;
   onSave:(drawing:Drawing)=>void;
+  onSaveAsDefault?:(drawing:Drawing)=>void;
+  onResetDefault?:(tool:DrawingTool)=>void;
+  hasDefault?:boolean;
   onClose:()=>void;
 };
 type CoordinateInput={time:string;price:string};
@@ -31,7 +34,7 @@ function fieldsFrom(drawing:Drawing):Record<string,CoordinateInput>{
   return fields;
 }
 
-export function DrawingSettingsDialog({drawing,onSave,onClose}:Props){
+export function DrawingSettingsDialog({drawing,onSave,onClose,onSaveAsDefault,onResetDefault,hasDefault=false}:Props){
   const [tab,setTab]=useState<Tab>("style");
   const [draft,setDraft]=useState<Drawing>(drawing);
   const [fields,setFields]=useState(()=>fieldsFrom(drawing));
@@ -185,6 +188,16 @@ export function DrawingSettingsDialog({drawing,onSave,onClose}:Props){
             value={draft.text??""} onChange={e=>setDraft(old=>({...old,text:e.target.value}))}/>
         </label>}
         <ToolSpecificProperties drawing={draft} onChange={setDraft}/>
+        {onSaveAsDefault&&<div className="tool-default-actions">
+          <div><strong>Save your tool setup</strong>
+            <small>Reuse these appearance and analytical settings the next time you draw a {name.toLowerCase()}. Anchors, market and source will not be copied.</small>
+          </div>
+          <button type="button" aria-label={"Save "+name+" settings as default"}
+            onClick={()=>onSaveAsDefault(draft)}><Bookmark size={14}/> Save as default</button>
+          {hasDefault&&onResetDefault&&<button type="button" className="tool-default-reset"
+            aria-label={"Reset "+name+" default settings"}
+            onClick={()=>onResetDefault(drawing.tool)}><RotateCcw size={14}/> Reset defaults</button>}
+        </div>}
       </div>}
       {tab==="coordinates"&&<div role="tabpanel" className="drawing-settings-coordinates">
         <div className="drawing-settings-intro"><strong>Precise placement</strong>
