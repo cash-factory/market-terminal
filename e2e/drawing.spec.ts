@@ -111,7 +111,7 @@ test("all synthetic market charts allow creating and retaining drawings across t
   await page.goto("/market-terminal/");
   for (const market of ["EUR / USD", "BTC / USDT", "AAPL", "US100"]) {
     await page.locator(".symbol-button").click();
-    await page.getByRole("option", { name: new RegExp(market.replace("/", "\\/")) }).click();
+    await page.getByRole("listbox").getByRole("option", { name: new RegExp(market.replace("/", "\\/")) }).click();
     await expect(page.locator("svg.drawing-overlay")).toBeVisible();
     await page.getByRole("button", { name: "1h", exact: true }).click();
     const before = await page.locator(".drawing-shape").count();

@@ -79,6 +79,8 @@ export default function App() {
   const comparisonFeed = usePriceFeed(prefs.secondarySymbol,prefs.secondaryFrame,prefs.secondarySource);
   const thirdFeed = usePriceFeed(prefs.tertiarySymbol,prefs.tertiaryFrame,prefs.tertiarySource);
   const fourthFeed = usePriceFeed(prefs.quaternarySymbol,prefs.quaternaryFrame,prefs.quaternarySource);
+  const overlayFeed=usePriceFeed(prefs.comparisonOverlaySymbol??"EURUSD",prefs.frame,
+    prefs.comparisonOverlaySymbol?prefs.comparisonOverlaySource:"demo");
   const comparisonPanels = [
     {slot:"secondarySymbol" as const,frameSlot:"secondaryFrame" as const,sourceSlot:"secondarySource" as const,
       symbol:prefs.secondarySymbol,frame:prefs.secondaryFrame,source:prefs.secondarySource,feed:comparisonFeed,number:2},
@@ -369,7 +371,7 @@ export default function App() {
       const json: unknown = JSON.parse(await file.text());
       if (!json || typeof json !== "object" || Array.isArray(json) ||
         !("format" in json) || json.format !== "market-terminal-workspace" ||
-        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15 && json.version !== 16 && json.version !== 17 && json.version !== 18 && json.version !== 19 && json.version !== 20 && json.version !== 21) ||
+        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15 && json.version !== 16 && json.version !== 17 && json.version !== 18 && json.version !== 19 && json.version !== 20 && json.version !== 21 && json.version !== 22) ||
         !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
       const workspace = parseWorkspace(json);
       setPrefs(workspace);
@@ -557,6 +559,28 @@ export default function App() {
                   update({chartLayout:prefs.chartLayout==="quad"?"single":"quad"});
                   notify(prefs.chartLayout==="quad"?"Single chart enabled.":"Four-chart workspace enabled.");
                 }}><Grid2X2 size={15}/> Four charts</button>
+              <label className="chart-style-switch">Compare
+                <select aria-label="Comparison overlay symbol"
+                  value={prefs.comparisonOverlaySymbol??"none"}
+                  onChange={e=>{
+                    const symbol=e.target.value==="none"?null:e.target.value as SymbolId;
+                    update({comparisonOverlaySymbol:symbol,
+                      comparisonOverlaySource:symbol==="BTCUSDT"?prefs.comparisonOverlaySource:"demo"});
+                    notify(symbol?"Comparison overlay selected. Prices are rebased for visual comparison.":"Comparison overlay hidden.");
+                  }}>
+                  <option value="none">No overlay</option>
+                  {marketList.map(symbol=><option key={symbol} value={symbol}>{symbols[symbol].label}</option>)}
+                </select>
+              </label>
+              {prefs.comparisonOverlaySymbol==="BTCUSDT"&&
+                <label className="chart-style-switch">Compare source
+                  <select aria-label="Comparison overlay price source"
+                    value={prefs.comparisonOverlaySource}
+                    onChange={e=>update({comparisonOverlaySource:e.target.value as "demo"|"binance"})}>
+                    <option value="demo">Demo</option>
+                    <option value="binance">Binance Spot</option>
+                  </select>
+                </label>}
               <ChartProfileMenu profiles={prefs.chartProfiles}
                 onSave={saveFullChartProfile}
                 onApply={applyFullChartProfile}
@@ -765,7 +789,12 @@ export default function App() {
                 {!replay&&prefs.chartLayout!=="single"&&<div className="chart-cell-label"><span>01 / PRIMARY</span>
                   <strong>{symbols[prefs.symbol].label}</strong><small>{feed.sourceLabel}</small>
                 </div>}
-                <ChartCanvas chartStyle={prefs.chartDisplayStyle} paneId="primary" onSurfaceReady={registerChartSurface}
+                <ChartCanvas chartStyle={prefs.chartDisplayStyle}
+                  comparisonCandles={prefs.comparisonOverlaySymbol?overlayFeed.candles:undefined}
+                  comparisonLabel={prefs.comparisonOverlaySymbol?
+                    symbols[prefs.comparisonOverlaySymbol].label+" · "+overlayFeed.sourceLabel+
+                    " ("+overlayFeed.status+")":undefined}
+                  paneId="primary" onSurfaceReady={registerChartSurface}
                   onRangeChanged={onChartRangeChanged} onCrosshairChanged={onChartCrosshairChanged}
                   key={replay?"historical-replay":"active-chart"} symbol={prefs.symbol} frame={prefs.frame} source={prefs.priceSource} candles={viewedCandles}
                   dark={prefs.dark} showSma={prefs.showSma} studies={prefs.studies} customStudies={prefs.customStudies} parameters={prefs.studyParameters} levels={replay?[]:currentLevels} drawMode={drawMode} onPlaceLevel={addLevel}
