@@ -17,7 +17,7 @@ export const BTC_USDT_SPOT: InstrumentIdentity = {
 };
 
 /** Convert an API row to a candle without trusting arbitrary provider response data. */
-export function parseBinanceKlines(value: unknown): Candle[] {
+export function parseBinanceKlines(value: unknown, nowMs: number = Date.now()): Candle[] {
   if (!Array.isArray(value)) throw new MarketDataError("BAD_DATA", "Provider returned an invalid candle response.");
   if (value.length && !Array.isArray(value[0])) throw new MarketDataError("BAD_DATA", "Expected exchange candle arrays.");
   const rows: Candle[] = [];
@@ -29,7 +29,7 @@ export function parseBinanceKlines(value: unknown): Candle[] {
     if (typeof raw[0] !== "number" || !Number.isSafeInteger(time) || time < 0) continue;
     if (typeof raw[1] !== "string" || typeof raw[2] !== "string" || typeof raw[3] !== "string" || typeof raw[4] !== "string") continue;
     if (typeof raw[5] !== "string" || typeof raw[6] !== "number") continue;
-    rows.push({ openTimeMs: time, open, high, low, close, volume, volumeType: "base", isFinal: true });
+    rows.push({ openTimeMs: time, open, high, low, close, volume, volumeType: "base", isFinal: Number(raw[6]) < nowMs });
   }
   return normalizeCandles(rows);
 }
