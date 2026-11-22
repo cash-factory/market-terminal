@@ -16,6 +16,7 @@ import { frameSeconds, symbols, type Frame, type SymbolId } from "./market";
 import { usePriceFeed } from "./data/usePriceFeed";
 import { panelWidthAfterDrag, panelWidthAfterKey } from "./layout";
 import { RiskPlanner } from "./analysis/RiskPlanner";
+import {calculatePosition,defaultPositionTarget} from "./analysis/positionDrawing";
 import { AlertsCenter } from "./alerts/AlertsCenter";
 import { ReplayControls } from "./replay/ReplayControls";
 import { beginReplay,stepReplay,seekReplay,toggleReplayPlayback,setReplaySpeed,visibleReplayCandles,type ReplayState,type ReplaySpeed } from "./replay/model";
@@ -244,6 +245,17 @@ export default function App() {
       ...(active.target?{target:{time:active.target.time+offset,price:active.target.price*1.001}}:{})
     };
     commitDrawings([...prefs.drawings, copy], "Drawing duplicated.");
+  };
+  const setPositionTarget=(drawing:Drawing,price:number)=>{
+    if(drawing.tool!=="long-position"&&drawing.tool!=="short-position")return;
+    const calc=calculatePosition(drawing.tool,drawing.start.price,drawing.end.price,price);
+    if(!calc||!calc.targetIsValid){
+      notify("Target must be beyond entry in the direction of the position.","error");
+      return;
+    }
+    commitDrawings(prefs.drawings.map(item=>item.id===drawing.id?
+      {...item,target:{time:drawing.end.time,price}}:item),
+      "Position target set to "+calc.multiple.toFixed(2)+"R.");
   };
   const saveAnnotation = (id:string, text:string) => {
     const active=prefs.drawings.find(d=>d.id===id&&d.tool==="text");
@@ -943,6 +955,18 @@ export default function App() {
                   <button aria-label={"Delete " + drawing.tool + " " + (index+1)}
                     title="Delete drawing" onClick={() => removeDrawing(drawing.id)}><Trash2 size={15}/></button>
                 </div>
+                {(drawing.tool==="long-position"||drawing.tool==="short-position")&&
+                  <label className="drawing-position-target-edit">Profit target
+                    <input type="number" min="0.00000001" step="any"
+                      key={drawing.id+":"+(drawing.target?.price??"default")}
+                      aria-label={"Position target "+(index+1)}
+                      defaultValue={drawing.target?.price??
+                        defaultPositionTarget(drawing.tool,drawing.start.price,drawing.end.price)??""}
+                      onKeyDown={event=>{if(event.key==="Enter")event.currentTarget.blur();}}
+                      onBlur={event=>{
+                        if(event.target.value)setPositionTarget(drawing,Number(event.target.value));
+                      }}/>
+                  </label>}
                 {noteEditingId===drawing.id&&drawing.tool==="text"&&
                   <div className="drawing-note-edit">
                     <textarea aria-label="Annotation text" maxLength={2000} value={noteDraft}
