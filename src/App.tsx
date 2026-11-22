@@ -14,6 +14,8 @@ import {ChartProfileMenu} from "./charts/ChartProfileMenu";
 import {applyChartProfile,createChartProfile} from "./charts/profiles";
 import { nearestCrosshairBar } from "./charts/sync";
 import type { Drawing, DrawingTool } from "./drawing/types";
+import { ToolShelf } from "./drawing/ToolShelf";
+import { TOOL_BY_ID } from "./drawing/toolDefinitions";
 import {groupDrawings,ungroupDrawings,styleDrawings,moveDrawingLayers,updateDrawingAndGroup,type DrawingStylePatch} from "./drawing/manage";
 import { frameSeconds, symbols, type Frame, type SymbolId } from "./market";
 import { usePriceFeed } from "./data/usePriceFeed";
@@ -99,6 +101,7 @@ export default function App() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [studyMenuOpen, setStudyMenuOpen] = useState(false);
   const [moreToolsOpen,setMoreToolsOpen]=useState(false);
+  const [recentDrawingTools,setRecentDrawingTools]=useState<DrawingTool[]>([]);
   const [noteEditingId,setNoteEditingId]=useState<string|null>(null);
   const [noteDraft,setNoteDraft]=useState("");
   const [templateName,setTemplateName]=useState("");
@@ -376,7 +379,24 @@ export default function App() {
     const next = drawingTool === selected ? null : selected;
     setDrawingTool(next);
     setMoreToolsOpen(false);
-    notify(next ? "Drag or click two points to place a " + next + "." : "Drawing tool dismissed.", "info");
+    if(next)setRecentDrawingTools(prev=>[next,...prev.filter(item=>item!==next)].slice(0,6));
+    const definition=TOOL_BY_ID.get(selected);
+    notify(next
+      ? (definition?.points===1?"Click once to place "+definition.label+"."
+        :definition?.points===3?"Drag the baseline, then place the third channel anchor."
+        :"Drag or click two points to place "+(definition?.label??selected)+".")
+      : "Drawing tool dismissed.","info");
+  };
+  const toggleFavoriteDrawingTool=(selected:DrawingTool)=>{
+    const exists=prefs.favoriteDrawingTools.includes(selected);
+    if(!exists&&prefs.favoriteDrawingTools.length>=12){
+      notify("You can pin up to 12 favorite drawing tools.","error");return;
+    }
+    update({favoriteDrawingTools:exists
+      ?prefs.favoriteDrawingTools.filter(item=>item!==selected)
+      :[...prefs.favoriteDrawingTools,selected]});
+    notify((exists?"Removed ":"Pinned ")+(TOOL_BY_ID.get(selected)?.label??selected)+
+      (exists?" from favorites.":" to your tool favorites."));
   };
   const startReplay=()=>{
     try{
@@ -523,7 +543,7 @@ export default function App() {
       const json: unknown = JSON.parse(await file.text());
       if (!json || typeof json !== "object" || Array.isArray(json) ||
         !("format" in json) || json.format !== "market-terminal-workspace" ||
-        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15 && json.version !== 16 && json.version !== 17 && json.version !== 18 && json.version !== 19 && json.version !== 20 && json.version !== 21 && json.version !== 22 && json.version !== 23 && json.version !== 24) ||
+        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15 && json.version !== 16 && json.version !== 17 && json.version !== 18 && json.version !== 19 && json.version !== 20 && json.version !== 21 && json.version !== 22 && json.version !== 23 && json.version !== 24 && json.version !== 25) ||
         !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
       const workspace = parseWorkspace(json);
       setReplay(null);
@@ -643,7 +663,7 @@ export default function App() {
       </nav>}
       <div className="header-center">
         <button className="search-trigger" onClick={() => setSearchOpen(true)}>
-          <Search size={16}/><span>"Search markets & tools"</span><kbd>Ctrl K</kbd>
+          <Search size={16}/><span>Search markets & tools</span><kbd>Ctrl K</kbd>
         </button>
       </div>
       <div className="header-actions">
@@ -929,21 +949,11 @@ export default function App() {
                 <button className={"compact-action "+(moreToolsOpen?"active":"")}
                   aria-label="More drawing tools" aria-expanded={moreToolsOpen}
                   onClick={()=>setMoreToolsOpen(open=>!open)}><Shapes size={15}/> More tools</button>
-                {moreToolsOpen&&<div className="advanced-tool-menu" role="group" aria-label="Advanced drawing tools">
-                  {([
-                    ["arrow","Arrow","Draw a directional arrow"],
-                    ["ellipse","Ellipse","Drag to draw an ellipse"],
-                    ["text","Text note","Click once to place a text annotation"],
-                    ["long-position","Long position","Drag from entry to stop to estimate 2R long position"],
-                    ["short-position","Short position","Drag from entry to stop to estimate 2R short position"],
-                    ["brush","Freehand brush","Draw a freehand multi-point curve"],
-                    ["channel","Parallel channel","Set two points for the base, then click a third point for the parallel rail"]
-                  ] as [DrawingTool,string,string][]).map(([id,label,description])=>
-                    <button key={id} className={"advanced-tool-item "+(drawingTool===id?"active":"")}
-                      title={description} onClick={()=>chooseDrawingTool(id)}>
-                      <strong>{label}</strong><small>{description}</small>
-                    </button>)}
-                </div>}
+                {moreToolsOpen&&<ToolShelf
+                  active={drawingTool} favorites={prefs.favoriteDrawingTools}
+                  recent={recentDrawingTools} disabled={!currentCandles.length}
+                  onSelect={chooseDrawingTool} onFavorite={toggleFavoriteDrawingTool}
+                  onClose={()=>setMoreToolsOpen(false)}/>} 
               </div>
               <button className={"compact-action magnet-toggle " + (prefs.magnetEnabled ? "active" : "")}
                 aria-label="Snap to candle OHLC" aria-pressed={prefs.magnetEnabled}
