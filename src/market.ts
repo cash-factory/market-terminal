@@ -6,8 +6,12 @@ export const symbols: Record<SymbolId, {label:string; market:string; base:number
  AAPL:{label:"AAPL",market:"STOCKS · DEMO",base:252.4,precision:2},
  US100:{label:"US100",market:"INDICES · DEMO",base:21400,precision:2}
 };
-export type Frame = "1m"|"5m"|"15m"|"1h"|"4h"|"1d";
-export const frameSeconds:Record<Frame,number>={"1m":60,"5m":300,"15m":900,"1h":3600,"4h":14400,"1d":86400};
+export const SECOND_FRAMES=["1s","5s","10s","15s","30s","45s"] as const;
+export const MINUTE_FRAMES=["1m","5m","15m","1h","4h","1d"] as const;
+export type Frame=typeof SECOND_FRAMES[number]|typeof MINUTE_FRAMES[number];
+export const ALL_FRAMES:Frame[]=[...SECOND_FRAMES,...MINUTE_FRAMES];
+export const isSecondsFrame=(frame:Frame):boolean=>SECOND_FRAMES.includes(frame as typeof SECOND_FRAMES[number]);
+export const frameSeconds:Record<Frame,number>={"1s":1,"5s":5,"10s":10,"15s":15,"30s":30,"45s":45,"1m":60,"5m":300,"15m":900,"1h":3600,"4h":14400,"1d":86400};
 function noise(i:number, seed:number) { return Math.sin(i*12.9898+seed*78.233)*43758.5453%1; }
 export function demoCandles(symbol:SymbolId,frame:Frame):CandlestickData<UTCTimestamp>[] {
  const m=symbols[symbol], step=frameSeconds[frame], end=Math.floor(Date.now()/1000/step)*step;
