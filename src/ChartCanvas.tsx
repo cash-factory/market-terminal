@@ -12,7 +12,13 @@ import { bollingerBands, ema, type StudySettings } from "./indicators/studies";
 import { IndicatorPanels } from "./indicators/IndicatorPanels";
 import type { StudyParameters } from "./indicators/parameters";
 
+export type ChartSurface = {chart:IChartApi;series:ISeriesApi<"Candlestick">};
+export type ChartRange=ReturnType<ReturnType<IChartApi["timeScale"]>["getVisibleRange"]>;
 interface Props {
+  paneId:string;
+  onSurfaceReady?:(id:string,surface:ChartSurface|null)=>void;
+  onRangeChanged?:(id:string,range:ChartRange)=>void;
+  onCrosshairChanged?:(id:string,time:number|null)=>void;
   symbol: SymbolId;
   frame: Frame;
   source: PriceSource;
@@ -35,12 +41,15 @@ interface Props {
   selectedDrawingIds:string[];
   onDrawingSelectionChange:(ids:string[])=>void;
 }
-type Surface = { chart: IChartApi; series: ISeriesApi<"Candlestick"> };
+type Surface = ChartSurface;
 
 export function ChartCanvas({
+  paneId,onSurfaceReady,onRangeChanged,onCrosshairChanged,
   symbol, frame, source, candles, dark, showSma, levels, drawMode, onPlaceLevel,
   drawingTool, drawings, drawingColor, studies, parameters, magnetEnabled, onAddDrawing, onUpdateDrawing, onDeleteDrawing, onDeleteDrawings, selectedDrawingIds, onDrawingSelectionChange
 }: Props) {
+  const callbacks=useRef({onSurfaceReady,onRangeChanged,onCrosshairChanged});
+  callbacks.current={onSurfaceReady,onRangeChanged,onCrosshairChanged};
   const host = useRef<HTMLDivElement>(null);
   const chart = useRef<IChartApi | null>(null);
   const series = useRef<ISeriesApi<"Candlestick"> | null>(null);
@@ -89,11 +98,21 @@ export function ChartCanvas({
       if (value !== null && Number.isFinite(value) && value > 0) callback.current(value);
     };
     c.subscribeClick(handleChartClick);
+    const notifyRange=(range:ChartRange)=>callbacks.current.onRangeChanged?.(paneId,range);
+    const notifyCrosshair=(event:{time?:unknown})=>{
+      callbacks.current.onCrosshairChanged?.(paneId,typeof event.time==="number"?event.time:null);
+    };
+    c.timeScale().subscribeVisibleTimeRangeChange(notifyRange);
+    c.subscribeCrosshairMove(notifyCrosshair);
     chart.current = c;
     series.current = s;
     setSurface({ chart: c, series: s });
+    callbacks.current.onSurfaceReady?.(paneId,{chart:c,series:s});
     return () => {
       c.unsubscribeClick(handleChartClick);
+      c.timeScale().unsubscribeVisibleTimeRangeChange(notifyRange);
+      c.unsubscribeCrosshairMove(notifyCrosshair);
+      callbacks.current.onSurfaceReady?.(paneId,null);
       priceLines.current = [];
       chart.current = null;
       series.current = null;
@@ -101,7 +120,7 @@ export function ChartCanvas({
       studyLines.current = {};
       c.remove();
     };
-  }, [symbol, frame, dark, showSma, source, studies.ema20, studies.bollinger20]);
+  }, [symbol, frame, dark, showSma, source, studies.ema20, studies.bollinger20, paneId]);
 
   useEffect(() => {
     if (!series.current) return;
