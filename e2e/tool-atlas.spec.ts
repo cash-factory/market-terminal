@@ -24,6 +24,6 @@ test("Tool Atlas reports unavailable tools honestly and supports mobile keyboard
   await expect(page.getByText("No matching tools or instruments")).toBeVisible();
   await search.fill("risk planner");
   await search.press("Enter");
-  await expect(page.getByRole("heading",{name:/Risk/}).first()).toBeVisible();
+  await expect(page.getByRole("heading",{name:/risk/i}).first()).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)).toBeLessThanOrEqual(2);
 });
