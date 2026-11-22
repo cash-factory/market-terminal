@@ -448,10 +448,10 @@ export function DrawingOverlay({
             fill="none" stroke="transparent" strokeWidth={18} className="drawing-hit"/>
           <path d={"M "+a.x+" "+a.y+" L "+b.x+" "+b.y+" M "+c.x+" "+c.y+" L "+d.x+" "+d.y}
             fill="none" {...common} className="drawing-channel"/>
-          <line x1={(a.x+c.x)/2} y1={(a.y+c.y)/2}
+          {drawing.showMidline!==false&&<line x1={(a.x+c.x)/2} y1={(a.y+c.y)/2}
             x2={(b.x+d.x)/2} y2={(b.y+d.y)/2}
             stroke={drawing.color} strokeDasharray="3 6" strokeWidth={1}
-            opacity={.65} pointerEvents="none"/>
+            opacity={.65} pointerEvents="none" className="drawing-channel-midline"/>}
           {selected&&!drawing.locked&&drawing.control&&
             <circle cx={projected.a.x} cy={projected.a.y} r={7}
               fill="var(--panel)" stroke={drawing.color} strokeWidth={2}
@@ -481,12 +481,13 @@ export function DrawingOverlay({
       })()}
       {drawing.tool === "text" && (() => {
         const label=(drawing.text||"Note").slice(0,120);
-        const width=Math.max(44,Math.min(440,label.length*7+20));
+        const fontSize=drawing.fontSize??12;
+        const width=Math.max(44,Math.min(500,label.length*fontSize*.6+20));
         return <>
-          <rect x={a.x} y={a.y-25} width={width} height={32}
+          <rect x={a.x} y={a.y-fontSize-13} width={width} height={fontSize+21}
             rx={5} fill="var(--panel)" fillOpacity={.96}
             stroke={drawing.color} strokeWidth={1} className="drawing-note-box"/>
-          <text x={a.x+10} y={a.y-5} fill={drawing.color} fontSize={12}
+          <text x={a.x+10} y={a.y-5} fill={drawing.color} fontSize={fontSize}
             fontWeight={600} pointerEvents="none">{label}</text>
         </>;
       })()}
@@ -529,17 +530,17 @@ export function DrawingOverlay({
           <rect x={x1} y={rewardTop} width={width} height={Math.abs(targetY-a.y)}
             fill="#22b98e" fillOpacity={.16} stroke="#22b98e" strokeWidth={1} className="drawing-position-reward"/>
           <line x1={x1} y1={a.y} x2={x1+width} y2={a.y} {...common} className="drawing-line"/>
-          <text x={x1+6} y={rewardTop+14} fill="#22b98e" fontSize={11}
+          {drawing.showLabels!==false&&<text x={x1+6} y={rewardTop+14} fill="#22b98e" fontSize={11}
             pointerEvents="none">{isLong?"LONG":"SHORT"} ·
-            {position&&position.targetIsValid?position.multiple.toFixed(2)+"R":"Target on wrong side"}</text>
+            {position&&position.targetIsValid?position.multiple.toFixed(2)+"R":"Target on wrong side"}</text>}
           {selected&&!drawing.locked&&
             <circle cx={b.x} cy={targetY} r={7}
               fill="var(--panel)" stroke="#22b98e" strokeWidth={2}
               className="drawing-handle position-target-handle"
               onPointerDown={event=>beginEdit(event,drawing,"target")}/>}
 
-          <text x={x1+6} y={riskTop+Math.max(12,Math.abs(b.y-a.y)-5)}
-            fill="#e66a77" fontSize={10} pointerEvents="none">Stop · risk 1R</text>
+          {drawing.showLabels!==false&&<text x={x1+6} y={riskTop+Math.max(12,Math.abs(b.y-a.y)-5)}
+            fill="#e66a77" fontSize={10} pointerEvents="none">Stop · risk 1R</text>}
         </>;
       })()}
       {(["extended-line","horizontal-line","horizontal-ray","vertical-line","cross-line"] as string[])
