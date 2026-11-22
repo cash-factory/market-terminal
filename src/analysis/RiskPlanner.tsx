@@ -56,7 +56,7 @@ export function RiskPlanner({ value, onChange, symbol, quotePrice, sourceLabel }
         <div className="risk-form-grid">
           {fields.map(field => <label key={field.key} className="risk-field">
             <span>{field.label}</span>
-            <input type="number" inputMode="decimal" min={field.key==="target" ? "0" : "0.00000001"}
+            <input type="number" inputMode="decimal" min="0.00000001"
               step="any" value={value[field.key]} placeholder={field.placeholder}
               onChange={event => set(field.key,event.target.value)} />
             <small>{field.hint}</small>
