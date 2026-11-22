@@ -1,5 +1,6 @@
 import type {Frame} from "../market";
 import {defaultStudies,parseStudies,type StudySettings} from "./studies";
+import {defaultStudyParameters,parseStudyParameters,type StudyParameters} from "./parameters";
 
 export type ChartTemplate = {
   id:string;
@@ -7,6 +8,7 @@ export type ChartTemplate = {
   frame:Frame;
   showSma:boolean;
   studies:StudySettings;
+  parameters:StudyParameters;
 };
 
 const frames=new Set<Frame>(["1m","5m","15m","1h","4h","1d"]);
@@ -14,15 +16,15 @@ const cloneStudies=(source:Partial<StudySettings>):StudySettings=>({
   ...defaultStudies,...source
 });
 export const BUILTIN_TEMPLATES:readonly ChartTemplate[]=[
-  {id:"builtin:clean",name:"Clean Price Action",frame:"1h",showSma:false,studies:cloneStudies({})},
+  {id:"builtin:clean",name:"Clean Price Action",frame:"1h",showSma:false,studies:cloneStudies({}),parameters:{...defaultStudyParameters}},
   {id:"builtin:trend",name:"Trend Structure",frame:"1h",showSma:true,
-    studies:cloneStudies({ema20:true})},
+    studies:cloneStudies({ema20:true}),parameters:{...defaultStudyParameters}},
   {id:"builtin:momentum",name:"Momentum & Confirmation",frame:"15m",showSma:false,
-    studies:cloneStudies({rsi14:true,macd:true})},
+    studies:cloneStudies({rsi14:true,macd:true}),parameters:{...defaultStudyParameters}},
   {id:"builtin:volatility",name:"Volatility & Range",frame:"1h",showSma:false,
-    studies:cloneStudies({bollinger20:true,atr14:true})},
+    studies:cloneStudies({bollinger20:true,atr14:true}),parameters:{...defaultStudyParameters}},
   {id:"builtin:full",name:"Complete Study Workspace",frame:"4h",showSma:true,
-    studies:cloneStudies({ema20:true,bollinger20:true,rsi14:true,macd:true,atr14:true})}
+    studies:cloneStudies({ema20:true,bollinger20:true,rsi14:true,macd:true,atr14:true}),parameters:{...defaultStudyParameters}}
 ];
 export function parseChartTemplates(value:unknown):ChartTemplate[]{
   if(!Array.isArray(value))return [];
@@ -36,18 +38,19 @@ export function parseChartTemplates(value:unknown):ChartTemplate[]{
     if(!frames.has(t.frame as Frame)||typeof t.showSma!=="boolean")continue;
     const template:ChartTemplate={
       id:t.id,name:t.name.trim(),frame:t.frame as Frame,showSma:t.showSma,
-      studies:parseStudies(t.studies)
+      studies:parseStudies(t.studies),parameters:parseStudyParameters(t.parameters)
     };
     out.push(template);seen.add(template.id);
   }
   return out;
 }
 export function captureChartTemplate(
-  id:string,name:string,frame:Frame,showSma:boolean,studies:StudySettings
+  id:string,name:string,frame:Frame,showSma:boolean,studies:StudySettings,
+  parameters:StudyParameters=defaultStudyParameters
 ):ChartTemplate {
   if(!id||id.startsWith("builtin:")||name.trim().length<1||name.trim().length>80||!frames.has(frame))
     throw new Error("Enter a valid template name (up to 80 characters).");
-  return {id,name:name.trim(),frame,showSma,studies:{...studies}};
+  return {id,name:name.trim(),frame,showSma,studies:{...studies},parameters:{...parameters}};
 }
 export function selectTemplate(id:string,saved:readonly ChartTemplate[]):ChartTemplate|null{
   const match=[...BUILTIN_TEMPLATES,...saved].find(template=>template.id===id);
