@@ -1109,9 +1109,15 @@ export default function App() {
                   onChange={event=>setDrawingStyle({strokeWidth:Number(event.target.value)})}>
                   {[1,2,3,4,5,6,7,8].map(width=><option key={width} value={width}>{width} px</option>)}
                 </select></label>
+                <button aria-label="Open selected drawing settings"
+                  title="Edit style, exact coordinates and visibility"
+                  onClick={()=>openDrawingSettings(selectedObject.id)}><Settings2 size={14}/> Properties</button>
                 <button onClick={()=>setSelectedDrawingIds([])}>Done</button>
               </> : <><MousePointer2 size={14}/><strong>{drawMode ? "Price level" : drawingTool ?? "Navigate"}</strong>
-              <span>{drawMode ? "Click a price on the chart" : drawingTool === "channel" ? "Place the baseline, then the parallel edge" : drawingTool === "text" ? "Click to place a note" : drawingTool === "brush" ? "Drag to sketch" : drawingTool ? "Drag or place two anchors" : "Drag to pan · Scroll to zoom"}</span>
+              <span>{drawMode ? "Click a price on the chart" : drawingTool === "channel" ? "Place the baseline, then the parallel edge" : drawingTool === "text" ? "Click to place a note" : drawingTool === "brush" ? "Drag to sketch" : drawingTool ? (TOOL_BY_ID.get(drawingTool)?.points===1?"Click once to place":
+                  (TOOL_BY_ID.get(drawingTool)?.points??2)>2?
+                  "Two anchors first · "+((TOOL_BY_ID.get(drawingTool)?.points??2)-2)+" extra points":
+                  "Drag or place two anchors") : "Drag to pan · Scroll to zoom"}</span>
               {(drawingTool || drawMode) && <button onClick={()=>{setDrawingTool(null);setDrawMode(false);}}>Cancel</button>}</>}
             </div>}
             {!studio && drawMode && <div className="draw-banner"><MousePointer2 size={16}/> Click on the chart to place a level <button onClick={() => setDrawMode(false)}>Cancel <X size={14}/></button></div>}
