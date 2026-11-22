@@ -3,7 +3,7 @@ import { Check, Clock3, Eye, EyeOff, LayoutGrid, Lock, Paintbrush, RotateCcw, Sl
 import { symbols } from "../market";
 import { TOOL_BY_ID, ONE_ANCHOR_TOOLS } from "./toolDefinitions";
 import { type ChartAnchor, type Drawing } from "./types";
-import { AVAILABLE_FRAMES, editDrawingAnchor, formatAnchorUtc, parseAnchorUtc,
+import { AVAILABLE_FRAMES, editDrawingAnchor, editPatternPoint, formatAnchorUtc, parseAnchorUtc,
   validateDrawingSettings } from "./drawingSettings";
 import "./drawingSettings.css";
 
@@ -20,6 +20,9 @@ function fieldsFrom(drawing:Drawing):Record<string,CoordinateInput>{
   const entries:[string,ChartAnchor][]=ONE_ANCHOR_TOOLS.has(drawing.tool)?[["start",drawing.start]]:[["start",drawing.start],["end",drawing.end]];
   if(drawing.control)entries.push(["control",drawing.control]);
   if(drawing.target)entries.push(["target",drawing.target]);
+  if(drawing.points&&drawing.points.length>=3){
+    drawing.points.slice(2).forEach((point,i)=>entries.push(["vertex-"+(i+2),point]));
+  }
   for(const [kind,point] of entries)fields[kind]={
     time:formatAnchorUtc(point.time),price:String(point.price)
   };
@@ -58,13 +61,17 @@ export function DrawingSettingsDialog({drawing,onSave,onClose}:Props){
     try{
       let candidate={...draft};
       for(const [key,input] of Object.entries(fields)){
-        const original=(drawing as unknown as Record<string,unknown>)[key] as ChartAnchor|undefined;
+        const original=key.startsWith("vertex-")?
+          drawing.points?.[Number(key.slice(7))]:
+          (drawing as unknown as Record<string,unknown>)[key] as ChartAnchor|undefined;
         const time=original&&input.time===formatAnchorUtc(original.time)?
           original.time:parseAnchorUtc(input.time);
         const price=Number(input.price);
         if(time===null||time===undefined||input.price.trim()===""||!Number.isFinite(price)||price<=0)
           throw new Error("Enter valid UTC dates and positive prices for every coordinate.");
-        candidate=editDrawingAnchor(candidate,key as "start"|"end"|"control"|"target",{time,price});
+        candidate=key.startsWith("vertex-")?
+          editPatternPoint(candidate,Number(key.slice(7)),{time,price}):
+          editDrawingAnchor(candidate,key as "start"|"end"|"control"|"target",{time,price});
       }
       if(ONE_ANCHOR_TOOLS.has(drawing.tool))candidate.end={...candidate.start};
       onSave(validateDrawingSettings(drawing,candidate));
@@ -128,7 +135,7 @@ export function DrawingSettingsDialog({drawing,onSave,onClose}:Props){
               value={draft.opacity??1}
               onChange={e=>setDraft(old=>({...old,opacity:Number(e.target.value)}))}/>
           </label>
-          {(["rectangle","ellipse","channel","measure","price-range","date-range"].includes(drawing.tool))&&
+          {(["rectangle","ellipse","channel","measure","price-range","date-range","date-price-range","gann-box","triangle"].includes(drawing.tool))&&
             <label>Region fill <strong>{Math.round((draft.fillOpacity??.09)*100)}%</strong>
               <input type="range" min="0" max=".8" step=".05" aria-label="Drawing region fill"
                 value={draft.fillOpacity??.09}
@@ -140,13 +147,13 @@ export function DrawingSettingsDialog({drawing,onSave,onClose}:Props){
             onChange={e=>setDraft(old=>({...old,showMidline:e.target.checked}))}/>
           <span><strong>Show midpoint</strong><small>Draw a 50% reference through the highlighted zone.</small></span>
         </label>}
-        {["fibonacci","measure","price-range","date-range"].includes(drawing.tool)&&
+        {["fibonacci","measure","price-range","date-range","date-price-range","info-line","fib-extension","fib-timezone","fib-circles","gann-box","cyclic-lines","pattern-abcd","pattern-xabcd","elliott-impulse"].includes(drawing.tool)&&
           <label className="drawing-settings-toggle">
             <input type="checkbox" checked={draft.showLabels!==false}
               onChange={e=>setDraft(old=>({...old,showLabels:e.target.checked}))}/>
             <span><strong>Show labels</strong><small>Keep calculations visible next to your drawing.</small></span>
           </label>}
-        {drawing.tool==="text"&&<label className="drawing-settings-note">Annotation text
+        {["text","callout","price-note"].includes(drawing.tool)&&<label className="drawing-settings-note">Annotation text
           <textarea aria-label="Drawing annotation text" rows={3} maxLength={2000}
             value={draft.text??""} onChange={e=>setDraft(old=>({...old,text:e.target.value}))}/>
         </label>}
@@ -157,7 +164,7 @@ export function DrawingSettingsDialog({drawing,onSave,onClose}:Props){
         </div>
         {Object.entries(fields).map(([name,field])=><fieldset key={name}>
           <legend>{name==="start"?"Anchor 1":name==="end"?"Anchor 2":
-            name==="control"?"Control anchor":"Target anchor"}</legend>
+            name==="control"?"Control anchor":name==="target"?"Target anchor":name.startsWith("vertex-")?"Pivot "+(Number(name.slice(7))+1):"Target anchor"}</legend>
           <label>Time (UTC)
             <input type="datetime-local" aria-label={name+" UTC time"} value={field.time}
               onChange={e=>setCoordinate(name,"time",e.target.value)}/>
