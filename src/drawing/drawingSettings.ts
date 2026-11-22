@@ -1,7 +1,7 @@
 import { isDrawing, type ChartAnchor, type Drawing } from "./types";
-import type { Frame } from "../market";
+import { ALL_FRAMES, type Frame } from "../market";
 
-export const AVAILABLE_FRAMES: Frame[]=["1m","5m","15m","1h","4h","1d"];
+export const AVAILABLE_FRAMES: Frame[]=ALL_FRAMES;
 
 export type DrawingAnchorKey="start"|"end"|"control"|"target";
 
