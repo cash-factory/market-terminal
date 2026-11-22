@@ -342,3 +342,8 @@
 .drawing-brush{pointer-events:none}
 .drawing-position-risk,.drawing-position-reward{pointer-events:all}
 @media(max-width:700px){.advanced-tool-menu{left:auto;right:0}}
+
+/* In create mode, ALL existing drawing descendants must yield hit tests to the
+   plot surface. This includes risk rectangles, arrows, notes and brush strokes. */
+.drawing-overlay.armed .drawing-shape,
+.drawing-overlay.armed .drawing-shape *{pointer-events:none!important}
