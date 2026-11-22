@@ -8,6 +8,8 @@ import type { Level } from "./workspace";
 import type { PriceSource } from "./data/usePriceFeed";
 import { DrawingOverlay } from "./drawing/DrawingOverlay";
 import type { Drawing, DrawingTool } from "./drawing/types";
+import { bollingerBands, ema, type StudySettings } from "./indicators/studies";
+import { IndicatorPanels } from "./indicators/IndicatorPanels";
 
 interface Props {
   symbol: SymbolId;
@@ -22,6 +24,7 @@ interface Props {
   drawingTool: DrawingTool | null;
   drawings: Drawing[];
   drawingColor: string;
+  studies: StudySettings;
   onAddDrawing: (drawing: Drawing) => void;
   onUpdateDrawing: (drawing: Drawing) => void;
   onDeleteDrawing: (id: string) => void;
@@ -30,12 +33,13 @@ type Surface = { chart: IChartApi; series: ISeriesApi<"Candlestick"> };
 
 export function ChartCanvas({
   symbol, frame, source, candles, dark, showSma, levels, drawMode, onPlaceLevel,
-  drawingTool, drawings, drawingColor, onAddDrawing, onUpdateDrawing, onDeleteDrawing
+  drawingTool, drawings, drawingColor, studies, onAddDrawing, onUpdateDrawing, onDeleteDrawing
 }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const chart = useRef<IChartApi | null>(null);
   const series = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const average = useRef<ISeriesApi<"Line"> | null>(null);
+  const studyLines = useRef<{ ema?: ISeriesApi<"Line">; bb?: [ISeriesApi<"Line">, ISeriesApi<"Line">, ISeriesApi<"Line">] }>({});
   const priceLines = useRef<IPriceLine[]>([]);
   const fitted = useRef(false);
   const [surface, setSurface] = useState<Surface | null>(null);
@@ -63,6 +67,16 @@ export function ChartCanvas({
     average.current = showSma
       ? c.addSeries(LineSeries, { color: "#e1ad67", lineWidth: 2, priceLineVisible: false, lastValueVisible: false })
       : null;
+    const overlays: typeof studyLines.current = {};
+    if (studies.ema20) overlays.ema = c.addSeries(LineSeries, {
+      color:"#59c8d0",lineWidth:2,priceLineVisible:false,lastValueVisible:false
+    });
+    if (studies.bollinger20) overlays.bb = [
+      c.addSeries(LineSeries,{color:"#a18ff0",lineWidth:1,priceLineVisible:false,lastValueVisible:false}),
+      c.addSeries(LineSeries,{color:"#a18ff0",lineWidth:1,priceLineVisible:false,lastValueVisible:false}),
+      c.addSeries(LineSeries,{color:"#a18ff0",lineWidth:1,priceLineVisible:false,lastValueVisible:false}),
+    ];
+    studyLines.current = overlays;
     const handleChartClick = (param: { point?: { y: number } }) => {
       if (!armed.current || !param.point) return;
       const value = s.coordinateToPrice(param.point.y);
@@ -78,19 +92,27 @@ export function ChartCanvas({
       chart.current = null;
       series.current = null;
       average.current = null;
+      studyLines.current = {};
       c.remove();
     };
-  }, [symbol, frame, dark, showSma, source]);
+  }, [symbol, frame, dark, showSma, source, studies.ema20, studies.bollinger20]);
 
   useEffect(() => {
     if (!series.current) return;
     series.current.setData(candles);
     if (average.current) average.current.setData(sma(candles, 20));
+    studyLines.current.ema?.setData(ema(candles,20));
+    if(studyLines.current.bb){
+      const bands=bollingerBands(candles,20);
+      studyLines.current.bb[0].setData(bands.upper);
+      studyLines.current.bb[1].setData(bands.middle);
+      studyLines.current.bb[2].setData(bands.lower);
+    }
     if (candles.length > 0 && !fitted.current) {
       chart.current?.timeScale().fitContent();
       fitted.current = true;
     }
-  }, [candles, symbol, frame, dark, showSma, source]);
+  }, [candles, symbol, frame, dark, showSma, source, studies.ema20, studies.bollinger20]);
 
   useEffect(() => {
     const s = series.current;
@@ -101,7 +123,7 @@ export function ChartCanvas({
     );
   }, [levels, symbol, frame, dark, showSma, source]);
 
-  return <div className="chart-surface">
+  return <div className="technical-chart-stack"><div className="chart-surface">
     <div ref={host} className={drawMode ? "chart-canvas drawing-armed" : "chart-canvas"}
       role="img" aria-label={source === "demo"
         ? "Synthetic " + symbols[symbol].label + " candlestick chart"
@@ -111,5 +133,9 @@ export function ChartCanvas({
       tool={drawingTool} drawings={drawings} color={drawingColor}
       onAdd={onAddDrawing} onUpdate={onUpdateDrawing} onDelete={onDeleteDrawing}
     />}
+  </div>
+  {surface && surface.chart === chart.current && <IndicatorPanels
+    chart={surface.chart} candles={candles} dark={dark} studies={studies}
+  />}
   </div>;
 }
