@@ -3,6 +3,7 @@ import { clampPanelWidth } from "./layout";
 import { isDrawing, type Drawing } from "./drawing/types";
 import { emptyRiskInputs, parseRiskInputs, type RiskPlannerInputs } from "./analysis/risk";
 import { defaultStudies, parseStudies, type StudySettings } from "./indicators/studies";
+import { parseChartTemplates,type ChartTemplate } from "./indicators/templates";
 import { isPriceAlert, type PriceAlert } from "./alerts/engine";
 
 export type Level = { id: string; symbol: SymbolId; price: number; color: string; source?: "demo" | "binance" };
@@ -24,6 +25,7 @@ export type Workspace = {
   magnetEnabled: boolean;
   riskPlanner: RiskPlannerInputs;
   studies: StudySettings;
+  chartTemplates: ChartTemplate[];
   alerts: PriceAlert[];
 };
 export const defaultWorkspace: Workspace = {
@@ -44,6 +46,7 @@ export const defaultWorkspace: Workspace = {
   magnetEnabled: false,
   riskPlanner: {...emptyRiskInputs},
   studies: {...defaultStudies},
+  chartTemplates: [],
   alerts: [],
 };
 const SYMBOLS = ["EURUSD", "BTCUSDT", "AAPL", "US100"] as const;
@@ -84,6 +87,7 @@ export function parseWorkspace(value: unknown): Workspace {
     magnetEnabled: typeof raw.magnetEnabled === "boolean" ? raw.magnetEnabled : false,
     riskPlanner: parseRiskInputs(raw.riskPlanner),
     studies: parseStudies(raw.studies),
+    chartTemplates: parseChartTemplates(raw.chartTemplates),
     alerts: Array.isArray(raw.alerts)?raw.alerts.filter(isPriceAlert):[],
   };
 }
@@ -96,5 +100,5 @@ export function loadWorkspace(): Workspace {
   }
 }
 export function serializeWorkspace(workspace: Workspace): string {
-  return JSON.stringify({ format: "market-terminal-workspace", version: 11, preferences: workspace }, null, 2);
+  return JSON.stringify({ format: "market-terminal-workspace", version: 12, preferences: workspace }, null, 2);
 }
