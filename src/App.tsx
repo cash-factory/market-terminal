@@ -3,7 +3,7 @@ import {
   Activity, ArrowDownToLine, Bell, BookOpen, ChartCandlestick, Check,
   ChevronLeft, ChevronRight, Command, Compass, Download, Home, Layers,
   Menu, Moon, MousePointer2, Plus, RotateCcw, Search, Settings2, Sun,
-  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Target, Film, Magnet, MoveUpRight, ArrowUpRight, Columns2, Grid2X2, Shapes, Pencil, ArrowUp, ArrowDown
+  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Target, Film, Magnet, MoveUpRight, ArrowUpRight, Columns2, Grid2X2, Shapes, Pencil, ArrowUp, ArrowDown, Link2, Unlink2
 } from "lucide-react";
 import { ChartCanvas,type ChartSurface,type ChartRange } from "./ChartCanvas";
 import { nearestCrosshairBar } from "./charts/sync";
@@ -515,6 +515,20 @@ export default function App() {
                   update({chartLayout:prefs.chartLayout==="quad"?"single":"quad"});
                   notify(prefs.chartLayout==="quad"?"Single chart enabled.":"Four-chart workspace enabled.");
                 }}><Grid2X2 size={15}/> Four charts</button>
+              <div className="chart-link-tools">
+                <button className={"compact-action "+(prefs.linkCrosshairs?"active":"")}
+                  aria-label="Link chart crosshairs" aria-pressed={prefs.linkCrosshairs}
+                  title="Follow the same observed candle time across chart panes"
+                  onClick={()=>{update({linkCrosshairs:!prefs.linkCrosshairs});notify(prefs.linkCrosshairs?"Crosshair linking disabled.":"Crosshair linking enabled.");}}>
+                  {prefs.linkCrosshairs?<Link2 size={14}/>:<Unlink2 size={14}/>} Crosshair
+                </button>
+                <button className={"compact-action "+(prefs.linkTimeRanges?"active":"")}
+                  aria-label="Synchronize chart time ranges" aria-pressed={prefs.linkTimeRanges}
+                  title="Synchronize visible time windows when you pan or zoom"
+                  onClick={()=>{update({linkTimeRanges:!prefs.linkTimeRanges});notify(prefs.linkTimeRanges?"Independent zoom enabled.":"Linked time-range navigation enabled.");}}>
+                  <Link2 size={14}/> Time range
+                </button>
+              </div>
               <span className="tool-divider"/>
               <button className="compact-action panel-toggle" title={prefs.rightPanelOpen ? "Hide watchlist" : "Show watchlist"}
                 aria-label={prefs.rightPanelOpen ? "Hide watchlist" : "Show watchlist"}
@@ -665,7 +679,9 @@ export default function App() {
                 {!replay&&prefs.chartLayout!=="single"&&<div className="chart-cell-label"><span>01 / PRIMARY</span>
                   <strong>{symbols[prefs.symbol].label}</strong><small>{feed.sourceLabel}</small>
                 </div>}
-                <ChartCanvas key={replay?"historical-replay":"active-chart"} symbol={prefs.symbol} frame={prefs.frame} source={prefs.priceSource} candles={viewedCandles}
+                <ChartCanvas paneId="primary" onSurfaceReady={registerChartSurface}
+                  onRangeChanged={onChartRangeChanged} onCrosshairChanged={onChartCrosshairChanged}
+                  key={replay?"historical-replay":"active-chart"} symbol={prefs.symbol} frame={prefs.frame} source={prefs.priceSource} candles={viewedCandles}
                   dark={prefs.dark} showSma={prefs.showSma} studies={prefs.studies} parameters={prefs.studyParameters} levels={replay?[]:currentLevels} drawMode={drawMode} onPlaceLevel={addLevel}
                   drawingTool={drawingTool} drawings={replayDrawings} magnetEnabled={prefs.magnetEnabled}
                   drawingColor={prefs.accent === "amber" ? "#e9b368" : prefs.accent === "teal" ? "#32c7aa" : "#9295ff"}
@@ -679,31 +695,54 @@ export default function App() {
                     <label className="secondary-symbol-select">Symbol
                       <select aria-label={panel.number===2?"Secondary chart symbol":"Chart "+panel.number+" symbol"}
                         value={panel.symbol}
-                        onChange={e=>update({[panel.slot]:e.target.value as SymbolId})}>
+                        onChange={e=>{
+                          const symbol=e.target.value as SymbolId;
+                          update({[panel.slot]:symbol,
+                            [panel.sourceSlot]:symbol==="BTCUSDT"?panel.source:"demo"});
+                        }}>
                         {marketList.map(symbol=><option key={symbol} value={symbol}>{symbols[symbol].label}</option>)}
                       </select>
                     </label>
-                    <small>SIMULATED · DEMO</small>
+                    <label className="secondary-symbol-select">Frame
+                      <select aria-label={"Chart "+panel.number+" timeframe"} value={panel.frame}
+                        onChange={e=>update({[panel.frameSlot]:e.target.value as Frame})}>
+                        {frames.map(frame=><option key={frame} value={frame}>{frame}</option>)}
+                      </select>
+                    </label>
+                    <label className="secondary-symbol-select">Source
+                      <select aria-label={"Chart "+panel.number+" price source"} value={panel.source}
+                        onChange={e=>update({[panel.sourceSlot]:e.target.value as "demo"|"binance"})}>
+                        <option value="demo">Demo</option>
+                        <option value="binance" disabled={panel.symbol!=="BTCUSDT"}>Binance Spot</option>
+                      </select>
+                    </label>
+                    <small>{panel.feed.sourceLabel} · {panel.feed.status.toUpperCase()}</small>
                     <button className="chart-make-primary"
                       aria-label={panel.number===2?"Make comparison chart primary":"Make chart "+panel.number+" primary"}
                       title="Swap this chart into the main workspace for complete object management"
                       onClick={()=>{
-                        setPrefs(old=>({...old,symbol:old[panel.slot],[panel.slot]:old.symbol,priceSource:"demo"}));
-                        setDrawingTool(null);setDrawMode(false);
-                        notify("Chart symbols swapped; primary quote source is demonstration data.");
+                        setPrefs(old=>({
+                          ...old,symbol:old[panel.slot],[panel.slot]:old.symbol,
+                          frame:old[panel.frameSlot],[panel.frameSlot]:old.frame,
+                          priceSource:old[panel.sourceSlot],[panel.sourceSlot]:old.priceSource
+                        }));
+                        setDrawingTool(null);setDrawMode(false);setSelectedDrawingIds([]);
+                        notify("Chart moved to primary with its own quote source and timeframe.");
                       }}>Make primary</button>
                   </div>
-                  <ChartCanvas key={"comparison-"+panel.slot+"-"+panel.symbol}
-                    symbol={panel.symbol} frame={prefs.frame}
-                    source="demo" candles={panel.candles} dark={prefs.dark}
+                  <ChartCanvas paneId={panel.slot} onSurfaceReady={registerChartSurface}
+                    onRangeChanged={onChartRangeChanged} onCrosshairChanged={onChartCrosshairChanged}
+                    key={"comparison-"+panel.slot+"-"+panel.symbol+"-"+panel.frame+"-"+panel.source}
+                    symbol={panel.symbol} frame={panel.frame}
+                    source={panel.source} candles={panel.feed.candles} dark={prefs.dark}
                     showSma={prefs.showSma} studies={prefs.studies} parameters={prefs.studyParameters}
-                    levels={prefs.levels.filter(level=>level.symbol===panel.symbol&&(level.source??"demo")==="demo")}
-                    drawMode={drawMode} onPlaceLevel={price=>addComparisonLevel(panel.symbol,price)}
+                    levels={prefs.levels.filter(level=>level.symbol===panel.symbol&&(level.source??"demo")===panel.source)}
+                    drawMode={drawMode} onPlaceLevel={price=>addComparisonLevel(panel.symbol,panel.source,price)}
                     drawingTool={drawingTool}
-                    drawings={prefs.drawings.filter(d=>d.symbol===panel.symbol&&(d.source??"demo")==="demo")}
+                    drawings={prefs.drawings.filter(d=>d.symbol===panel.symbol&&(d.source??"demo")===panel.source)}
                     magnetEnabled={prefs.magnetEnabled}
                     drawingColor={prefs.accent==="amber"?"#e9b368":prefs.accent==="teal"?"#32c7aa":"#9295ff"}
-                    onAddDrawing={addComparisonDrawing} onUpdateDrawing={updateDrawing} onDeleteDrawing={removeDrawing} onDeleteDrawings={removeDrawings}
+                    onAddDrawing={drawing=>addDrawingFor(drawing,panel.source)} onUpdateDrawing={updateDrawing} onDeleteDrawing={removeDrawing} onDeleteDrawings={removeDrawings}
                     selectedDrawingIds={selectedDrawingIds} onDrawingSelectionChange={setSelectedDrawingIds}/>
                 </section>)}
             </div>
