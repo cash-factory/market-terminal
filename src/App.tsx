@@ -408,7 +408,9 @@ export default function App() {
     const definition=TOOL_BY_ID.get(selected);
     notify(next
       ? (definition?.points===1?"Click once to place "+definition.label+"."
-        :definition?.points===3?"Drag the baseline, then place the third channel anchor."
+        :selected==="channel"?"Draw the base line, then click the third channel rail point."
+        :definition&&definition.points>=3?"Place two anchors, then add "+
+          (definition.points-2)+" more for "+definition.label+"."
         :"Drag or click two points to place "+(definition?.label??selected)+".")
       : "Drawing tool dismissed.","info");
   };
