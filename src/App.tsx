@@ -10,6 +10,7 @@ import { MarketBoard } from "./charts/MarketBoard";
 import { InstrumentHeader, type CandleInspector } from "./charts/InstrumentHeader";
 import {ChartErrorBoundary} from "./charts/ChartErrorBoundary";
 import {chartStyles,type ChartDisplayStyle} from "./charts/display";
+import {TimeframePicker} from "./charts/TimeframePicker";
 import {ChartProfileMenu} from "./charts/ChartProfileMenu";
 import {applyChartProfile,createChartProfile} from "./charts/profiles";
 import { nearestCrosshairBar } from "./charts/sync";
@@ -21,11 +22,10 @@ import { DrawingSettingsDialog } from "./drawing/DrawingSettingsDialog";
 import { validateDrawingSettings } from "./drawing/drawingSettings";
 import { TOOL_BY_ID } from "./drawing/toolDefinitions";
 import {groupDrawings,ungroupDrawings,styleDrawings,moveDrawingLayers,updateDrawingAndGroup,type DrawingStylePatch} from "./drawing/manage";
-import { frameSeconds, symbols, type Frame, type SymbolId } from "./market";
+import {ALL_FRAMES, frameSeconds, symbols, type Frame, type SymbolId} from "./market";
 import { usePriceFeed } from "./data/usePriceFeed";
 import {referenceMarketHours,priceMetadata} from "./data/sessionReference";
 import { panelWidthAfterDrag, panelWidthAfterKey } from "./layout";
-import { RiskPlanner } from "./analysis/RiskPlanner";
 import {calculatePosition,defaultPositionTarget} from "./analysis/positionDrawing";
 import { AlertsCenter } from "./alerts/AlertsCenter";
 import { ReplayControls } from "./replay/ReplayControls";
@@ -37,27 +37,22 @@ import { BUILTIN_TEMPLATES, captureChartTemplate, selectTemplate } from "./indic
 import {defaultStudyParameters,studyParameterBounds,studyParameterKeys,updateStudyParameter} from "./indicators/parameters";
 import {createCustomStudy} from "./indicators/formula";
 import { defaultWorkspace, loadWorkspace, parseWorkspace, serializeWorkspace, type Workspace } from "./workspace";
-import { DecisionDesk } from "./decisions/DecisionDesk";
 import { CommandPalette } from "./commands/CommandPalette";
-import "./decisions/style.css";
-import { captureDecision, appendDecisionReview, type DecisionSetup, type DecisionRecord, type PlanAdherence, type ObservationOutcome } from "./decisions/model";
 
-type Page = "home" | "terminal" | "decisions" | "risk" | "alerts" | "library" | "settings";
+type Page = "home" | "terminal" | "alerts" | "library" | "settings";
 type Notice = { id: number; message: string; kind: "success" | "info" | "error" };
-const frames: Frame[] = ["1m", "5m", "15m", "1h", "4h", "1d"];
+const frames: Frame[] = ALL_FRAMES;
 const studyKeys=Object.keys(defaultStudies) as (keyof StudySettings)[];
 const menu: { id: Page; label: string; Icon: typeof Home }[] = [
   { id: "home", label: "Overview", Icon: Home },
   { id: "terminal", label: "Terminal", Icon: ChartCandlestick },
-  { id: "decisions", label: "Decision Desk", Icon: ClipboardList },
-  { id: "risk", label: "Risk Planner", Icon: Target },
   { id: "alerts", label: "Price Alerts", Icon: Bell },
   { id: "library", label: "Workspace", Icon: Layers },
   { id: "settings", label: "Preferences", Icon: Settings2 },
 ];
 const marketList = Object.keys(symbols) as SymbolId[];
 const titles: Record<Page, string> = {
-  home: "Market overview", terminal: "Trading terminal", decisions: "Decision Desk", risk: "Risk planner", alerts:"Price alerts", library: "My workspace", settings: "Preferences"
+  home: "Market overview", terminal: "Trading terminal", alerts:"Price alerts", library: "My workspace", settings: "Preferences"
 };
 
 const studio = !new URLSearchParams(window.location.search).has("classic");
@@ -207,38 +202,6 @@ export default function App() {
   };
   const notify = (message: string, kind: Notice["kind"] = "success") =>
     setNotice({ id: Date.now(), message, kind });
-  const createDecision=(setup:DecisionSetup):string|null=>{
-    try{
-      const id=crypto.randomUUID();
-      const record=captureDecision({
-        symbol:prefs.symbol,frame:prefs.frame,source:prefs.priceSource,
-        feedStatus:replay?"historical":feed.status,replay:Boolean(replay),visibleCandles:viewedCandles
-      },setup,id,Date.now());
-      setPrefs(old=>({...old,decisions:[...old.decisions,record]}));
-      notify("Decision captured with original candle and source provenance.");
-      return id;
-    }catch(error){notify(error instanceof Error?error.message:"Could not capture decision.","error");return null;}
-  };
-  const reviewDecision=(id:string,input:{adherence:PlanAdherence;outcome:ObservationOutcome;note:string}):boolean=>{
-    const original=prefs.decisions.find(item=>item.id===id);
-    if(!original){notify("Decision no longer exists.","error");return false;}
-    try{
-      const revised=appendDecisionReview(original,input,crypto.randomUUID(),Date.now());
-      setPrefs(old=>({...old,decisions:old.decisions.map(item=>item.id===id?revised:item)}));
-      notify("Review appended; original observation preserved.");
-      return true;
-    }catch(error){notify(error instanceof Error?error.message:"Could not add review.","error");return false;}
-  };
-  const deleteDecision=(id:string)=>{
-    setPrefs(old=>({...old,decisions:old.decisions.filter(item=>item.id!==id)}));
-    notify("Local decision and its history deleted.");
-  };
-  const openDecisionChart=(record:DecisionRecord)=>{
-    setReplay(null);setDrawingTool(null);setDrawMode(false);
-    update({symbol:record.symbol,frame:record.frame,priceSource:record.source});
-    setPage("terminal");
-    notify("Opened the current chart. The historical observation remains frozen in Decision Desk.","info");
-  };
   const openInstrument = (symbol: SymbolId) => {
     update({ symbol, priceSource: symbol === "BTCUSDT" ? prefs.priceSource : "demo" });
     setPage("terminal");
@@ -443,7 +406,6 @@ export default function App() {
       const destination=id.slice(5) as Page;
       if(menu.some(item=>item.id===destination)){
         setPage(destination);setDrawMode(false);setDrawingTool(null);
-        if(destination==="decisions")setReplay(current=>current?{...current,playing:false}:current);
         notify(titles[destination]+" opened.","info");
       }
       return;
@@ -563,11 +525,6 @@ export default function App() {
         crypto.randomUUID(),Date.now()));
       notify("Crossing alert armed in this browser. Keep this tab open.");
     }catch(error){notify(error instanceof Error?error.message:"Cannot arm this alert.","error");}
-  };
-  const openResearchFromChart=()=>{
-    setReplay(current=>current?{...current,playing:false}:current);
-    setPage("decisions");
-    notify("Decision Desk opened with the observed chart context.","info");
   };
   const removeAlert = (id:string) => {
     setPrefs(old=>({...old,alerts:old.alerts.filter(a=>a.id!==id)}));
@@ -717,11 +674,6 @@ export default function App() {
     notify(result.triggered.length+" price alert"+(result.triggered.length===1?"":"s")+" triggered for "+symbols[prefs.symbol].label,"info");
   },[prefs.symbol,prefs.priceSource,prefs.frame,prefs.alerts,last,feed.status,replay]);
   useEffect(() => {
-    if(page==="decisions"&&replay?.playing){
-      setReplay(current=>current?{...current,playing:false}:current);
-    }
-  },[page,replay?.playing]);
-  useEffect(() => {
     if (!notice || notice.kind === "error") return;
     const timer = window.setTimeout(() => setNotice(current => current?.id === notice.id ? null : current), 4200);
     return () => window.clearTimeout(timer);
@@ -786,8 +738,7 @@ export default function App() {
             <button className="primary-button" onClick={()=>setPage("terminal")}>Resume {symbols[prefs.symbol].label}<ChevronRight size={16}/></button></div>
           <MarketBoard frame={prefs.frame} selected={prefs.symbol} onOpen={openDemoMarket}/>
           <div className="overview-links">
-            <button onClick={()=>setPage("risk")}><Target size={20}/><strong>Risk planner</strong></button>
-            <button onClick={()=>setPage("decisions")}><ClipboardList size={20}/><strong>Decision Desk</strong><span>{prefs.decisions.length} recorded</span></button>
+            <button onClick={()=>{setPage("terminal");setPanelTab("objects");}}><Shapes size={20}/><strong>Drawing tools</strong><span>{prefs.drawings.length} objects</span></button>
             <button onClick={()=>setPage("alerts")}><Bell size={20}/><strong>Price alerts</strong><span>{activeAlertCount} armed</span></button>
             <button onClick={()=>setPage("library")}><Layers size={20}/><strong>Workspace</strong><span>{prefs.drawings.length} drawings</span></button>
           </div>
@@ -809,20 +760,15 @@ export default function App() {
             <div className="terminal-toolbar" aria-label="Chart workstation controls">
               <div className="terminal-toolbar-market" role="group" aria-label="Market and chart setup">
               <button className="symbol-button" onClick={() => setSearchOpen(true)}><span>{symbols[prefs.symbol].label}</span><Search size={15}/></button>
-              <div className="timeframes">{frames.map(frame => <button key={frame} className={frame === prefs.frame ? "active" : ""} onClick={() => update({ frame })}>{frame}</button>)}</div>
+              <TimeframePicker value={prefs.frame} source={prefs.priceSource}
+                onSelect={frame=>{update({frame});notify("Chart interval changed to "+frame+".","info");}}/>
               <span className="tool-divider"/>
               <button className={"compact-action "+(replay?"active":"")} aria-label={replay?"Exit replay":"Start replay"}
                 disabled={!replay&&currentCandles.length<40}
                 title={replay?"Exit historical candle replay":"Study historical candles one bar at a time"}
                 onClick={replay?exitReplay:startReplay}><Film size={15}/>{replay?"Exit replay":"Replay"}</button>
               <span className="tool-divider"/>
-              <button className="compact-action decision-capture-action" aria-label="Capture decision"
-                 title="Freeze your current market observation and record a decision"
-                 disabled={!viewedCandles.length}
-                 onClick={()=>{setReplay(current=>current?{...current,playing:false}:current);setPage("decisions");notify("Decision Desk opened with your chart context.","info");}}>
-                 <ClipboardList size={16}/> Capture decision
-               </button>
-               <span className="tool-divider"/>
+
                {studio && <button className="compact-action studio-setup" aria-expanded={setupOpen}
                 aria-controls="chart-configuration" onClick={()=>setSetupOpen(value=>!value)}>
                 <Settings2 size={16}/> Chart setup
@@ -1344,9 +1290,7 @@ export default function App() {
               currentPrice={viewedLast>0?viewedLast:null}
               lastUpdatedMs={replay?replayTime*1000:feed.lastUpdatedMs}
               levels={currentLevels} drawings={currentDrawings}
-              decisions={prefs.decisions} alerts={prefs.alerts}
-              onArmAlert={armLevelAlert} onCapture={openResearchFromChart}
-              onOpenDecisions={openResearchFromChart}
+              alerts={prefs.alerts} onArmAlert={armLevelAlert}
               onShowMarkets={()=>setPanelTab("markets")}
               onShowObjects={()=>setPanelTab("objects")}/>}
           </aside>}
@@ -1357,26 +1301,11 @@ export default function App() {
           onAdd={addAlert} onRemove={removeAlert} onClearTriggered={clearTriggeredAlerts}
           onOpenTerminal={()=>setPage("terminal")}
         />}
-        {page === "decisions" && <DecisionDesk
-           records={prefs.decisions}
-           context={{symbol:prefs.symbol,frame:prefs.frame,source:prefs.priceSource,
-             status:replay?"historical":feed.status,replay:Boolean(replay),
-             observedClose:viewedLast>0?viewedLast:null,
-             observedAtMs:viewedCandles.length?Number(viewedCandles[viewedCandles.length-1].time)*1000:null}}
-           onCreate={createDecision} onReview={reviewDecision}
-           onDelete={deleteDecision} onOpenChart={openDecisionChart}/>}
-         {page === "risk" && <RiskPlanner
-          value={prefs.riskPlanner}
-          onChange={next => update({riskPlanner:next})}
-          symbol={prefs.symbol}
-          quotePrice={last}
-          sourceLabel={feed.sourceLabel}
-        />}
         {page === "library" && <div className="content-page">
           <div className="section-head first"><div><small>LOCAL-FIRST</small><h1>My workspace</h1><p>Save, restore and manage your trading setup without a subscription.</p></div></div>
           <div className="workspace-card"><div className="workspace-icon"><Layers size={26}/></div><div className="workspace-info"><span className="eyebrow">CURRENT WORKSPACE</span><h2>Personal terminal</h2><p>{symbols[prefs.symbol].label} · {prefs.frame.toUpperCase()} · {prefs.levels.length} levels · {prefs.drawings.length} drawings</p></div><button className="primary-button" onClick={() => setPage("terminal")}>Open <ChevronRight size={16}/></button></div>
           <div className="section-head"><div><small>PORTABILITY</small><h2>Back up your work</h2></div></div>
-          <div className="action-grid"><button onClick={exportWorkspace}><Download size={23}/><strong>Export workspace</strong><span>Download your chart setup, drawings and decision history as JSON.</span></button><button onClick={() => inputFile.current?.click()}><Upload size={23}/><strong>Import workspace</strong><span>Restore a compatible exported workspace from your device.</span></button></div>
+          <div className="action-grid"><button onClick={exportWorkspace}><Download size={23}/><strong>Export workspace</strong><span>Download your chart setup, drawings and workspace settings as JSON.</span></button><button onClick={() => inputFile.current?.click()}><Upload size={23}/><strong>Import workspace</strong><span>Restore a compatible exported workspace from your device.</span></button></div>
           <input ref={inputFile} type="file" accept=".json,application/json" className="visually-hidden" onChange={importWorkspace}/>
         </div>}
         {page === "settings" && <div className="content-page preferences-page">
@@ -1394,6 +1323,6 @@ export default function App() {
        onClose={()=>setDrawingSettingsId(null)}/>}
     {searchOpen && <CommandPalette onClose={()=>setSearchOpen(false)}
        onOpenInstrument={openInstrument} onExecuteCommand={runTerminalCommand}/>}
-     {helpOpen && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setHelpOpen(false); }}><div className="help-dialog" role="dialog" aria-modal="true" aria-label="Help and shortcuts"><button className="dialog-close" aria-label="Close help" onClick={() => setHelpOpen(false)}><X size={18}/></button><Menu size={24}/><h2>Your terminal, your rules.</h2><p>Use the left navigation to switch between overview, charting, saved workspace and preferences. Click <strong>Price level</strong> to place a horizontal level, or drag using the Trendline, Rectangle or Fibonacci tools.</p><div className="shortcut"><span>Open Tool Atlas</span><kbd>Ctrl / ⌘ + K</kbd></div><div className="shortcut"><span>Exit drawing or dismiss dialog</span><kbd>Esc</kbd></div><div className="shortcut"><span>Undo / redo drawings</span><kbd>Ctrl / ⌘ + Z · Shift + Z</kbd></div><div className="shortcut"><span>Save workspace</span><strong>Automatic</strong></div><div className="shortcut"><span>Capture a source-aware decision</span><strong>Decision Desk</strong></div><p className="help-warning">Most instruments use synthetic demo candles. BTC/USDT has an opt-in direct Binance Spot feed. This is not a broker, and YoungMoney3 linking is not available.</p><button className="primary-button" onClick={() => setHelpOpen(false)}>Start exploring <ChevronRight size={16}/></button></div></div>}
+     {helpOpen && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setHelpOpen(false); }}><div className="help-dialog" role="dialog" aria-modal="true" aria-label="Help and shortcuts"><button className="dialog-close" aria-label="Close help" onClick={() => setHelpOpen(false)}><X size={18}/></button><Menu size={24}/><h2>Your terminal, your rules.</h2><p>Use the left navigation to switch between overview, charting, saved workspace and preferences. Click <strong>Price level</strong> to place a horizontal level, or drag using the Trendline, Rectangle or Fibonacci tools.</p><div className="shortcut"><span>Open Tool Atlas</span><kbd>Ctrl / ⌘ + K</kbd></div><div className="shortcut"><span>Exit drawing or dismiss dialog</span><kbd>Esc</kbd></div><div className="shortcut"><span>Undo / redo drawings</span><kbd>Ctrl / ⌘ + Z · Shift + Z</kbd></div><div className="shortcut"><span>Save workspace</span><strong>Automatic</strong></div><div className="shortcut"><span>Drawing properties</span><strong>Select an object → Properties</strong></div><p className="help-warning">Most instruments use synthetic demo candles. BTC/USDT has an opt-in direct Binance Spot feed. This is not a broker, and YoungMoney3 linking is not available.</p><button className="primary-button" onClick={() => setHelpOpen(false)}>Start exploring <ChevronRight size={16}/></button></div></div>}
   </div>;
 }
