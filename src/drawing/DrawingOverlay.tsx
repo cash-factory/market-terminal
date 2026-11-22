@@ -473,7 +473,63 @@ export function DrawingOverlay({
             fill="#e66a77" fontSize={10} pointerEvents="none">Stop · risk 1R</text>
         </>;
       })()}
-      {drawing.tool === "ray" && (() => {
+      {(["extended-line","horizontal-line","horizontal-ray","vertical-line","cross-line"] as string[])
+         .includes(drawing.tool) && (() => {
+         const first=drawing.tool==="extended-line"?clippedExtendedLine(a,b,plot):
+           drawing.tool==="horizontal-line"?horizontalReference(a,plot,false):
+           drawing.tool==="horizontal-ray"?horizontalReference(a,plot,true):
+           verticalReference(a,plot);
+         if(!first)return null;
+         const paths=[first];
+         if(drawing.tool==="cross-line"){
+           const horizontal=horizontalReference(a,plot,false);
+           if(horizontal)paths.push(horizontal);
+         }
+         const d=paths.map(item=>"M "+item.start.x+" "+item.start.y+
+           " L "+item.end.x+" "+item.end.y).join(" ");
+         return <>
+           <path d={d} fill="none" stroke="transparent" strokeWidth={16} className="drawing-hit"/>
+           <path d={d} fill="none" {...common} className="drawing-line drawing-reference"/>
+           {drawing.tool==="cross-line"&&<circle cx={a.x} cy={a.y} r={3.5}
+             fill="var(--panel)" stroke={drawing.color} strokeWidth={1.5} pointerEvents="none"/>}
+         </>;
+       })()}
+       {drawing.tool==="price-range" && (() => {
+         const m=measurement(drawing.start,drawing.end,frameSeconds[frame]);
+         const left=Math.min(a.x,b.x),top=Math.min(a.y,b.y);
+         const width=Math.max(16,Math.abs(b.x-a.x)),height=Math.max(2,Math.abs(b.y-a.y));
+         const sign=m.change>0?"+":"";
+         return <>
+           <rect x={left} y={top} width={width} height={height}
+             fill={drawing.color} fillOpacity={.10} stroke={drawing.color}
+             strokeWidth={1} className="drawing-rectangle drawing-price-range"/>
+           <line x1={left} x2={left+width} y1={a.y} y2={a.y} {...common} pointerEvents="none"/>
+           <line x1={left} x2={left+width} y1={b.y} y2={b.y} {...common} pointerEvents="none"/>
+           <text x={left+width+6} y={top+height/2} fill={drawing.color}
+             fontSize={11} fontWeight={700} dominantBaseline="middle" pointerEvents="none">
+             {sign+m.change.toFixed(4)+" / "+sign+m.percent.toFixed(2)+"%"}
+           </text>
+         </>;
+       })()}
+       {drawing.tool==="date-range" && (() => {
+         const left=Math.min(a.x,b.x),width=Math.max(1,Math.abs(b.x-a.x));
+         const bars=observedBarCount(candles.map(c=>Number(c.time)),
+           drawing.start.time,drawing.end.time);
+         const elapsed=formatElapsedDuration(Math.abs(drawing.end.time-drawing.start.time));
+         return <>
+           <rect x={left} y={0} width={width} height={plot.height}
+             fill={drawing.color} fillOpacity={.08} pointerEvents="none"
+             className="drawing-date-band"/>
+           <path d={"M "+a.x+" 0 V "+plot.height+" M "+b.x+" 0 V "+plot.height}
+             stroke="transparent" strokeWidth={16} fill="none" className="drawing-hit"/>
+           <path d={"M "+a.x+" 0 V "+plot.height+" M "+b.x+" 0 V "+plot.height}
+             fill="none" {...common} className="drawing-line"/>
+           <text x={left+width/2} y={Math.max(18,Math.min(plot.height-12,28))}
+             textAnchor="middle" fontSize={11} fontWeight={650} fill={drawing.color}
+             pointerEvents="none">{elapsed+" · "+bars+" observed bars"}</text>
+         </>;
+       })()}
+       {drawing.tool === "ray" && (() => {
         const endpoint=rayEndpoint(a,b,chart.timeScale().width(),
           Math.max(0,(svgRef.current?.clientHeight ?? 0)-chart.timeScale().height()));
         return <>
