@@ -64,6 +64,31 @@ Before adding a new family, engineering must establish (a) a mathematically defi
 
 References: [TradingView drawing-tool directory](https://www.tradingview.com/support/solutions/43000703396-drawing-tools-available-on-tradingview/), [TradingView favorites](https://www.tradingview.com/support/solutions/43000662392-how-to-favorite-indicators-financials-drawing-tools-and-timeframes/), [TradingView's quick search behavior](https://www.tradingview.com/support/solutions/43000659671-quick-search-on-tradingview-find-anything-super-fast/).
 
+## TradingView reference inventory — implementation honesty
+
+The following categories are an **implementation backlog**, not an inventory of available controls. TradingView's proprietary Advanced Charts library and data/feed entitlements cannot be assumed to be free or included with our use of the open-source Lightweight Charts renderer.
+
+| Professional charting family | Available in Market Terminal | Next candidates | Dependencies and reasons to defer |
+| --- | --- | --- | --- |
+| Lines and reference geometry | Trendline, ray, extended line, horizontal line/ray, vertical line, cross line, parallel channel | Trend angle, disjoint/flat channels, regression trend | Correct two-/three-anchor editing, pixel-slope disclosure and shape performance |
+| Fibonacci and Gann | Basic Fibonacci retracement | Trend-based extension, time zones, arcs, circles, Gann fan/box | Mathematically testable time/price coordinate models; Gann angles depend on chart scale |
+| Geometric markup | Rectangle, ellipse, arrow, freehand brush | Triangle, rotated box, arc, polyline, curved path, highlighter | Multi-point gestures, handles, snapping, hit-testing and keyboard/touch contracts |
+| Annotations | Text note, horizontal level | Callout, anchored note, price flag, drawing label systems, reusable templates | Overlap prevention, accessibility, chart-privacy and export formats |
+| Patterns | None | Elliott impulse/correction, XABCD/harmonics, ABCD, head-and-shoulders | Multi-anchor schemas, non-predictive labeling, honest interpretation |
+| Measurement and planning | Price/time ruler, price range, date range, illustrative long/short positions | Bar-pattern comparison, projections, source-aware risk/contract sizing | Broker contract specs, pip value, fee assumptions, no-lookahead replay validation |
+| Data-dependent analysis | SMA, EMA, RSI, MACD, ATR, Bollinger, validated formula studies | Volume profile, anchored VWAP, footprint, breadth, multi-exchange comparison | Licensed volume/venue data, normalization and redistribution permission |
+| Operational workflows | Tool Atlas, pinned favorites, Chart Context Lens, replay, source labels, Decision Desk | Strategy Lab, chart provenance capsule, evidence counterweight, user-defined shortcuts | Reliable data providers, accessible interactions, measurable decision quality |
+
+### Differentiation beyond drawing quantity
+
+1. **Source-qualified action:** The Chart Context Lens reports distance to the trader's own marked prices without asserting they are objectively valid support or resistance.
+2. **No hidden market assumptions:** Date Range reports actual observed bars rather than assuming every minute across a weekend contains a tradable candle.
+3. **Research continuity:** The Context Lens links analysis to an immutable Decision Desk record; user judgments remain user judgments.
+4. **Fast recall:** A single Tool Library organizes verified chart tools, persistent favorites and recent actions without burying the chart under dozens of permanent icons.
+5. **Financial realism:** Position illustrations never masquerade as executable broker orders or reliable P/L forecasts absent contract metadata.
+
+**Release gates:** A tool is considered complete only after deterministic mathematics, source/storage safety, real pointer gestures, keyboard/mobile interaction, visual layout, regression, performance and user comprehension have been checked. Live-provider claims additionally require real-source interruption acceptance.
+
 ## Responsible sequence
 
 1. **Prove data trust.** Finish PR #48 exchange backfill acceptance; real-provider reconnect testing; stale/disconnect behavior; quote and calendar metadata.
