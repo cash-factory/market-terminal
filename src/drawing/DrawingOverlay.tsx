@@ -175,7 +175,8 @@ export function DrawingOverlay({
   };
   const beginEdit = (event: ReactPointerEvent<SVGElement>, drawing: Drawing, kind: Gesture["kind"],vertexIndex?:number) => {
     if (tool || event.button !== 0) return;
-    event.preventDefault();
+    // Preserve the browser's click/double-click sequence for selected shapes.
+    // Suppress native gestures only if the pointer actually begins dragging.
     event.stopPropagation();
     const linked=drawing.groupId?
       drawings.filter(d=>d.groupId===drawing.groupId).map(d=>d.id):[drawing.id];
@@ -280,8 +281,10 @@ export function DrawingOverlay({
       return;
     }
     if (!active.original) return;
-    if(pointerDistance(active.origin,point)>=2&&!svgRef.current?.hasPointerCapture(event.pointerId))
-      capture(event);
+    if(pointerDistance(active.origin,point)>=2){
+      event.preventDefault();
+      if(!svgRef.current?.hasPointerCapture(event.pointerId))capture(event);
+    }
     const originalProjected = project(active.original);
     if (!originalProjected) return;
     const dx = point.x - active.origin.x;
