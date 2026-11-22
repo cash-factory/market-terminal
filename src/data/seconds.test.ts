@@ -26,7 +26,7 @@ describe("real second-scale price aggregation",()=>{
     expect(result[0].isFinal).toBe(false);
   });
   it("keeps one-second native data and requests one-second spot source for subminute charts",()=>{
-    const rows=[bar(1000,1,2),bar(2000,2,3)];
+    const rows=[bar(1000,100,102),bar(2000,102,103)];
     expect(aggregateSeconds(rows,"1s")).toEqual(rows);
     expect(nativeBinanceInterval("10s")).toBe("1s");
     expect(nativeBinanceInterval("1m")).toBe("1m");
