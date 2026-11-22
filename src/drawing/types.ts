@@ -1,6 +1,12 @@
 import type { SymbolId } from "../market";
+import { TOOL_BY_ID } from "./toolDefinitions";
 
-export type DrawingTool = "trendline" | "rectangle" | "fibonacci" | "ray" | "measure" | "arrow" | "ellipse" | "text" | "long-position" | "short-position" | "brush" | "channel";
+export type DrawingTool =
+  | "trendline" | "rectangle" | "fibonacci" | "ray" | "measure"
+  | "arrow" | "ellipse" | "text" | "long-position" | "short-position"
+  | "brush" | "channel" | "extended-line" | "horizontal-line"
+  | "horizontal-ray" | "vertical-line" | "cross-line"
+  | "price-range" | "date-range";
 export type ChartAnchor = { time: number; price: number };
 export type Drawing = {
   id: string;
@@ -23,7 +29,6 @@ export type Drawing = {
 };
 
 const validSymbols = new Set<SymbolId>(["EURUSD", "BTCUSDT", "AAPL", "US100"]);
-const validTools = new Set<DrawingTool>(["trendline", "rectangle", "fibonacci", "ray", "measure", "arrow", "ellipse", "text", "long-position", "short-position", "brush", "channel"]);
 export function isDrawing(input: unknown): input is Drawing {
   if (!input || typeof input !== "object" || Array.isArray(input)) return false;
   const d = input as Partial<Drawing>;
@@ -33,7 +38,7 @@ export function isDrawing(input: unknown): input is Drawing {
     return Number.isSafeInteger(a.time) && a.time! >= 0 && typeof a.price === "number" && Number.isFinite(a.price) && a.price > 0;
   };
   return typeof d.id === "string" && d.id.length > 0 &&
-    validSymbols.has(d.symbol as SymbolId) && validTools.has(d.tool as DrawingTool) &&
+    validSymbols.has(d.symbol as SymbolId) && TOOL_BY_ID.has(d.tool as DrawingTool) &&
     anchor(d.start) && anchor(d.end) &&
     (d.source === undefined || d.source === "demo" || d.source === "binance") && typeof d.color === "string" &&
     /^#[a-f0-9]{6}$/i.test(d.color) && typeof d.locked === "boolean" &&
