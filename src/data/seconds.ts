@@ -14,20 +14,24 @@ export function aggregateSeconds(
   if(frame==="1s")return valid;
   const duration=INTERVAL_MS[frame];
   const groups=new Map<number,Candle>();
+  const observed=new Map<number,number>();
   for(const row of valid){
     // Refuse to misrepresent minute candles as second bars.
     if(row.openTimeMs%1_000!==0)continue;
     const bucket=Math.floor(row.openTimeMs/duration)*duration;
     const old=groups.get(bucket);
+    const count=(observed.get(bucket)??0)+1;
+    observed.set(bucket,count);
+    const complete=row.isFinal && count===duration/1_000 && row.openTimeMs+1_000===bucket+duration;
     if(!old){
       groups.set(bucket,{...row,openTimeMs:bucket,
-        isFinal:row.isFinal && row.openTimeMs+1_000===bucket+duration});
+        isFinal:complete});
     }else{
       groups.set(bucket,{
         ...old,high:Math.max(old.high,row.high),low:Math.min(old.low,row.low),
         close:row.close,
         volume:old.volume===undefined||row.volume===undefined?undefined:old.volume+row.volume,
-        isFinal:row.isFinal && row.openTimeMs+1_000===bucket+duration
+        isFinal:complete
       });
     }
   }
