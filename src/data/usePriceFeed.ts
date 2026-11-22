@@ -32,6 +32,7 @@ function chartCandles(rows: readonly Candle[]): CandlestickData<UTCTimestamp>[] 
   }));
 }
 
+const EMPTY_CANDLES: CandlestickData<UTCTimestamp>[] = [];
 const STREAM_URL = "wss://data-stream.binance.vision:443/ws/btcusdt@kline_";
 
 /** Opt-in, browser-side market data: no secrets, no proxy and no synthetic-price fallback. */
@@ -148,12 +149,13 @@ export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSourc
     sourceLabel: "Synthetic demonstration candles", message: null,
     lastUpdatedMs: null, retry: () => setRevision(value => value + 1),
   };
+  const projected = useMemo(() => chartCandles(snapshot.candles), [snapshot.candles]);
   const current = snapshot.key === key ? snapshot : {
     key, candles: [], status: "loading" as PriceStatus,
     message: "Loading Binance Spot candles…", asOfMs: null
   };
   return {
-    candles: chartCandles(current.candles),
+    candles: snapshot.key === key ? projected : EMPTY_CANDLES,
     status: current.status,
     sourceLabel: "Binance Spot · BTC/USDT",
     message: current.message,
