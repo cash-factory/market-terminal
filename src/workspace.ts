@@ -17,6 +17,8 @@ export type Workspace = {
   priceSource: "demo" | "binance";
   chartLayout: "single" | "dual" | "quad";
   chartDisplayStyle: ChartDisplayStyle;
+  comparisonOverlaySymbol: SymbolId | null;
+  comparisonOverlaySource: "demo" | "binance";
   chartProfiles: ChartProfile[];
   secondarySymbol: SymbolId;
   tertiarySymbol: SymbolId;
@@ -52,6 +54,8 @@ export const defaultWorkspace: Workspace = {
   priceSource: "demo",
   chartLayout: "single",
   chartDisplayStyle: "candles",
+  comparisonOverlaySymbol: null,
+  comparisonOverlaySource: "demo",
   chartProfiles: [],
   secondarySymbol: "BTCUSDT",
   tertiarySymbol: "AAPL",
@@ -109,6 +113,10 @@ export function parseWorkspace(value: unknown): Workspace {
     priceSource: symbol === "BTCUSDT" && raw.priceSource === "binance" ? "binance" : "demo",
     chartLayout: raw.chartLayout === "quad" ? "quad" : raw.chartLayout === "dual" ? "dual" : "single",
     chartDisplayStyle: parseChartDisplayStyle(raw.chartDisplayStyle),
+    comparisonOverlaySymbol: SYMBOLS.includes(raw.comparisonOverlaySymbol as SymbolId)
+      ? raw.comparisonOverlaySymbol as SymbolId : null,
+    comparisonOverlaySource: raw.comparisonOverlaySymbol==="BTCUSDT"&&raw.comparisonOverlaySource==="binance"
+      ? "binance" : "demo",
     chartProfiles: parseChartProfiles(raw.chartProfiles),
     secondarySymbol: SYMBOLS.includes(raw.secondarySymbol as SymbolId) ? raw.secondarySymbol as SymbolId : "BTCUSDT",
     tertiarySymbol: SYMBOLS.includes(raw.tertiarySymbol as SymbolId) ? raw.tertiarySymbol as SymbolId : "AAPL",
@@ -146,5 +154,5 @@ export function loadWorkspace(): Workspace {
   }
 }
 export function serializeWorkspace(workspace: Workspace): string {
-  return JSON.stringify({ format: "market-terminal-workspace", version: 21, preferences: workspace }, null, 2);
+  return JSON.stringify({ format: "market-terminal-workspace", version: 22, preferences: workspace }, null, 2);
 }
