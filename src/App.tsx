@@ -31,6 +31,7 @@ import {defaultStudyParameters,studyParameterBounds,studyParameterKeys,updateStu
 import {createCustomStudy} from "./indicators/formula";
 import { defaultWorkspace, loadWorkspace, parseWorkspace, serializeWorkspace, type Workspace } from "./workspace";
 import { DecisionDesk } from "./decisions/DecisionDesk";
+import "./decisions/style.css";
 import { captureDecision, appendDecisionReview, type DecisionSetup, type DecisionRecord, type PlanAdherence, type ObservationOutcome } from "./decisions/model";
 
 type Page = "home" | "terminal" | "decisions" | "risk" | "alerts" | "library" | "settings";
