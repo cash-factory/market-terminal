@@ -32,7 +32,7 @@ test("Studio popup is responsive and keeps chart object accessible",async({page}
   await page.setViewportSize({width:1366,height:768});
   await page.goto("/market-terminal/");
   await page.getByRole("group",{name:"Chart drawing categories"})
-    .getByRole("button",{name:"Open Shapes tools"}).click();
+    .getByRole("button",{name:"Open Shapes & geometry tools"}).click();
   const library=page.getByRole("group",{name:"Advanced drawing tools"});
   await library.getByRole("button",{name:"Rectangle",exact:true}).click();
   const box=await page.locator("svg.drawing-overlay").first().boundingBox();
