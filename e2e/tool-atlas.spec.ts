@@ -8,7 +8,7 @@ test("Tool Atlas executes drawing and research commands with keyboard navigation
   await search.fill("Fibonacci");
   await expect(page.getByRole("option",{name:/Fibonacci Levels/})).toBeVisible();
   await search.press("Enter");
-  await expect(page.getByRole("button",{name:"Fibonacci",exact:true})).toHaveClass(/active/);
+  await expect(page.getByRole("button",{name:"Open Fib / Gann tools"})).toHaveClass(/armed/);
   await page.keyboard.press("Control+k");
   await page.getByRole("combobox",{name:"Search instruments and tools"}).fill("Decision Desk");
   await page.getByRole("combobox",{name:"Search instruments and tools"}).press("Enter");
