@@ -27,6 +27,27 @@ describe("drawing pointer geometry", () => {
     expect(timeFromLogical(logicalAtHour!, hourlyCandles, 3600)).toBe(originalTime);
   });
 
+  it("uses real bar indexes through a weekend gap rather than a fabricated continuous interval", () => {
+    const bars=[asCandle(1_800_000_000),asCandle(1_800_003_600),asCandle(1_800_262_800),asCandle(1_800_266_400)];
+    expect(timeFromLogical(1, bars,3600)).toBe(1_800_003_600);
+    expect(timeFromLogical(2, bars,3600)).toBe(1_800_262_800);
+    expect(logicalFromTime(1_800_262_800,bars,3600)).toBe(2);
+    expect(logicalFromTime(1_800_003_600,bars,3600)).toBe(1);
+    const midpoint=(1_800_003_600+1_800_262_800)/2;
+    expect(logicalFromTime(midpoint,bars,3600)).toBeCloseTo(1.5);
+    expect(timeFromLogical(1.5,bars,3600)).toBe(midpoint);
+    expect(timeFromLogical(-1,bars,3600)).toBe(1_799_996_400);
+    expect(timeFromLogical(4,bars,3600)).toBe(1_800_270_000);
+  });
+
+  it("retains fast time-to-anchor lookup for large nonuniform bar sets", () => {
+    const bars=Array.from({length:10_000},(_,i)=>asCandle(1_800_000_000+i*60+Math.floor(i/1440)*3600));
+    for(let index=0;index<bars.length;index+=117){
+      const logical=logicalFromTime(Number(bars[index].time),bars,60);
+      expect(logical).toBe(index);
+    }
+  });
+
   it("rejects clicks on the price and time scales, not in the drawing plot", () => {
     expect(inChartPlot({x: 300,y: 200}, 800, 400)).toBe(true);
     expect(inChartPlot({x: 810,y: 200}, 800, 400)).toBe(false);
