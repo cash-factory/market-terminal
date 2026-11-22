@@ -42,7 +42,9 @@ export function isValidLevel(value:unknown):value is Level{
   ].includes(key)))return false;
   const parsed=parseLevel(value);
   if(!parsed)return false;
-  return JSON.stringify(parsed)===JSON.stringify(value);
+  const props=Object.keys(raw);
+  return props.length===Object.keys(parsed).length&&props.every(key=>
+    JSON.stringify(raw[key])===JSON.stringify((parsed as unknown as Record<string,unknown>)[key]));
 }
 export function levelVisibleAtFrame(level:Level,frame:Frame):boolean{
   return level.hidden!==true&&
