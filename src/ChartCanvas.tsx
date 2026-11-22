@@ -123,7 +123,7 @@ export function ChartCanvas({
     );
   }, [levels, symbol, frame, dark, showSma, source]);
 
-  return <div className="technical-chart-stack"><div className="chart-surface">
+  return <div className="technical-chart-stack" data-visible-candles={candles.length}><div className="chart-surface">
     <div ref={host} className={drawMode ? "chart-canvas drawing-armed" : "chart-canvas"}
       role="img" aria-label={source === "demo"
         ? "Synthetic " + symbols[symbol].label + " candlestick chart"
