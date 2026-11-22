@@ -15,6 +15,7 @@ export type Workspace = {
   sidebarOpen: boolean;
   rightPanelOpen: boolean;
   rightPanelWidth: number;
+  keepDrawingToolActive: boolean;
 };
 export const defaultWorkspace: Workspace = {
   symbol: "EURUSD",
@@ -28,6 +29,7 @@ export const defaultWorkspace: Workspace = {
   sidebarOpen: true,
   rightPanelOpen: true,
   rightPanelWidth: 270,
+  keepDrawingToolActive: false,
 };
 const SYMBOLS = ["EURUSD", "BTCUSDT", "AAPL", "US100"] as const;
 const FRAMES = ["1m", "5m", "15m", "1h", "4h", "1d"] as const;
@@ -61,6 +63,7 @@ export function parseWorkspace(value: unknown): Workspace {
     sidebarOpen: typeof raw.sidebarOpen === "boolean" ? raw.sidebarOpen : true,
     rightPanelOpen: typeof raw.rightPanelOpen === "boolean" ? raw.rightPanelOpen : true,
     rightPanelWidth: typeof raw.rightPanelWidth === "number" ? clampPanelWidth(raw.rightPanelWidth) : 270,
+    keepDrawingToolActive: typeof raw.keepDrawingToolActive === "boolean" ? raw.keepDrawingToolActive : false,
   };
 }
 export function loadWorkspace(): Workspace {
@@ -72,5 +75,5 @@ export function loadWorkspace(): Workspace {
   }
 }
 export function serializeWorkspace(workspace: Workspace): string {
-  return JSON.stringify({ format: "market-terminal-workspace", version: 5, preferences: workspace }, null, 2);
+  return JSON.stringify({ format: "market-terminal-workspace", version: 6, preferences: workspace }, null, 2);
 }
