@@ -1,0 +1,54 @@
+import {test,expect} from "@playwright/test";
+
+test("a parallel channel requires a base drag and a third control point, then persists",async({page})=>{
+  await page.goto("/market-terminal/");
+  await page.getByRole("button",{name:"More drawing tools"}).click();
+  await page.getByRole("button",{name:/^Parallel channel/}).click();
+  const surface=page.locator("svg.drawing-overlay");
+  const box=await surface.boundingBox();
+  if(!box)throw new Error("Drawing surface unavailable");
+  const a={x:box.x+box.width*.27,y:box.y+box.height*.47};
+  const b={x:box.x+box.width*.55,y:box.y+box.height*.35};
+  const c={x:box.x+box.width*.38,y:box.y+box.height*.65};
+  await page.mouse.move(a.x,a.y);await page.mouse.down();
+  await page.mouse.move(b.x,b.y,{steps:12});await page.mouse.up();
+  await expect(page.locator(".drawing-channel")).toHaveCount(1);
+  const before=await page.evaluate(()=>JSON.parse(localStorage.getItem("market-terminal-workspace")??"{}"));
+  expect(before.preferences.drawings).toHaveLength(0);
+  await page.mouse.move(c.x,c.y,{steps:6});
+  await page.mouse.click(c.x,c.y);
+  await expect(page.locator(".drawing-channel")).toHaveCount(1);
+  const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem("market-terminal-workspace")??"{}"));
+  expect(saved.preferences.drawings).toHaveLength(1);
+  expect(saved.preferences.drawings[0]).toMatchObject({tool:"channel"});
+  expect(saved.preferences.drawings[0].control).toBeDefined();
+  await page.reload();
+  await expect(page.locator(".drawing-channel")).toHaveCount(1);
+  await expect(page.locator(".drawing-object-row")).toHaveCount(1);
+});
+
+test("channel rail width has its own draggable control without moving base anchors",async({page})=>{
+  await page.goto("/market-terminal/");
+  await page.getByRole("button",{name:"More drawing tools"}).click();
+  await page.getByRole("button",{name:/^Parallel channel/}).click();
+  const box=await page.locator("svg.drawing-overlay").boundingBox();
+  if(!box)throw new Error("Missing drawing canvas");
+  const p=(x:number,y:number)=>({x:box.x+box.width*x,y:box.y+box.height*y});
+  const a=p(.28,.47),b=p(.58,.32),c=p(.42,.67);
+  await page.mouse.move(a.x,a.y);await page.mouse.down();await page.mouse.move(b.x,b.y,{steps:9});await page.mouse.up();
+  await page.mouse.click(c.x,c.y);
+  await page.getByRole("button",{name:"Select all chart drawings"}).click();
+  const handle=page.locator(".channel-control-handle");
+  await expect(handle).toHaveCount(1);
+  const rect=await handle.boundingBox();
+  if(!rect)throw new Error("Channel handle missing");
+  const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem("market-terminal-workspace")??"{}"));
+  const orig=saved.preferences.drawings[0];
+  const x=rect.x+rect.width/2,y=rect.y+rect.height/2;
+  await page.mouse.move(x,y);await page.mouse.down();
+  await page.mouse.move(x+22,y-24,{steps:10});await page.mouse.up();
+  const changed=await page.evaluate(()=>JSON.parse(localStorage.getItem("market-terminal-workspace")??"{}"));
+  expect(changed.preferences.drawings[0].start).toEqual(orig.start);
+  expect(changed.preferences.drawings[0].end).toEqual(orig.end);
+  expect(changed.preferences.drawings[0].control).not.toEqual(orig.control);
+});
