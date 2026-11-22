@@ -1,4 +1,4 @@
-import type { Frame, SymbolId } from "./market";
+import { ALL_FRAMES, type Frame, type SymbolId } from "./market";
 import { clampPanelWidth } from "./layout";
 import { isDrawing, type Drawing, type DrawingTool } from "./drawing/types";
 import { DEFAULT_FAVORITE_TOOLS, parseFavoriteTools } from "./drawing/toolDefinitions";
@@ -92,7 +92,7 @@ export const defaultWorkspace: Workspace = {
   favoriteDrawingTools: [...DEFAULT_FAVORITE_TOOLS],
 };
 const SYMBOLS = ["EURUSD", "BTCUSDT", "AAPL", "US100"] as const;
-const FRAMES = ["1m", "5m", "15m", "1h", "4h", "1d"] as const;
+const FRAMES:readonly Frame[]=ALL_FRAMES;
 const ACCENTS = ["violet", "teal", "amber"] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
