@@ -6,6 +6,7 @@ import {
   Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Target, Film, Magnet, MoveUpRight, ArrowUpRight, Columns2, Grid2X2, Shapes, Pencil, ArrowUp, ArrowDown, Link2, Unlink2
 } from "lucide-react";
 import { ChartCanvas,type ChartSurface,type ChartRange } from "./ChartCanvas";
+import {ChartErrorBoundary} from "./charts/ChartErrorBoundary";
 import {chartStyles,type ChartDisplayStyle} from "./charts/display";
 import {ChartProfileMenu} from "./charts/ChartProfileMenu";
 import {applyChartProfile,createChartProfile} from "./charts/profiles";
@@ -822,7 +823,9 @@ export default function App() {
                 {!replay&&prefs.chartLayout!=="single"&&<div className="chart-cell-label"><span>01 / PRIMARY</span>
                   <strong>{symbols[prefs.symbol].label}</strong><small>{feed.sourceLabel}</small>
                 </div>}
-                <ChartCanvas chartStyle={prefs.chartDisplayStyle}
+                <ChartErrorBoundary title="Primary chart"
+                  resetKey={prefs.symbol+":"+prefs.frame+":"+prefs.priceSource+":"+prefs.chartDisplayStyle}>
+                  <ChartCanvas chartStyle={prefs.chartDisplayStyle}
                   comparisonCandles={prefs.comparisonOverlaySymbol?overlayFeed.candles:undefined}
                   comparisonLabel={prefs.comparisonOverlaySymbol?
                     symbols[prefs.comparisonOverlaySymbol].label+" · "+overlayFeed.sourceLabel+
@@ -835,6 +838,7 @@ export default function App() {
                   drawingColor={prefs.accent === "amber" ? "#e9b368" : prefs.accent === "teal" ? "#32c7aa" : "#9295ff"}
                   onAddDrawing={addDrawing} onUpdateDrawing={updateDrawing} onDeleteDrawing={removeDrawing} onDeleteDrawings={removeDrawings}
                   selectedDrawingIds={selectedDrawingIds} onDrawingSelectionChange={setSelectedDrawingIds}/>
+                </ChartErrorBoundary>
               </section>
               {!replay&&comparisonPanels.slice(0,prefs.chartLayout==="quad"?3:prefs.chartLayout==="dual"?1:0)
                 .map(panel=><section key={panel.slot} className="chart-grid-cell"
@@ -878,6 +882,8 @@ export default function App() {
                         notify("Chart moved to primary with its own quote source and timeframe.");
                       }}>Make primary</button>
                   </div>
+                  <ChartErrorBoundary title={"Chart "+panel.number}
+                    resetKey={panel.symbol+":"+panel.frame+":"+panel.source+":"+prefs.chartDisplayStyle}>
                   <ChartCanvas chartStyle={prefs.chartDisplayStyle} paneId={panel.slot} onSurfaceReady={registerChartSurface}
                     onRangeChanged={onChartRangeChanged} onCrosshairChanged={onChartCrosshairChanged}
                     key={"comparison-"+panel.slot+"-"+panel.symbol+"-"+panel.frame+"-"+panel.source}
@@ -892,6 +898,7 @@ export default function App() {
                     drawingColor={prefs.accent==="amber"?"#e9b368":prefs.accent==="teal"?"#32c7aa":"#9295ff"}
                     onAddDrawing={drawing=>addDrawingFor(drawing,panel.source)} onUpdateDrawing={updateDrawing} onDeleteDrawing={removeDrawing} onDeleteDrawings={removeDrawings}
                     selectedDrawingIds={selectedDrawingIds} onDrawingSelectionChange={setSelectedDrawingIds}/>
+                  </ChartErrorBoundary>
                 </section>)}
             </div>
             <div className="chart-footer"><span><span className="sync-point">●</span> Locally saved</span><span>Source: {feed.sourceLabel} · {frameSeconds[prefs.frame] / 60}m candle interval · {replay?"historical replay":feed.status}{feed.lastUpdatedMs ? " · Updated " + new Date(feed.lastUpdatedMs).toLocaleTimeString() : ""}</span></div>
