@@ -8,7 +8,10 @@ test("reference market calendars disclose exact provenance without claiming live
   await expect(page.locator(".market-session-reference")).toContainText("No executable market-hours assertion");
   await page.locator(".watchlist button").filter({hasText:"AAPL"}).click();
   await expect(page.locator(".market-session-reference summary")).toContainText("Nasdaq");
-  await page.locator(".market-session-reference summary").click();
+  // The <details> remains open when its instrument changes; do not toggle it shut.
+  const details=page.locator(".market-session-reference");
+  if(!(await details.evaluate(el=>(el as HTMLDetailsElement).open)))
+    await details.locator("summary").click();
   await expect(page.getByRole("link",{name:"View official Nasdaq calendar"}))
     .toHaveAttribute("href","https://www.nasdaq.com/holiday-trading-hours");
   await expect(page.locator(".market-session-reference")).toContainText("not a live quote or trading-eligibility confirmation");
