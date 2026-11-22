@@ -41,7 +41,7 @@ test("comparison chart can become the primary instrument without pretending to b
   await page.getByRole("combobox",{name:"Secondary chart symbol"}).selectOption("US100");
   await page.getByRole("button",{name:"Make comparison chart primary"}).click();
   await expect(page.locator(".symbol-button")).toContainText("US100");
-  await expect(page.locator(".chart-grid-cell").nth(1)).toContainText("SIMULATED · DEMO");
+  await expect(page.locator(".chart-grid-cell").nth(1)).toContainText("Synthetic demonstration candles");
   const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem("market-terminal-workspace")??"{}"));
   expect(saved.preferences).toMatchObject({
     chartLayout:"dual",symbol:"US100",secondarySymbol:"EURUSD",priceSource:"demo"
