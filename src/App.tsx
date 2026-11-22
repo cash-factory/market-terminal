@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSPropert
 import {
   Activity, ArrowDownToLine, Bell, BookOpen, ChartCandlestick, Check,
   ChevronLeft, ChevronRight, Command, Compass, Download, Home, Layers,
-  Menu, Moon, MousePointer2, Plus, RotateCcw, Search, Settings2, Sun,
+  Menu, Moon, MousePointer2, Plus, RotateCcw, Search, Settings2, Sun, Maximize2, Minimize2,
   Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Target, Film, Magnet, MoveUpRight, ArrowUpRight, Columns2, Grid2X2, Shapes, Pencil, ArrowUp, ArrowDown, Link2, Unlink2
 } from "lucide-react";
 import { ChartCanvas,type ChartSurface,type ChartRange } from "./ChartCanvas";
@@ -54,6 +54,21 @@ export default function App() {
     return ()=>window.clearInterval(handle);
   },[]);
   const [page, setPage] = useState<Page>("terminal");
+  const [focusMode,setFocusMode]=useState(false);
+  useEffect(()=>{
+    const onFocusShortcut=(event:KeyboardEvent)=>{
+      const target=event.target;
+      if(!(target instanceof HTMLElement) || target.closest("input,textarea,select,[contenteditable='true']"))return;
+      if(event.key.toLowerCase()==="f"&&event.shiftKey&&!event.ctrlKey&&!event.metaKey&&!event.altKey){
+        event.preventDefault();
+        setPage("terminal");
+        setFocusMode(current=>!current);
+      }
+    };
+    window.addEventListener("keydown",onFocusShortcut);
+    return ()=>window.removeEventListener("keydown",onFocusShortcut);
+  },[]);
+
   const [draft, setDraft] = useState("");
   const [drawMode, setDrawMode] = useState(false);
   const [drawingTool, setDrawingTool] = useState<DrawingTool | null>(null);
@@ -496,7 +511,7 @@ export default function App() {
     const timer = window.setTimeout(() => setNotice(current => current?.id === notice.id ? null : current), 4200);
     return () => window.clearTimeout(timer);
   }, [notice]);
-  return <div className={"app " + (prefs.dark ? "dark" : "light") + " accent-" + prefs.accent}>
+  return <div className={"app " + (prefs.dark ? "dark" : "light") + " accent-" + prefs.accent + (focusMode && page === "terminal" ? " focus-mode" : "")}>
     <header className="topbar">
       <div className="branding">
         <span className="logo"><ChartCandlestick size={20}/></span>
@@ -509,6 +524,12 @@ export default function App() {
       </div>
       <div className="header-actions">
         <span className={"demo-tag source-" + (replay?"historical":feed.status)}><span className="pulse-dot"/> {displaySourceLabel}</span>
+        <button className="focus-toggle" type="button" aria-label={focusMode ? "Exit chart focus mode" : "Enter chart focus mode"}
+          aria-pressed={focusMode && page === "terminal"} title="Toggle chart focus (Shift+F)"
+          onClick={() => {setPage("terminal");setFocusMode(value=>!value);}}>
+          {focusMode && page === "terminal" ? <Minimize2 size={15}/> : <Maximize2 size={15}/>}
+          <span>{focusMode && page === "terminal" ? "Exit focus" : "Focus"}</span>
+        </button>
         <button className="icon-button" title="Price alerts" aria-label="Open price alerts" onClick={() => setPage("alerts")}>
           <Bell size={18}/>{activeAlertCount>0&&<span className="alert-bell-count">{Math.min(99,activeAlertCount)}</span>}
         </button>
@@ -537,7 +558,7 @@ export default function App() {
         </div>
       </aside>
       <div className="main-area">
-        <div className="page-topline"><span>WORKSPACE <span className="breadcrumb-slash">/</span> {titles[page].toUpperCase()}</span><span>LOCAL SESSION <span className="sync-point">●</span></span></div>
+        <div className="page-topline"><span>WORKSPACE <span className="breadcrumb-slash">/</span> {titles[page].toUpperCase()}</span><span className="workspace-context"><span className="context-marker"/> {page === "terminal" ? `${symbols[prefs.symbol].label} · ${prefs.frame.toUpperCase()} · ${prefs.chartLayout.toUpperCase()} VIEW` : "BROWSER-LOCAL WORKSPACE"}</span></div>
         {page === "home" && <div className="content-page">
           <div className="hero"><div className="eyebrow">YOUR WORKSPACE AT A GLANCE</div><h1>A clear view of your markets.</h1><p>Get straight back to analysis. Your setup is saved on this device and basic tools don't have usage quotas.</p><button className="primary-button" onClick={() => setPage("terminal")}><ChartCandlestick size={17}/> Open trading terminal <ChevronRight size={16}/></button></div>
           <div className="section-head"><div><small>QUICK ACCESS</small><h2>Markets to explore</h2></div><button className="text-button" onClick={() => setSearchOpen(true)}>Browse symbols <ChevronRight size={16}/></button></div>
@@ -1033,7 +1054,7 @@ export default function App() {
         </div>}
       </div>
     </div>
-    <footer className="statusbar"><span><span className="sync-point">●</span> MARKET TERMINAL / LOCAL-FIRST PREVIEW</span><span>No artificial analysis limits · Data is synthetic</span></footer>
+    <footer className="statusbar"><span><span className="sync-point">●</span> MARKET TERMINAL / LOCAL-FIRST PREVIEW</span><span>Feed: {sourceStateLabel} · Workspace saved locally</span></footer>
     {notice && <div role="status" className={"toast " + notice.kind} key={notice.id}><span>{notice.kind === "success" ? <Check size={17}/> : <Activity size={17}/>}</span><p>{notice.message}</p><button aria-label="Dismiss notification" onClick={() => setNotice(null)}><X size={16}/></button></div>}
     {searchOpen && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setSearchOpen(false); }}><div className="command-dialog" role="dialog" aria-modal="true" aria-label="Search instruments"><div className="command-input"><Search size={19}/><input ref={inputSearch} placeholder="Search a symbol, market or instrument…" value={query}
   role="combobox" aria-expanded="true" aria-controls="instrument-options"
