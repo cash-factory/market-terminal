@@ -14,6 +14,7 @@ import { snapAnchorToOhlc, rayEndpoint, measurement } from "./snap";
 import { clippedExtendedLine, horizontalReference, verticalReference,
   observedBarCount, formatElapsedDuration } from "./precision";
 import { ONE_ANCHOR_TOOLS } from "./toolDefinitions";
+import { isDrawingVisibleAtFrame } from "./drawingSettings";
 import {calculatePosition,defaultPositionTarget,positionTargetAnchor} from "../analysis/positionDrawing";
 
 type Projected = { a: ChartPoint; b: ChartPoint };
@@ -42,10 +43,11 @@ interface Props {
   onDeleteMany: (ids: string[]) => void;
   selectedIds: string[];
   onSelectionChange: (ids: string[]) => void;
+  onOpenSettings: (id: string) => void;
 }
 
 export function DrawingOverlay({
-  chart, series, symbol, frame, candles, tool, drawings, color, magnetEnabled, onAdd, onUpdate, onDelete, onDeleteMany, selectedIds, onSelectionChange
+  chart, series, symbol, frame, candles, tool, drawings, color, magnetEnabled, onAdd, onUpdate, onDelete, onDeleteMany, selectedIds, onSelectionChange, onOpenSettings
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const gestureRef = useRef<Gesture | null>(null);
@@ -365,7 +367,8 @@ export function DrawingOverlay({
       vectorEffect: "non-scaling-stroke" as const,
     };
     return <g key={drawing.id} className={"drawing-shape " + (selected ? "is-selected" : "")}
-      onPointerDown={event => { if (!isPreview) beginEdit(event, drawing, "move"); }}>
+      onPointerDown={event => { if (!isPreview) beginEdit(event, drawing, "move"); }}
+      onDoubleClick={event=>{if(!isPreview){event.stopPropagation();onOpenSettings(drawing.id);}}}>
       {drawing.tool==="channel"&&(()=>{
         const control=drawing.control??drawing.start;
         const projected=project({...drawing,start:control,end:control});
@@ -374,7 +377,7 @@ export function DrawingOverlay({
         const c={x:a.x+dx,y:a.y+dy},d={x:b.x+dx,y:b.y+dy};
         return <>
           <polygon points={[a,b,d,c].map(p=>p.x+","+p.y).join(" ")}
-            fill={drawing.color} fillOpacity={.08}
+            fill={drawing.color} fillOpacity={drawing.fillOpacity??.08}
             stroke="none" pointerEvents="none"/>
           <path d={"M "+a.x+" "+a.y+" L "+b.x+" "+b.y+" M "+c.x+" "+c.y+" L "+d.x+" "+d.y}
             fill="none" stroke="transparent" strokeWidth={18} className="drawing-hit"/>
@@ -395,7 +398,7 @@ export function DrawingOverlay({
         cx={(a.x+b.x)/2} cy={(a.y+b.y)/2}
         rx={Math.max(2,Math.abs(b.x-a.x)/2)}
         ry={Math.max(2,Math.abs(b.y-a.y)/2)}
-        fill={drawing.color} fillOpacity={0.08} {...common} className="drawing-ellipse"/>}
+        fill={drawing.color} fillOpacity={drawing.fillOpacity??.08} {...common} className="drawing-ellipse"/>}
       {drawing.tool === "arrow" && (() => {
         const dx=b.x-a.x,dy=b.y-a.y,len=Math.max(1,Math.hypot(dx,dy)),ux=dx/len,uy=dy/len;
         const points=[
@@ -503,7 +506,7 @@ export function DrawingOverlay({
          const labelToLeft=left+width>plot.width-145;
          return <>
            <rect x={left} y={top} width={width} height={height}
-             fill={drawing.color} fillOpacity={.10} stroke={drawing.color}
+             fill={drawing.color} fillOpacity={drawing.fillOpacity??.10} stroke={drawing.color}
              strokeWidth={1} className="drawing-rectangle drawing-price-range"/>
            <line x1={left} x2={left+width} y1={a.y} y2={a.y} {...common} pointerEvents="none"/>
            <line x1={left} x2={left+width} y1={b.y} y2={b.y} {...common} pointerEvents="none"/>
@@ -520,7 +523,7 @@ export function DrawingOverlay({
          const elapsed=formatElapsedDuration(Math.abs(drawing.end.time-drawing.start.time));
          return <>
            <rect x={left} y={0} width={width} height={plot.height}
-             fill={drawing.color} fillOpacity={.08} pointerEvents="none"
+             fill={drawing.color} fillOpacity={drawing.fillOpacity??.08} pointerEvents="none"
              className="drawing-date-band"/>
            <path d={"M "+a.x+" 0 V "+plot.height+" M "+b.x+" 0 V "+plot.height}
              stroke="transparent" strokeWidth={16} fill="none" className="drawing-hit"/>
@@ -548,7 +551,7 @@ export function DrawingOverlay({
         const sign=m.change>0?"+":"";
         return <>
           <rect x={left} y={top} width={width} height={height}
-            fill={m.change>=0?"#20aa8b":"#dc6575"} fillOpacity={0.12}
+            fill={m.change>=0?"#20aa8b":"#dc6575"} fillOpacity={drawing.fillOpacity??.12}
             {...common} className="drawing-rectangle"/>
           <line x1={a.x} y1={a.y} x2={b.x} y2={b.y}
             {...common} className="drawing-line" pointerEvents="none"/>
@@ -566,7 +569,7 @@ export function DrawingOverlay({
       </>}
       {drawing.tool === "rectangle" && <rect x={Math.min(a.x,b.x)} y={Math.min(a.y,b.y)}
         width={Math.max(1,Math.abs(b.x-a.x))} height={Math.max(1,Math.abs(b.y-a.y))}
-        fill={drawing.color} fillOpacity={0.08} {...common} className="drawing-rectangle"/>}
+        fill={drawing.color} fillOpacity={drawing.fillOpacity??.08} {...common} className="drawing-rectangle"/>}
       {drawing.tool === "fibonacci" && FIBONACCI_LEVELS.map((level, i) => {
         const y = fibonacciPrices(a.y, b.y)[i];
         const x1 = Math.min(a.x, b.x);
@@ -577,10 +580,15 @@ export function DrawingOverlay({
           <line x1={x1} x2={x2} y1={y} y2={y} {...common}
             strokeOpacity={i === 0 || i === FIBONACCI_LEVELS.length - 1 ? 1 : .75}
             className="drawing-line"/>
-          <text x={x2+6} y={y-4} fill={drawing.color} fontSize={10}
-            pointerEvents="none">{(level*100).toFixed(1)}%</text>
+          {drawing.showLabels!==false&&          <text x={x2+6} y={y-4} fill={drawing.color} fontSize={10}
+            pointerEvents="none">{(level*100).toFixed(1)}%</text>}
         </g>;
       })}
+      {drawing.tool==="rectangle"&&drawing.showMidline&&
+        <line x1={Math.min(a.x,b.x)} x2={Math.max(a.x,b.x)}
+          y1={(a.y+b.y)/2} y2={(a.y+b.y)/2} stroke={drawing.color}
+          strokeWidth={1} strokeDasharray="5 4" opacity={drawing.opacity??1} pointerEvents="none"
+          className="drawing-rectangle-midline"/>}
       {isPreview && <circle cx={a.x} cy={a.y} r={4} fill={drawing.color} pointerEvents="none" />}
       {selected && !drawing.locked && drawing.tool!=="brush" && drawing.tool!=="text" &&
         (ONE_ANCHOR_TOOLS.has(drawing.tool)?[a]:[a,b]).map((p,i) =>
@@ -600,7 +608,7 @@ export function DrawingOverlay({
     <rect className="drawing-plot-surface" data-drawing-surface="true"
       x={0} y={0} width="100%" height="100%"
       fill="transparent" pointerEvents={tool ? "all" : "none"}/>
-    {drawings.filter(d => d.symbol === symbol && !d.hidden).map(d => renderDrawing(draft?.id === d.id ? draft : d))}
+    {drawings.filter(d => d.symbol === symbol && isDrawingVisibleAtFrame(d,frame)).map(d => renderDrawing(draft?.id === d.id ? draft : d))}
     {draft?.id === "preview" && renderDrawing(draft)}
   </svg>;
 }
