@@ -29,14 +29,17 @@ interface Props {
   studies: StudySettings;
   parameters: StudyParameters;
   onAddDrawing: (drawing: Drawing) => void;
-  onUpdateDrawing: (drawing: Drawing) => void;
+  onUpdateDrawing: (drawing: Drawing,editKind?:"move"|"start"|"end") => void;
   onDeleteDrawing: (id: string) => void;
+  onDeleteDrawings: (ids:string[])=>void;
+  selectedDrawingIds:string[];
+  onDrawingSelectionChange:(ids:string[])=>void;
 }
 type Surface = { chart: IChartApi; series: ISeriesApi<"Candlestick"> };
 
 export function ChartCanvas({
   symbol, frame, source, candles, dark, showSma, levels, drawMode, onPlaceLevel,
-  drawingTool, drawings, drawingColor, studies, parameters, magnetEnabled, onAddDrawing, onUpdateDrawing, onDeleteDrawing
+  drawingTool, drawings, drawingColor, studies, parameters, magnetEnabled, onAddDrawing, onUpdateDrawing, onDeleteDrawing, onDeleteDrawings, selectedDrawingIds, onDrawingSelectionChange
 }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const chart = useRef<IChartApi | null>(null);
@@ -135,6 +138,8 @@ export function ChartCanvas({
       chart={surface.chart} series={surface.series} symbol={symbol} frame={frame} candles={candles}
       tool={drawingTool} drawings={drawings} color={drawingColor} magnetEnabled={magnetEnabled}
       onAdd={onAddDrawing} onUpdate={onUpdateDrawing} onDelete={onDeleteDrawing}
+      onDeleteMany={onDeleteDrawings}
+      selectedIds={selectedDrawingIds} onSelectionChange={onDrawingSelectionChange}
     />}
   </div>
   {surface && surface.chart === chart.current && <IndicatorPanels
