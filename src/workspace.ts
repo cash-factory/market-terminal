@@ -2,6 +2,7 @@ import { ALL_FRAMES, type Frame, type SymbolId } from "./market";
 import { clampPanelWidth } from "./layout";
 import { isDrawing, type Drawing, type DrawingTool } from "./drawing/types";
 import { DEFAULT_FAVORITE_TOOLS, parseFavoriteTools } from "./drawing/toolDefinitions";
+import {parseToolPresets,type ToolPresets} from "./drawing/toolPresets";
 import { emptyRiskInputs, parseRiskInputs, type RiskPlannerInputs } from "./analysis/risk";
 import { defaultStudies, parseStudies, type StudySettings } from "./indicators/studies";
 import { parseChartTemplates,type ChartTemplate } from "./indicators/templates";
@@ -51,6 +52,7 @@ export type Workspace = {
   alerts: PriceAlert[];
   decisions: DecisionRecord[];
   favoriteDrawingTools: DrawingTool[];
+  toolPresets:ToolPresets;
 };
 export const defaultWorkspace: Workspace = {
   symbol: "EURUSD",
@@ -90,6 +92,7 @@ export const defaultWorkspace: Workspace = {
   alerts: [],
   decisions: [],
   favoriteDrawingTools: [...DEFAULT_FAVORITE_TOOLS],
+  toolPresets:{},
 };
 const SYMBOLS = ["EURUSD", "BTCUSDT", "AAPL", "US100"] as const;
 const FRAMES:readonly Frame[]=ALL_FRAMES;
@@ -151,6 +154,7 @@ export function parseWorkspace(value: unknown): Workspace {
     alerts: Array.isArray(raw.alerts)?raw.alerts.filter(isPriceAlert):[],
     decisions: parseDecisionRecords(raw.decisions),
     favoriteDrawingTools: parseFavoriteTools(raw.favoriteDrawingTools),
+    toolPresets:parseToolPresets(raw.toolPresets),
   };
 }
 export function loadWorkspace(): Workspace {
