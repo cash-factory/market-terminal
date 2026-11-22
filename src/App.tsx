@@ -3,7 +3,7 @@ import {
   Activity, ArrowDownToLine, Bell, BookOpen, ChartCandlestick, Check,
   ChevronLeft, ChevronRight, Command, Compass, Download, Home, Layers,
   Menu, Moon, MousePointer2, Plus, RotateCcw, Search, Settings2, Sun,
-  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Target
+  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Target, Film
 } from "lucide-react";
 import { ChartCanvas } from "./ChartCanvas";
 import type { Drawing, DrawingTool } from "./drawing/types";
@@ -12,6 +12,8 @@ import { usePriceFeed } from "./data/usePriceFeed";
 import { panelWidthAfterDrag, panelWidthAfterKey } from "./layout";
 import { RiskPlanner } from "./analysis/RiskPlanner";
 import { AlertsCenter } from "./alerts/AlertsCenter";
+import { ReplayControls } from "./replay/ReplayControls";
+import { beginReplay,stepReplay,seekReplay,toggleReplayPlayback,setReplaySpeed,visibleReplayCandles,type ReplayState,type ReplaySpeed } from "./replay/model";
 import { evaluatePriceAlerts, type PriceAlert } from "./alerts/engine";
 import { defaultStudies, studyLabels, type StudySettings } from "./indicators/studies";
 import { defaultWorkspace, loadWorkspace, parseWorkspace, serializeWorkspace, type Workspace } from "./workspace";
@@ -49,11 +51,15 @@ export default function App() {
   const [notice, setNotice] = useState<Notice | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [studyMenuOpen, setStudyMenuOpen] = useState(false);
+  const [replay,setReplay] = useState<ReplayState|null>(null);
   const inputFile = useRef<HTMLInputElement>(null);
   const inputSearch = useRef<HTMLInputElement>(null);
   const feed = usePriceFeed(prefs.symbol, prefs.frame, prefs.priceSource);
   const currentCandles = feed.candles;
   const last = currentCandles.length ? currentCandles[currentCandles.length - 1].close : 0;
+  const viewedCandles=useMemo(()=>replay?visibleReplayCandles(replay):currentCandles,[replay,currentCandles]);
+  const viewedLast=viewedCandles.length?viewedCandles[viewedCandles.length-1].close:0;
+  const replayTime=viewedCandles.length?Number(viewedCandles[viewedCandles.length-1].time):0;
   const currentLevels = useMemo(() => prefs.levels.filter(level => level.symbol === prefs.symbol && (level.source ?? "demo") === prefs.priceSource), [prefs.levels, prefs.symbol, prefs.priceSource]);
   const currentDrawings = useMemo(() => prefs.drawings.filter(drawing => drawing.symbol === prefs.symbol && (drawing.source ?? "demo") === prefs.priceSource), [prefs.drawings, prefs.symbol, prefs.priceSource]);
   const sourceStateLabel = prefs.priceSource === "demo" ? "SYNTHETIC DATA" : ({
@@ -62,10 +68,14 @@ export default function App() {
   })[feed.status];
   const activeStudyCount=studyKeys.filter(key=>prefs.studies[key]).length+(prefs.showSma?1:0);
   const activeAlertCount=prefs.alerts.filter(a=>a.triggeredAtMs===null).length;
-  const quoteText = last > 0 ? last.toLocaleString(undefined, {
+  const quoteText = viewedLast > 0 ? viewedLast.toLocaleString(undefined, {
     minimumFractionDigits: symbols[prefs.symbol].precision,
     maximumFractionDigits: symbols[prefs.symbol].precision
   }) : "—";
+  const displaySourceLabel=replay?"REPLAY · HISTORICAL SNAPSHOT":sourceStateLabel;
+  const replayDrawings=useMemo(()=>replay?
+    currentDrawings.filter(d=>d.start.time<=replayTime&&d.end.time<=replayTime):currentDrawings,
+    [replay,currentDrawings,replayTime]);
   const update = (patch: Partial<Workspace>) => setPrefs(old => ({ ...old, ...patch }));
   const notify = (message: string, kind: Notice["kind"] = "success") =>
     setNotice({ id: Date.now(), message, kind });
@@ -150,6 +160,14 @@ export default function App() {
     setDrawingTool(next);
     notify(next ? "Drag on the chart to create a " + next + "." : "Drawing tool dismissed.", "info");
   };
+  const startReplay=()=>{
+    try{
+      setReplay(beginReplay(currentCandles,prefs.symbol,prefs.frame,prefs.priceSource));
+      setDrawMode(false);setDrawingTool(null);
+      notify("Historical replay started from a frozen chart snapshot.","info");
+    }catch(error){notify(error instanceof Error?error.message:"Not enough bars to replay.","error");}
+  };
+  const exitReplay=()=>{setReplay(null);notify("Returned to the active market chart.","info");};
   const addAlert = (alert:PriceAlert) => {
     setPrefs(old=>({...old,alerts:[...old.alerts,alert]}));
     notify("Price alert armed for "+symbols[alert.symbol].label+".");
@@ -252,9 +270,19 @@ export default function App() {
     window.addEventListener("keydown", drawingShortcuts);
     return () => window.removeEventListener("keydown", drawingShortcuts);
   }, [prefs.drawings]);
+  useEffect(()=>{
+    if(!replay?.playing)return;
+    const timer=window.setInterval(()=>setReplay(current=>current?stepReplay(current,1):null),
+      1000/replay.speed);
+    return()=>window.clearInterval(timer);
+  },[replay?.playing,replay?.speed]);
+  useEffect(()=>{
+    if(replay&&(replay.symbol!==prefs.symbol||replay.frame!==prefs.frame||replay.source!==prefs.priceSource))
+      setReplay(null);
+  },[prefs.symbol,prefs.frame,prefs.priceSource,replay]);
   useEffect(() => {
     const key=prefs.symbol+":"+prefs.priceSource+":"+prefs.frame;
-    if((feed.status!=="live"&&feed.status!=="synthetic")||last<=0){
+    if(replay||(feed.status!=="live"&&feed.status!=="synthetic")||last<=0){
       observedPriceRef.current=null;
       return;
     }
@@ -269,7 +297,7 @@ export default function App() {
       return current.triggered.length?{...old,alerts:current.updated}:old;
     });
     notify(result.triggered.length+" price alert"+(result.triggered.length===1?"":"s")+" triggered for "+symbols[prefs.symbol].label,"info");
-  },[prefs.symbol,prefs.priceSource,prefs.frame,prefs.alerts,last,feed.status]);
+  },[prefs.symbol,prefs.priceSource,prefs.frame,prefs.alerts,last,feed.status,replay]);
   useEffect(() => { if (searchOpen) inputSearch.current?.focus(); }, [searchOpen]);
   useEffect(() => { setSearchIndex(0); }, [query, searchOpen]);
   useEffect(() => {
@@ -289,7 +317,7 @@ export default function App() {
         </button>
       </div>
       <div className="header-actions">
-        <span className={"demo-tag source-" + feed.status}><span className="pulse-dot"/> {sourceStateLabel}</span>
+        <span className={"demo-tag source-" + (replay?"historical":feed.status)}><span className="pulse-dot"/> {displaySourceLabel}</span>
         <button className="icon-button" title="Price alerts" aria-label="Open price alerts" onClick={() => setPage("alerts")}>
           <Bell size={18}/>{activeAlertCount>0&&<span className="alert-bell-count">{Math.min(99,activeAlertCount)}</span>}
         </button>
@@ -344,6 +372,11 @@ export default function App() {
               </div>
               <div className="timeframes">{frames.map(frame => <button key={frame} className={frame === prefs.frame ? "active" : ""} onClick={() => update({ frame })}>{frame}</button>)}</div>
               <span className="tool-divider"/>
+              <button className={"compact-action "+(replay?"active":"")} aria-label={replay?"Exit replay":"Start replay"}
+                disabled={!replay&&currentCandles.length<40}
+                title={replay?"Exit historical candle replay":"Study historical candles one bar at a time"}
+                onClick={replay?exitReplay:startReplay}><Film size={15}/>{replay?"Exit replay":"Replay"}</button>
+              <span className="tool-divider"/>
               <button className="compact-action panel-toggle" title={prefs.rightPanelOpen ? "Hide watchlist" : "Show watchlist"}
                 aria-label={prefs.rightPanelOpen ? "Hide watchlist" : "Show watchlist"}
                 aria-pressed={prefs.rightPanelOpen}
@@ -393,23 +426,30 @@ export default function App() {
 
             </div>
             <div className="chart-heading"><div>
-              <div className="eyebrow">{feed.sourceLabel} <span>•</span> {prefs.frame.toUpperCase()}</div>
-              <h1>{symbols[prefs.symbol].label} <span className={"demo-pill feed-pill " + feed.status}>{sourceStateLabel}</span></h1>
-              <p>{prefs.priceSource === "demo" ? "Illustrative candles, not executable quotes" : "Direct Binance public Spot data · BTC/USDT, not broker CFD prices"}</p>
-            </div><div className="quote"><small>{prefs.priceSource === "demo" ? "SIMULATED LAST" : "BINANCE SPOT LAST"}</small><strong>{quoteText}</strong></div></div>
+              <div className="eyebrow">{replay?"HISTORICAL REPLAY · "+feed.sourceLabel:feed.sourceLabel} <span>•</span> {prefs.frame.toUpperCase()}</div>
+              <h1>{symbols[prefs.symbol].label} <span className={"demo-pill feed-pill " + (replay?"historical":feed.status)}>{displaySourceLabel}</span></h1>
+              <p>{replay?"Paused historical snapshot · Future candles hidden until you advance":prefs.priceSource === "demo" ? "Illustrative candles, not executable quotes" : "Direct Binance public Spot data · BTC/USDT, not broker CFD prices"}</p>
+            </div><div className="quote"><small>{replay?"REPLAY BAR CLOSE":prefs.priceSource === "demo" ? "SIMULATED LAST" : "BINANCE SPOT LAST"}</small><strong>{quoteText}</strong></div></div>
             {prefs.priceSource === "binance" && feed.status !== "live" && <div className={"feed-message " + feed.status} role="status">
               <WifiOff size={16}/><span>{feed.message ?? "Connecting to the exchange…"}</span>
               <button onClick={feed.retry}><RefreshCw size={14}/> Retry</button>
               <button onClick={() => update({priceSource:"demo"})}>Use demo</button>
             </div>}
+            {replay && <ReplayControls replay={replay}
+              onTogglePlay={()=>setReplay(s=>s?toggleReplayPlayback(s):s)}
+              onStep={()=>setReplay(s=>s?stepReplay({...s,playing:false}):s)}
+              onSeek={index=>setReplay(s=>s?seekReplay(s,index):s)}
+              onSpeed={(speed:ReplaySpeed)=>setReplay(s=>s?setReplaySpeed(s,speed):s)}
+              onExit={exitReplay}
+            />}
             {drawMode && <div className="draw-banner"><MousePointer2 size={16}/> Click on the chart to place a level <button onClick={() => setDrawMode(false)}>Cancel <X size={14}/></button></div>}
             {drawingTool && <div className="draw-banner"><MousePointer2 size={16}/> Click two points or drag to draw a {drawingTool}. After drawing, click the shape to move it or drag its handles. <button onClick={() => setDrawingTool(null)}>Cancel <X size={14}/></button></div>}
-            <ChartCanvas symbol={prefs.symbol} frame={prefs.frame} source={prefs.priceSource} candles={currentCandles}
-              dark={prefs.dark} showSma={prefs.showSma} studies={prefs.studies} levels={currentLevels} drawMode={drawMode} onPlaceLevel={addLevel}
-              drawingTool={drawingTool} drawings={currentDrawings}
+            <ChartCanvas key={replay?"historical-replay":"active-chart"} symbol={prefs.symbol} frame={prefs.frame} source={prefs.priceSource} candles={viewedCandles}
+              dark={prefs.dark} showSma={prefs.showSma} studies={prefs.studies} levels={replay?[]:currentLevels} drawMode={drawMode} onPlaceLevel={addLevel}
+              drawingTool={drawingTool} drawings={replayDrawings}
               drawingColor={prefs.accent === "amber" ? "#e9b368" : prefs.accent === "teal" ? "#32c7aa" : "#9295ff"}
               onAddDrawing={addDrawing} onUpdateDrawing={updateDrawing} onDeleteDrawing={removeDrawing}/>
-            <div className="chart-footer"><span><span className="sync-point">●</span> Locally saved</span><span>Source: {feed.sourceLabel} · {frameSeconds[prefs.frame] / 60}m candle interval · {feed.status}{feed.lastUpdatedMs ? " · Updated " + new Date(feed.lastUpdatedMs).toLocaleTimeString() : ""}</span></div>
+            <div className="chart-footer"><span><span className="sync-point">●</span> Locally saved</span><span>Source: {feed.sourceLabel} · {frameSeconds[prefs.frame] / 60}m candle interval · {replay?"historical replay":feed.status}{feed.lastUpdatedMs ? " · Updated " + new Date(feed.lastUpdatedMs).toLocaleTimeString() : ""}</span></div>
           </section>
           {prefs.rightPanelOpen && <aside className="right-panel">
             <div className="panel-resizer" role="separator" tabIndex={0} aria-label="Resize watchlist panel"
