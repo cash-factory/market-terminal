@@ -2,7 +2,9 @@ import {test,expect,type Page} from "@playwright/test";
 
 async function drawOnChart(page:Page,chartIndex:number){
   await page.getByRole("button",{name:"Trendline",exact:true}).click();
-  const box=await page.locator("svg.drawing-overlay").nth(chartIndex).boundingBox();
+  const surface=page.locator("svg.drawing-overlay").nth(chartIndex);
+  await surface.scrollIntoViewIfNeeded();
+  const box=await surface.boundingBox();
   if(!box)throw new Error("Drawing canvas "+chartIndex+" is missing");
   const a={x:box.x+box.width*.29,y:box.y+box.height*.35};
   const b={x:box.x+box.width*.6,y:box.y+box.height*.59};
