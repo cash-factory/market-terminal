@@ -53,9 +53,9 @@ test("Fibonacci settings control actual independent level count, colors and rest
   const settings=dialog.getByRole("region",{name:"Tool settings for Fibonacci retracement"});
   await expect(settings).toBeVisible();
   await settings.getByRole("checkbox",{name:"Show level 2"}).uncheck();
-  await settings.getByRole("spinbutton",{name:"New Fibonacci ratio"}).fill("1.272");
+  await settings.getByRole("spinbutton",{name:"New Fibonacci ratio"}).fill("0.886");
   await settings.getByRole("button",{name:"Add Fibonacci level"}).click();
-  await expect(settings.getByRole("spinbutton",{name:"Level 7 ratio"})).toHaveValue("1.272");
+  await expect(settings.getByRole("spinbutton",{name:"Level 6 ratio"})).toHaveValue("0.886");
   await settings.getByRole("combobox",{name:"Fibonacci level label mode"}).selectOption("both");
   await screenshot(page,"fibonacci-independent-properties");
   await dialog.getByRole("button",{name:"Apply changes"}).click();
