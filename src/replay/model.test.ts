@@ -7,13 +7,14 @@ const bars=Array.from({length:120},(_,i):CandlestickData<UTCTimestamp>=>({
 }));
 describe("historical candle replay model",()=>{
   it("freezes a copy of the input candles and withholds future bars",()=>{
-    const replay=beginReplay(bars,"EURUSD","1m","demo");
-    expect(replay.snapshot).not.toBe(bars);
+    const input=bars.map(c=>({...c}));
+    const replay=beginReplay(input,"EURUSD","1m","demo");
+    expect(replay.snapshot).not.toBe(input);
     expect(replay.cursor).toBe(59);
     expect(visibleReplayCandles(replay)).toHaveLength(60);
     expect(visibleReplayCandles(replay).at(-1)?.close).toBe(159);
     expect(visibleReplayCandles(replay).some(c=>c.time===bars[119].time)).toBe(false);
-    bars[0].close=999;
+    input[0].close=999;
     expect(replay.snapshot[0].close).toBe(100);
   });
   it("steps, seeks and stops at history boundaries",()=>{
