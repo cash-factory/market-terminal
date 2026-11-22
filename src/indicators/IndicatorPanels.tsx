@@ -4,6 +4,7 @@ import {
   type CandlestickData, type IChartApi, type ISeriesApi, type UTCTimestamp
 } from "lightweight-charts";
 import { atr, macd, rsi, type StudySettings } from "./studies";
+import type { StudyParameters } from "./parameters";
 
 type PaneKey = "rsi14" | "macd" | "atr14";
 type PaneSurface = { chart: IChartApi; parent:IChartApi; lines: ISeriesApi<"Line">[]; histogram: ISeriesApi<"Histogram"> | null };
@@ -12,6 +13,7 @@ type PaneProps = {
   candles:readonly CandlestickData<UTCTimestamp>[];
   priceChart:IChartApi;
   dark:boolean;
+  parameters:StudyParameters;
 };
 const definitions:Record<PaneKey,{title:string;color:string}> = {
   rsi14:{title:"RSI · 14",color:"#a69cf7"},
@@ -19,7 +21,7 @@ const definitions:Record<PaneKey,{title:string;color:string}> = {
   atr14:{title:"ATR · 14",color:"#e2b16c"}
 };
 
-function IndicatorPane({kind,candles,priceChart,dark}:PaneProps){
+function IndicatorPane({kind,candles,priceChart,dark,parameters}:PaneProps){
   const host=useRef<HTMLDivElement>(null);
   const [pane,setPane]=useState<PaneSurface|null>(null);
   const hasFit=useRef(false);
@@ -70,10 +72,10 @@ function IndicatorPane({kind,candles,priceChart,dark}:PaneProps){
 
   useEffect(()=>{
     if(!pane || pane.parent!==priceChart)return;
-    if(kind==="rsi14")pane.lines[0].setData(rsi(candles,14));
-    if(kind==="atr14")pane.lines[0].setData(atr(candles,14));
+    if(kind==="rsi14")pane.lines[0].setData(rsi(candles,parameters.rsiPeriod));
+    if(kind==="atr14")pane.lines[0].setData(atr(candles,parameters.atrPeriod));
     if(kind==="macd"){
-      const data=macd(candles);
+      const data=macd(candles,parameters.macdFast,parameters.macdSlow,parameters.macdSignal);
       pane.lines[0].setData(data.macd);
       pane.lines[1].setData(data.signal);
       pane.histogram?.setData(data.histogram);
@@ -87,10 +89,13 @@ function IndicatorPane({kind,candles,priceChart,dark}:PaneProps){
       try{pane.chart.timeScale().setVisibleRange(range);}
       catch{/* visual sync waits for valid data */}
     }
-  },[pane,candles,kind,priceChart]);
+  },[pane,candles,kind,priceChart,parameters]);
 
-  return <section className="indicator-pane" aria-label={definitions[kind].title}>
-    <div className="indicator-pane-label"><span className="indicator-pane-dot" style={{background:definitions[kind].color}}/>{definitions[kind].title}</div>
+  const displayTitle=kind==="rsi14"?"RSI · "+parameters.rsiPeriod:
+    kind==="atr14"?"ATR · "+parameters.atrPeriod:
+    "MACD · "+parameters.macdFast+" / "+parameters.macdSlow+" / "+parameters.macdSignal;
+  return <section className="indicator-pane" aria-label={displayTitle}>
+    <div className="indicator-pane-label"><span className="indicator-pane-dot" style={{background:definitions[kind].color}}/>{displayTitle}</div>
     <div ref={host} className="indicator-pane-canvas" role="img" aria-label={definitions[kind].title+" chart"}/>
   </section>;
 }
@@ -100,14 +105,15 @@ export type IndicatorPanelsProps={
   candles:readonly CandlestickData<UTCTimestamp>[];
   chart:IChartApi;
   dark:boolean;
+  parameters:StudyParameters;
 };
-export function IndicatorPanels({studies,candles,chart,dark}:IndicatorPanelsProps){
+export function IndicatorPanels({studies,candles,chart,dark,parameters}:IndicatorPanelsProps){
   const selected:PaneKey[]=[];
   if(studies.rsi14)selected.push("rsi14");
   if(studies.macd)selected.push("macd");
   if(studies.atr14)selected.push("atr14");
   if(!selected.length)return null;
   return <div className="indicator-panes">
-    {selected.map(kind=><IndicatorPane key={kind} kind={kind} candles={candles} priceChart={chart} dark={dark}/>)}
+    {selected.map(kind=><IndicatorPane key={kind} kind={kind} candles={candles} priceChart={chart} dark={dark} parameters={parameters}/>)}
   </div>;
 }
