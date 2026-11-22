@@ -15,7 +15,8 @@ persistence, replay, EMA, Bollinger, RSI, MACD, ATR.
 - [x] Independent two-chart layout, saved comparison instrument (#21)
 - [x] Built-in indicator presets and custom saved chart templates (#23)
 - [x] Configurable study parameters with valid numeric bounds (#24)
-- [ ] Expand to 4-chart configurable layouts, independent feeds and symbol/timeframe choices
+- [x] Saved one/two/four chart layouts with independently selected comparison symbols (#25)
+- [ ] Independent provider feeds and per-pane timeframe controls, including linked/independent crosshairs
 - [ ] Advanced drawing catalog: annotations/text, risk/reward and long/short position tools,
       channels, geometric tools, brush and multi-point shapes
 - [ ] Drawing precision: snaps to exact live-session timestamps, candle OHLC and other anchors;
