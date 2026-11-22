@@ -6,7 +6,8 @@ import {
   Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Target, Film, Magnet, MoveUpRight, ArrowUpRight, Columns2, Grid2X2, Shapes, Pencil, ArrowUp, ArrowDown, Link2, Unlink2
 } from "lucide-react";
 import { ChartCanvas,type ChartSurface,type ChartRange } from "./ChartCanvas";
-import { InstrumentHeader } from "./charts/InstrumentHeader";
+import { MarketBoard } from "./charts/MarketBoard";
+import { InstrumentHeader, type CandleInspector } from "./charts/InstrumentHeader";
 import {ChartErrorBoundary} from "./charts/ChartErrorBoundary";
 import {chartStyles,type ChartDisplayStyle} from "./charts/display";
 import {ChartProfileMenu} from "./charts/ChartProfileMenu";
@@ -50,6 +51,7 @@ const titles: Record<Page, string> = {
 const studio = new URLSearchParams(window.location.search).has("studio");
 
 export default function App() {
+  const candleInspector=useRef<CandleInspector>(null);
   const [manageObjects,setManageObjects] = useState(false);
   const [saveFailed,setSaveFailed] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
@@ -167,6 +169,7 @@ export default function App() {
     }finally{syncingChartsRef.current=false;}
   };
   const onChartCrosshairChanged=(id:string,time:number|null)=>{
+    if(id==="primary") candleInspector.current?.inspect(time);
     if(!prefs.linkCrosshairs||syncingChartsRef.current)return;
     syncingChartsRef.current=true;
     try{
@@ -188,6 +191,11 @@ export default function App() {
     setDrawMode(false);
     setDrawingTool(null);
     notify(symbols[symbol].label + " opened in the terminal.");
+  };
+  const openDemoMarket = (symbol:SymbolId) => {
+    openInstrument(symbol);
+    update({priceSource:"demo"});
+    setReplay(null);
   };
   const addLevel = (price: number) => {
     if (!Number.isFinite(price) || price <= 0) { notify("Enter a valid positive price.", "error"); return; }
@@ -526,13 +534,13 @@ export default function App() {
     const timer = window.setTimeout(() => setNotice(current => current?.id === notice.id ? null : current), 4200);
     return () => window.clearTimeout(timer);
   }, [notice]);
-  return <div className={"app " + (studio && page === "terminal" ? "studio " : "") + (prefs.dark ? "dark" : "light") + " accent-" + prefs.accent + (focusMode && page === "terminal" ? " focus-mode" : "")}>
+  return <div className={"app " + (studio ? "studio " : "") + (prefs.dark ? "dark" : "light") + " accent-" + prefs.accent + (focusMode && page === "terminal" ? " focus-mode" : "")}>
     <header className="topbar">
       <div className="branding">
         <span className="logo"><ChartCandlestick size={20}/></span>
         <span><strong>MARKET<span className="brand-suffix">/TERMINAL</span></strong><small>{studio ? "Analysis workstation" : "Independent trading workspace"}</small></span>
       </div>
-      {studio && page==="terminal" && <nav className="studio-destinations" aria-label="Workstation pages">
+      {studio && <nav className="studio-destinations" aria-label="Workstation pages">
         {menu.map(({id,label})=><button key={id} aria-current={id===page?"page":undefined}
           onClick={()=>{setPage(id);setDrawMode(false);setDrawingTool(null);}}>{label}</button>)}
         <button aria-label="Help and shortcuts" onClick={()=>setHelpOpen(true)}><BookOpen size={16}/></button>
@@ -579,7 +587,17 @@ export default function App() {
       </aside>
       <div className="main-area">
         <div className="page-topline"><span>WORKSPACE <span className="breadcrumb-slash">/</span> {titles[page].toUpperCase()}</span><span className="workspace-context"><span className="context-marker"/> {page === "terminal" ? `${symbols[prefs.symbol].label} · ${prefs.frame.toUpperCase()} · ${prefs.chartLayout.toUpperCase()} VIEW` : "BROWSER-LOCAL WORKSPACE"}</span></div>
-        {page === "home" && <div className="content-page">
+        {studio && page === "home" && <main className="studio-overview">
+          <div className="overview-heading"><div><span>Workspace</span><h1>Markets</h1></div>
+            <button className="primary-button" onClick={()=>setPage("terminal")}>Resume {symbols[prefs.symbol].label}<ChevronRight size={16}/></button></div>
+          <MarketBoard frame={prefs.frame} selected={prefs.symbol} onOpen={openDemoMarket}/>
+          <div className="overview-links">
+            <button onClick={()=>setPage("risk")}><Target size={20}/><strong>Risk planner</strong></button>
+            <button onClick={()=>setPage("alerts")}><Bell size={20}/><strong>Price alerts</strong><span>{activeAlertCount} armed</span></button>
+            <button onClick={()=>setPage("library")}><Layers size={20}/><strong>Workspace</strong><span>{prefs.drawings.length} drawings</span></button>
+          </div>
+        </main>}
+        {!studio && page === "home" && <div className="content-page">
           <div className="hero"><div className="eyebrow">YOUR WORKSPACE AT A GLANCE</div><h1>A clear view of your markets.</h1><p>Get straight back to analysis. Your setup is saved on this device and basic tools don't have usage quotas.</p><button className="primary-button" onClick={() => setPage("terminal")}><ChartCandlestick size={17}/> Open trading terminal <ChevronRight size={16}/></button></div>
           <div className="section-head"><div><small>QUICK ACCESS</small><h2>Markets to explore</h2></div><button className="text-button" onClick={() => setSearchOpen(true)}>Browse symbols <ChevronRight size={16}/></button></div>
           <div className="market-grid">{marketList.map(symbol => <button className="market-tile" key={symbol} onClick={() => openInstrument(symbol)}><span className="market-kind">{symbols[symbol].market}</span><strong>{symbols[symbol].label}</strong><span className="market-tile-bottom">Open chart <ChevronRight size={16}/></span></button>)}</div>
@@ -590,7 +608,7 @@ export default function App() {
         {page === "terminal" && <div className={"terminal-layout " + (prefs.rightPanelOpen ? "" : "panel-closed")}
           style={{"--right-panel-width": prefs.rightPanelWidth + "px"} as CSSProperties}>
           <section className="terminal-center">
-            {studio && <InstrumentHeader symbol={prefs.symbol} frame={prefs.frame} candles={viewedCandles}
+            {studio && <InstrumentHeader key={[prefs.symbol,prefs.frame,prefs.priceSource,Boolean(replay)].join("-")} ref={candleInspector} symbol={prefs.symbol} frame={prefs.frame} candles={viewedCandles}
               source={displaySourceLabel} onSearch={()=>setSearchOpen(true)}/>}
             <div className="studio-header-slot">
             <div className="terminal-toolbar" aria-label="Chart workstation controls">
@@ -990,8 +1008,10 @@ export default function App() {
                 onClick={()=>setPanelTab("objects")}><Layers size={15}/> Objects <span className="rail-count">{currentDrawings.length}</span></button>
             </div>
             {panelTab==="markets"&&<div className="workspace-rail-content" id="rail-panel-markets" role="tabpanel" aria-labelledby="rail-tab-markets">
+            {studio && !replay ? <MarketBoard compact frame={prefs.frame} selected={prefs.symbol} onOpen={openDemoMarket}/> : <>
             <div className="panel-head"><strong>Watchlist</strong><button aria-label="Search instruments" title="Search instruments" className="mini-button" onClick={() => setSearchOpen(true)}><Search size={16}/></button></div>
             <div className="watchlist">{marketList.map(symbol => <button key={symbol} onClick={() => openInstrument(symbol)} className={symbol === prefs.symbol ? "selected" : ""}><span><b>{symbols[symbol].label}</b><small>{symbols[symbol].market.split(" · ")[0]}</small></span><ChevronRight size={15}/></button>)}</div>
+            </>}
             <div className="panel-head separated"><strong>Price levels</strong><span className="count">{currentLevels.length}</span></div>
             <div className="price-form"><input type="number" min="0" step="any" aria-label="Level price" placeholder={last.toFixed(symbols[prefs.symbol].precision)} value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === "Enter") addLevel(draft.trim() ? Number(draft) : last); }}/><button aria-label="Add price level" title="Add price level" onClick={() => addLevel(draft.trim() ? Number(draft) : last)}><Plus size={17}/></button></div>
             <div className="level-list">{currentLevels.map(level => <div key={level.id}><span className="level-swatch" style={{ background: level.color }}/><span>{level.price.toFixed(symbols[prefs.symbol].precision)}</span><button aria-label={"Remove price level " + level.price} title="Remove level" onClick={() => removeLevel(level.id)}><Trash2 size={15}/></button></div>)}</div>
