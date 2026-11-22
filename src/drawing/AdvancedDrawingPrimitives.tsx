@@ -7,6 +7,7 @@ import { medianPitchfork,fibTimePositions,cycleLinePositions,gannGrid } from "./
 import { FIB_TIME_SEQUENCE,patternPriceRatios } from "./multiAnchor";
 import {effectiveLevels,effectiveForkRatios,measurementSegments,formatFibLabel} from "./toolProperties";
 import { rayEndpoint } from "./snap";
+import {projectedSegment} from "./projection";
 
 type Stroke={stroke:string;strokeWidth:number;strokeDasharray?:string;opacity:number;vectorEffect:"non-scaling-stroke"};
 type Props={
@@ -20,7 +21,6 @@ type Props={
   projectPrice:(price:number)=>number|null;
 };
 
-const ratio=(value:number)=>(value*100).toFixed(1)+"%";
 const labelsFor:Record<string,string[]>={
   "pattern-abcd":["A","B","C","D"],
   "pattern-xabcd":["X","A","B","C","D"],
@@ -45,6 +45,9 @@ export function AdvancedDrawingPrimitives({
     const bars=observedBarCount(candleTimes,drawing.start.time,drawing.end.time);
     const elapsed=formatElapsedDuration(Math.abs(drawing.end.time-drawing.start.time));
     const segments=measurementSegments(drawing,bars,elapsed,precision).map(x=>x.label);
+    const line=tool==="info-line"?
+      projectedSegment(a,b,plot,drawing.projection??"segment"):null;
+    const strokeStart=line?.start??a,strokeEnd=line?.end??b;
     const left=Math.min(a.x,b.x),top=Math.min(a.y,b.y);
     const right=Math.max(a.x,b.x),bottom=Math.max(a.y,b.y);
     return <>
@@ -52,9 +55,9 @@ export function AdvancedDrawingPrimitives({
         height={Math.max(1,bottom-top)} fill={drawing.color}
         fillOpacity={drawing.fillOpacity??.1} stroke={drawing.color}
         strokeWidth={1} className="drawing-date-price-box"/>}
-      <path d={`M ${a.x} ${a.y} L ${b.x} ${b.y}`}
+      <path d={`M ${strokeStart.x} ${strokeStart.y} L ${strokeEnd.x} ${strokeEnd.y}`}
         stroke="transparent" strokeWidth={17} className="drawing-hit"/>
-      <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} {...common} className="drawing-line"/>
+      <line x1={strokeStart.x} y1={strokeStart.y} x2={strokeEnd.x} y2={strokeEnd.y} {...common} className="drawing-line"/>
       {showLabels&&<text x={Math.min(plot.width-12,Math.max(12,(a.x+b.x)/2))}
         y={Math.max(14,Math.min(plot.height-14,(a.y+b.y)/2-14))}
         textAnchor="middle" fontSize={10} fontWeight={650} fill={drawing.color}
@@ -132,8 +135,15 @@ export function AdvancedDrawingPrimitives({
         if(!level.visible)return null;
         const r=Math.abs(level.ratio),rx=Math.abs(b.x-a.x)*r,ry=Math.abs(b.y-a.y)*r;
         if(rx<1||ry<1)return null;
-        return <ellipse key={i} cx={a.x} cy={a.y} rx={rx} ry={ry}
-          fill="none" {...common} stroke={level.color} strokeOpacity={r===1?1:.6}/>;
+        const price=drawing.start.price+(drawing.end.price-drawing.start.price)*level.ratio;
+        return <g key={i}>
+          <ellipse cx={a.x} cy={a.y} rx={rx} ry={ry}
+            fill="none" {...common} stroke={level.color} strokeOpacity={r===1?1:.6}/>
+          {showLabels&&a.x+rx<plot.width-15&&<text x={a.x+rx+3} y={a.y-5}
+            fill={level.color} fontSize={9} pointerEvents="none">
+            {formatFibLabel(level.ratio,price,precision,drawing.labelMode)}
+          </text>}
+        </g>;
       })}
     </g>;
   }
