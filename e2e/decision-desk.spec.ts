@@ -17,7 +17,7 @@ test("Decision Desk captures, reviews and restores source-aware decisions", asyn
   await page.getByRole("button",{name:"Append review"}).click();
   await expect(page.getByText("The break reversed before confirmation")).toBeVisible();
   const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem("market-terminal-workspace")??"{}"));
-  expect(stored.version).toBe(24);
+  expect(stored.version).toBe(25);
   expect(stored.preferences.decisions).toHaveLength(1);
   expect(stored.preferences.decisions[0].reviews).toHaveLength(1);
   expect(stored.preferences.decisions[0].snapshot.barsVisible).toBeGreaterThan(0);

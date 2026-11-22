@@ -5,10 +5,10 @@ A **local-first market analysis and decision research workstation**, built with 
 ## Available workflows
 
 - **Chart Studio:** one-, two- and four-pane charts, independent frames/sources, chart types, indicators, saved profiles, drawing and direct manipulation.
-- **Drawing tools:** trendline, ray, Fibonacci, parallel channel, rectangle, ellipse, arrow, freehand, notes, price measurements, levels and illustrative long/short position graphics.
-- **Research:** historical replay, browser-local price alerts, risk planner, searchable Tool Atlas (`Ctrl/⌘ + K`) and **Decision Desk** for time-stamped observations with an append-only review history.
+- **Drawing tools:** a 34-type implementation catalog on the layered drawing-system branch, grouped into trend/channels, Fibonacci/Gann, manually anchored patterns, measurement, shapes, annotations and markers. Notable additions: real three-to-six-point drawing gestures, median pitchfork, Fibonacci extension and time guides, ABCD/XABCD/Elliott pivot annotations, Gann grid, callout evidence notes and date+price ranges. Select a family on the chart rail or search within the **Tool Library**; pin favorites and return to recent tools. These analytical drawings do not predict market outcomes.
+- **Research:** historical replay, browser-local price alerts, risk planner, searchable Tool Atlas (`Ctrl/⌘ + K`), **Decision Desk** for time-stamped observations, and **Chart Context Lens** for distance to user-marked price levels, source status and quick in-browser alerts.
 - **Local-first:** automatic browser workspace persistence and import/export with schema validation. No account is required for local analysis.
-- **Experience:** source-status labels, desktop/mobile layouts, dark/light appearance, curated accents, contextual drawing inspector and keyboard interactions.
+- **Experience:** source-status labels, mobile-friendly layered drawing rail and tool library, per-object Style / Coordinates / Visibility dialogs (with undo), source-bound chart observations, dark/light appearance and keyboard-friendly inspection.
 
 ## Market-data provenance
 

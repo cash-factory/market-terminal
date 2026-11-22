@@ -1,6 +1,16 @@
-import type { SymbolId } from "../market";
+import type { SymbolId, Frame } from "../market";
+import { TOOL_BY_ID } from "./toolDefinitions";
+import { isCompleteMultiPointDrawing } from "./multiAnchor";
 
-export type DrawingTool = "trendline" | "rectangle" | "fibonacci" | "ray" | "measure" | "arrow" | "ellipse" | "text" | "long-position" | "short-position" | "brush" | "channel";
+export type DrawingTool =
+  | "trendline" | "rectangle" | "fibonacci" | "ray" | "measure"
+  | "arrow" | "ellipse" | "text" | "long-position" | "short-position"
+  | "brush" | "channel" | "extended-line" | "horizontal-line"
+  | "horizontal-ray" | "vertical-line" | "cross-line"
+  | "price-range" | "date-range" | "info-line" | "pitchfork"
+  | "fib-extension" | "fib-timezone" | "fib-circles" | "gann-box"
+  | "triangle" | "pattern-abcd" | "pattern-xabcd" | "elliott-impulse"
+  | "cyclic-lines" | "callout" | "price-note" | "arrow-marker" | "date-price-range";
 export type ChartAnchor = { time: number; price: number };
 export type Drawing = {
   id: string;
@@ -20,10 +30,15 @@ export type Drawing = {
   strokeWidth?: number;
   dash?: "solid" | "dashed" | "dotted";
   opacity?: number;
+  fillOpacity?: number;
+  showMidline?: boolean;
+  evidenceSide?: "supports" | "challenges" | "unclassified";
+  showLabels?: boolean;
+  visibleOnFrames?: Frame[];
 };
 
 const validSymbols = new Set<SymbolId>(["EURUSD", "BTCUSDT", "AAPL", "US100"]);
-const validTools = new Set<DrawingTool>(["trendline", "rectangle", "fibonacci", "ray", "measure", "arrow", "ellipse", "text", "long-position", "short-position", "brush", "channel"]);
+const validFrames = new Set<Frame>(["1m", "5m", "15m", "1h", "4h", "1d"]);
 export function isDrawing(input: unknown): input is Drawing {
   if (!input || typeof input !== "object" || Array.isArray(input)) return false;
   const d = input as Partial<Drawing>;
@@ -33,7 +48,7 @@ export function isDrawing(input: unknown): input is Drawing {
     return Number.isSafeInteger(a.time) && a.time! >= 0 && typeof a.price === "number" && Number.isFinite(a.price) && a.price > 0;
   };
   return typeof d.id === "string" && d.id.length > 0 &&
-    validSymbols.has(d.symbol as SymbolId) && validTools.has(d.tool as DrawingTool) &&
+    validSymbols.has(d.symbol as SymbolId) && TOOL_BY_ID.has(d.tool as DrawingTool) &&
     anchor(d.start) && anchor(d.end) &&
     (d.source === undefined || d.source === "demo" || d.source === "binance") && typeof d.color === "string" &&
     /^#[a-f0-9]{6}$/i.test(d.color) && typeof d.locked === "boolean" &&
@@ -42,12 +57,22 @@ export function isDrawing(input: unknown): input is Drawing {
     (d.control === undefined || anchor(d.control)) &&
     (d.target === undefined || anchor(d.target)) &&
     (d.tool !== "channel" || anchor(d.control)) &&
+    isCompleteMultiPointDrawing(d as Drawing) &&
     (d.points === undefined || (Array.isArray(d.points) &&
       d.points.length <= 100000 && d.points.every(anchor))) &&
     (d.groupId === undefined || (typeof d.groupId === "string" && d.groupId.length > 0 && d.groupId.length <= 128)) &&
     (d.strokeWidth === undefined || (typeof d.strokeWidth === "number" && Number.isFinite(d.strokeWidth) && d.strokeWidth >= 1 && d.strokeWidth <= 8)) &&
     (d.dash === undefined || d.dash === "solid" || d.dash === "dashed" || d.dash === "dotted") &&
-    (d.opacity === undefined || (typeof d.opacity === "number" && Number.isFinite(d.opacity) && d.opacity >= .1 && d.opacity <= 1));
+    (d.opacity === undefined || (typeof d.opacity === "number" && Number.isFinite(d.opacity) && d.opacity >= .1 && d.opacity <= 1)) &&
+    (d.fillOpacity === undefined || (typeof d.fillOpacity === "number" && Number.isFinite(d.fillOpacity) && d.fillOpacity >= 0 && d.fillOpacity <= .8)) &&
+    (d.showMidline === undefined || typeof d.showMidline === "boolean") &&
+    (d.evidenceSide===undefined || (d.tool==="callout"&&
+      (d.evidenceSide==="supports"||d.evidenceSide==="challenges"||d.evidenceSide==="unclassified"))) &&
+    (d.showLabels === undefined || typeof d.showLabels === "boolean") &&
+    (d.visibleOnFrames === undefined ||
+      (Array.isArray(d.visibleOnFrames) && d.visibleOnFrames.length <= 6 &&
+       new Set(d.visibleOnFrames).size === d.visibleOnFrames.length &&
+       d.visibleOnFrames.every(frame=>validFrames.has(frame))));
 }
 
 export function translateDrawing(

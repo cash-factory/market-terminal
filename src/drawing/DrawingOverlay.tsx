@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import type {
   CandlestickData, IChartApi, ISeriesApi, Logical, UTCTimestamp
 } from "lightweight-charts";
-import { frameSeconds, type Frame } from "../market";
+import { frameSeconds, symbols, type Frame } from "../market";
 import {
   FIBONACCI_LEVELS, fibonacciPrices, translateDrawing,
   type ChartAnchor, type Drawing, type DrawingTool
@@ -11,11 +11,18 @@ import {
   inChartPlot, logicalFromTime, pointerDistance, timeFromLogical, type ChartPoint
 } from "./geometry";
 import { snapAnchorToOhlc, rayEndpoint, measurement } from "./snap";
+import { clippedExtendedLine, horizontalReference, verticalReference,
+  observedBarCount, formatElapsedDuration } from "./precision";
+import { ONE_ANCHOR_TOOLS } from "./toolDefinitions";
+import { isDrawingVisibleAtFrame } from "./drawingSettings";
+import { addMultiPointAnchor, multiPointCount, requiresMultiPoint } from "./multiAnchor";
+import { AdvancedDrawingPrimitives } from "./AdvancedDrawingPrimitives";
 import {calculatePosition,defaultPositionTarget,positionTargetAnchor} from "../analysis/positionDrawing";
 
 type Projected = { a: ChartPoint; b: ChartPoint };
 type Gesture = {
-  kind: "create" | "move" | "start" | "end" | "control" | "target";
+  kind: "create" | "move" | "start" | "end" | "control" | "target" | "vertex";
+  vertexIndex?:number;
   origin: ChartPoint;
   original?: Drawing;
   first?: ChartAnchor;
@@ -34,22 +41,25 @@ interface Props {
   color: string;
   magnetEnabled: boolean;
   onAdd: (drawing: Drawing) => void;
-  onUpdate: (drawing: Drawing,editKind?:"move"|"start"|"end"|"control"|"target") => void;
+  onUpdate: (drawing: Drawing,editKind?:"move"|"start"|"end"|"control"|"target"|"vertex") => void;
   onDelete: (id: string) => void;
   onDeleteMany: (ids: string[]) => void;
   selectedIds: string[];
   onSelectionChange: (ids: string[]) => void;
+  onOpenSettings: (id: string) => void;
 }
 
 export function DrawingOverlay({
-  chart, series, symbol, frame, candles, tool, drawings, color, magnetEnabled, onAdd, onUpdate, onDelete, onDeleteMany, selectedIds, onSelectionChange
+  chart, series, symbol, frame, candles, tool, drawings, color, magnetEnabled, onAdd, onUpdate, onDelete, onDeleteMany, selectedIds, onSelectionChange, onOpenSettings
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const gestureRef = useRef<Gesture | null>(null);
   const draftRef = useRef<Drawing | null>(null);
   const pendingRef = useRef<PendingClick | null>(null);
   const pendingChannelRef=useRef<PendingChannel|null>(null);
+  const pendingMultiRef=useRef<{tool:DrawingTool;points:ChartAnchor[];required:number}|null>(null);
   const [draft, setDraftState] = useState<Drawing | null>(null);
+  const candleTimes=useMemo(()=>candles.map(c=>Number(c.time)),[candles]);
   const [, setRevision] = useState(0);
   const animationFrame = useRef<number | null>(null);
 
@@ -125,6 +135,7 @@ export function DrawingOverlay({
     gestureRef.current = null;
     pendingRef.current = null;
     pendingChannelRef.current=null;
+    pendingMultiRef.current=null;
     setDraft(null);
     if (tool) onSelectionChange([]);
   }, [symbol, tool, frame]);
@@ -138,6 +149,7 @@ export function DrawingOverlay({
         gestureRef.current = null;
         pendingRef.current = null;
         pendingChannelRef.current=null;
+    pendingMultiRef.current=null;
         setDraft(null);
         onSelectionChange([]);
         return;
@@ -161,9 +173,10 @@ export function DrawingOverlay({
   const capture = (event: ReactPointerEvent<SVGElement>) => {
     try { svgRef.current?.setPointerCapture(event.pointerId); } catch { /* pointer was released */ }
   };
-  const beginEdit = (event: ReactPointerEvent<SVGElement>, drawing: Drawing, kind: Gesture["kind"]) => {
+  const beginEdit = (event: ReactPointerEvent<SVGElement>, drawing: Drawing, kind: Gesture["kind"],vertexIndex?:number) => {
     if (tool || event.button !== 0) return;
-    event.preventDefault();
+    // Preserve the browser's click/double-click sequence for selected shapes.
+    // Suppress native gestures only if the pointer actually begins dragging.
     event.stopPropagation();
     const linked=drawing.groupId?
       drawings.filter(d=>d.groupId===drawing.groupId).map(d=>d.id):[drawing.id];
@@ -176,8 +189,10 @@ export function DrawingOverlay({
     }
     onSelectionChange(linked);
     if(drawing.locked)return;
-    capture(event);
-    gestureRef.current = { kind, origin: pointFromEvent(event), original: drawing };
+    // Do not capture a stationary object-selection click: pointer capture
+    // retargets the subsequent click to the SVG root and breaks double-click.
+    // Acquire capture only once an actual drag begins.
+    gestureRef.current = { kind, origin: pointFromEvent(event), original: drawing,vertexIndex };
     setDraft(null);
   };
   const onPointerDown = (event: ReactPointerEvent<SVGSVGElement>) => {
@@ -191,9 +206,24 @@ export function DrawingOverlay({
     const anchor = anchorAt(point);
     if (!anchor) return;
     event.preventDefault();
+    if(pendingMultiRef.current&&pendingMultiRef.current.tool===tool){
+      const pending=pendingMultiRef.current;
+      const stage=addMultiPointAnchor(pending.points,anchor,pending.required);
+      if(stage.complete){
+        pendingMultiRef.current=null;pendingRef.current=null;setDraft(null);
+        onAdd({...makeDrawing(stage.points[0],stage.points[1],tool),
+          points:stage.points,id:crypto.randomUUID()});
+      }else{
+        pendingMultiRef.current={...pending,points:stage.points};
+        setDraft({...makeDrawing(stage.points[0],stage.points[1],tool),
+          points:[...stage.points,stage.points[stage.points.length-1]]});
+      }
+      return;
+    }
     if(tool==="channel"&&pendingChannelRef.current){
       const {first,second}=pendingChannelRef.current;
       pendingChannelRef.current=null;
+    pendingMultiRef.current=null;
       pendingRef.current=null;
       setDraft(null);
       onAdd({...makeDrawing(first,second,"channel"),control:anchor,id:crypto.randomUUID()});
@@ -214,6 +244,12 @@ export function DrawingOverlay({
     const point = pointFromEvent(event);
     const active = gestureRef.current;
     if (!active) {
+      if(pendingMultiRef.current&&pendingMultiRef.current.tool===tool){
+        const next=anchorAt(point),pending=pendingMultiRef.current;
+        if(next)setDraft({...makeDrawing(pending.points[0],pending.points[1],tool),
+          points:[...pending.points,next]});
+        return;
+      }
       if(tool==="channel"&&pendingChannelRef.current){
         const next=anchorAt(point);
         if(next){
@@ -245,10 +281,30 @@ export function DrawingOverlay({
       return;
     }
     if (!active.original) return;
+    if(pointerDistance(active.origin,point)>=2){
+      event.preventDefault();
+      if(!svgRef.current?.hasPointerCapture(event.pointerId))capture(event);
+    }
     const originalProjected = project(active.original);
     if (!originalProjected) return;
     const dx = point.x - active.origin.x;
     const dy = point.y - active.origin.y;
+    if(active.kind==="vertex"&&active.original.points&&active.vertexIndex!==undefined){
+      const index=active.vertexIndex,vertex=active.original.points[index];
+      if(vertex){
+        const projected=project({...active.original,start:vertex,end:vertex});
+        if(projected){
+          const next=anchorAt({x:projected.a.x+dx,y:projected.a.y+dy});
+          if(next){
+            const points=active.original.points.map((p,i)=>i===index?next:p);
+            setDraft({...active.original,points,
+              start:index===0?next:active.original.start,
+              end:index===1?next:active.original.end});
+          }
+        }
+      }
+      return;
+    }
     if(active.kind==="target"){
       const prior=active.original.target??
         (active.original.tool==="long-position"||active.original.tool==="short-position"?
@@ -275,8 +331,12 @@ export function DrawingOverlay({
     const end = active.kind === "start" ? active.original.end :
       anchorAt({ x: originalProjected.b.x + dx, y: originalProjected.b.y + dy });
     if (start && end) {
-      const changed=translateDrawing(active.original,start,end);
-      setDraft(active.kind==="move"?changed:{...changed,control:active.original.control});
+      const changed=active.kind==="move"?translateDrawing(active.original,start,end):
+        {...active.original,start,end,
+          ...(active.original.points?{points:active.original.points.map((p,i)=>
+            active.kind==="start"&&i===0?start:active.kind==="end"&&i===1?end:p)}:{})};
+      setDraft(ONE_ANCHOR_TOOLS.has(active.original.tool)
+        ? {...changed,end:changed.start} : changed);
     }
   };
   const onPointerUp = (event: ReactPointerEvent<SVGSVGElement>) => {
@@ -296,6 +356,12 @@ export function DrawingOverlay({
         pendingRef.current=null;
         setDraft(null);
         onAdd({...makeDrawing(active.first,active.first,tool),text:"Note",id:crypto.randomUUID()});
+      }else if(ONE_ANCHOR_TOOLS.has(tool)){
+        pendingRef.current=null;
+        setDraft(null);
+        const note=tool==="callout"?"Observation":tool==="price-note"?"Marked price":undefined;
+        onAdd({...makeDrawing(active.first,active.first,tool),
+          ...(note?{text:note}:{}),id:crypto.randomUUID()});
       }else if(tool==="brush"){
         const points=draftRef.current?.points??[];
         pendingRef.current=null;
@@ -309,6 +375,9 @@ export function DrawingOverlay({
           if(tool==="channel"){
             pendingChannelRef.current={first:completed.start,second:completed.end};
             setDraft({...completed,control:completed.start});
+          }else if(requiresMultiPoint(tool)){
+            pendingMultiRef.current={tool,points:[completed.start,completed.end],required:multiPointCount(tool)};
+            setDraft({...completed,points:[completed.start,completed.end,completed.end]});
           }else{
             setDraft(null);
             const positionTarget=(tool==="long-position"||tool==="short-position")?
@@ -334,6 +403,7 @@ export function DrawingOverlay({
     gestureRef.current = null;
     pendingRef.current = null;
     pendingChannelRef.current=null;
+    pendingMultiRef.current=null;
     setDraft(null);
   };
 
@@ -341,6 +411,10 @@ export function DrawingOverlay({
     const position = project(drawing);
     if (!position) return null;
     const { a, b } = position;
+    const plot={
+      width:chart.timeScale().width(),
+      height:Math.max(0,(svgRef.current?.clientHeight??0)-chart.timeScale().height())
+    };
     const isPreview = drawing.id === "preview";
     const selected = selectedIds.includes(drawing.id) && !tool;
     const common = {
@@ -351,7 +425,13 @@ export function DrawingOverlay({
       vectorEffect: "non-scaling-stroke" as const,
     };
     return <g key={drawing.id} className={"drawing-shape " + (selected ? "is-selected" : "")}
-      onPointerDown={event => { if (!isPreview) beginEdit(event, drawing, "move"); }}>
+      onPointerDown={event => { if (!isPreview) beginEdit(event, drawing, "move"); }}
+      onDoubleClick={event=>{if(!isPreview){event.stopPropagation();onOpenSettings(drawing.id);}}}>
+      <AdvancedDrawingPrimitives drawing={drawing} a={a} b={b} plot={plot}
+        common={common} precision={symbols[symbol].precision}
+        candleTimes={candleTimes}
+        projectAnchor={anchor=>project({...drawing,start:anchor,end:anchor})?.a??null}
+        projectPrice={price=>series.priceToCoordinate(price)}/>
       {drawing.tool==="channel"&&(()=>{
         const control=drawing.control??drawing.start;
         const projected=project({...drawing,start:control,end:control});
@@ -360,7 +440,7 @@ export function DrawingOverlay({
         const c={x:a.x+dx,y:a.y+dy},d={x:b.x+dx,y:b.y+dy};
         return <>
           <polygon points={[a,b,d,c].map(p=>p.x+","+p.y).join(" ")}
-            fill={drawing.color} fillOpacity={.08}
+            fill={drawing.color} fillOpacity={drawing.fillOpacity??.08}
             stroke="none" pointerEvents="none"/>
           <path d={"M "+a.x+" "+a.y+" L "+b.x+" "+b.y+" M "+c.x+" "+c.y+" L "+d.x+" "+d.y}
             fill="none" stroke="transparent" strokeWidth={18} className="drawing-hit"/>
@@ -381,7 +461,7 @@ export function DrawingOverlay({
         cx={(a.x+b.x)/2} cy={(a.y+b.y)/2}
         rx={Math.max(2,Math.abs(b.x-a.x)/2)}
         ry={Math.max(2,Math.abs(b.y-a.y)/2)}
-        fill={drawing.color} fillOpacity={0.08} {...common} className="drawing-ellipse"/>}
+        fill={drawing.color} fillOpacity={drawing.fillOpacity??.08} {...common} className="drawing-ellipse"/>}
       {drawing.tool === "arrow" && (() => {
         const dx=b.x-a.x,dy=b.y-a.y,len=Math.max(1,Math.hypot(dx,dy)),ux=dx/len,uy=dy/len;
         const points=[
@@ -460,7 +540,64 @@ export function DrawingOverlay({
             fill="#e66a77" fontSize={10} pointerEvents="none">Stop · risk 1R</text>
         </>;
       })()}
-      {drawing.tool === "ray" && (() => {
+      {(["extended-line","horizontal-line","horizontal-ray","vertical-line","cross-line"] as string[])
+         .includes(drawing.tool) && (() => {
+         const first=drawing.tool==="extended-line"?clippedExtendedLine(a,b,plot):
+           drawing.tool==="horizontal-line"?horizontalReference(a,plot,false):
+           drawing.tool==="horizontal-ray"?horizontalReference(a,plot,true):
+           verticalReference(a,plot);
+         if(!first)return null;
+         const paths=[first];
+         if(drawing.tool==="cross-line"){
+           const horizontal=horizontalReference(a,plot,false);
+           if(horizontal)paths.push(horizontal);
+         }
+         const d=paths.map(item=>"M "+item.start.x+" "+item.start.y+
+           " L "+item.end.x+" "+item.end.y).join(" ");
+         return <>
+           <path d={d} fill="none" stroke="transparent" strokeWidth={16} className="drawing-hit"/>
+           <path d={d} fill="none" {...common} className="drawing-line drawing-reference"/>
+           {drawing.tool==="cross-line"&&<circle cx={a.x} cy={a.y} r={3.5}
+             fill="var(--panel)" stroke={drawing.color} strokeWidth={1.5} pointerEvents="none"/>}
+         </>;
+       })()}
+       {drawing.tool==="price-range" && (() => {
+         const m=measurement(drawing.start,drawing.end,frameSeconds[frame]);
+         const left=Math.min(a.x,b.x),top=Math.min(a.y,b.y);
+         const width=Math.max(16,Math.abs(b.x-a.x)),height=Math.max(2,Math.abs(b.y-a.y));
+         const sign=m.change>0?"+":"";
+         const labelToLeft=left+width>plot.width-145;
+         return <>
+           <rect x={left} y={top} width={width} height={height}
+             fill={drawing.color} fillOpacity={drawing.fillOpacity??.10} stroke={drawing.color}
+             strokeWidth={1} className="drawing-rectangle drawing-price-range"/>
+           <line x1={left} x2={left+width} y1={a.y} y2={a.y} {...common} pointerEvents="none"/>
+           <line x1={left} x2={left+width} y1={b.y} y2={b.y} {...common} pointerEvents="none"/>
+           <text x={labelToLeft?left+width-6:left+width+6} y={top+height/2} fill={drawing.color}
+             fontSize={11} fontWeight={700} dominantBaseline="middle" pointerEvents="none"
+             textAnchor={labelToLeft?"end":"start"}>
+             {sign+m.change.toFixed(symbols[symbol].precision)+" / "+sign+m.percent.toFixed(2)+"%"}
+           </text>
+         </>;
+       })()}
+       {drawing.tool==="date-range" && (() => {
+         const left=Math.min(a.x,b.x),width=Math.max(1,Math.abs(b.x-a.x));
+         const bars=observedBarCount(candleTimes,drawing.start.time,drawing.end.time);
+         const elapsed=formatElapsedDuration(Math.abs(drawing.end.time-drawing.start.time));
+         return <>
+           <rect x={left} y={0} width={width} height={plot.height}
+             fill={drawing.color} fillOpacity={drawing.fillOpacity??.08} pointerEvents="none"
+             className="drawing-date-band"/>
+           <path d={"M "+a.x+" 0 V "+plot.height+" M "+b.x+" 0 V "+plot.height}
+             stroke="transparent" strokeWidth={16} fill="none" className="drawing-hit"/>
+           <path d={"M "+a.x+" 0 V "+plot.height+" M "+b.x+" 0 V "+plot.height}
+             fill="none" {...common} className="drawing-line"/>
+           <text x={Math.min(Math.max(90,left+width/2),Math.max(90,plot.width-90))} y={Math.max(18,Math.min(plot.height-12,28))}
+             textAnchor="middle" fontSize={11} fontWeight={650} fill={drawing.color}
+             pointerEvents="none">{elapsed+" · "+bars+" observed bars"}</text>
+         </>;
+       })()}
+       {drawing.tool === "ray" && (() => {
         const endpoint=rayEndpoint(a,b,chart.timeScale().width(),
           Math.max(0,(svgRef.current?.clientHeight ?? 0)-chart.timeScale().height()));
         return <>
@@ -477,7 +614,7 @@ export function DrawingOverlay({
         const sign=m.change>0?"+":"";
         return <>
           <rect x={left} y={top} width={width} height={height}
-            fill={m.change>=0?"#20aa8b":"#dc6575"} fillOpacity={0.12}
+            fill={m.change>=0?"#20aa8b":"#dc6575"} fillOpacity={drawing.fillOpacity??.12}
             {...common} className="drawing-rectangle"/>
           <line x1={a.x} y1={a.y} x2={b.x} y2={b.y}
             {...common} className="drawing-line" pointerEvents="none"/>
@@ -495,7 +632,7 @@ export function DrawingOverlay({
       </>}
       {drawing.tool === "rectangle" && <rect x={Math.min(a.x,b.x)} y={Math.min(a.y,b.y)}
         width={Math.max(1,Math.abs(b.x-a.x))} height={Math.max(1,Math.abs(b.y-a.y))}
-        fill={drawing.color} fillOpacity={0.08} {...common} className="drawing-rectangle"/>}
+        fill={drawing.color} fillOpacity={drawing.fillOpacity??.08} {...common} className="drawing-rectangle"/>}
       {drawing.tool === "fibonacci" && FIBONACCI_LEVELS.map((level, i) => {
         const y = fibonacciPrices(a.y, b.y)[i];
         const x1 = Math.min(a.x, b.x);
@@ -506,12 +643,27 @@ export function DrawingOverlay({
           <line x1={x1} x2={x2} y1={y} y2={y} {...common}
             strokeOpacity={i === 0 || i === FIBONACCI_LEVELS.length - 1 ? 1 : .75}
             className="drawing-line"/>
-          <text x={x2+6} y={y-4} fill={drawing.color} fontSize={10}
-            pointerEvents="none">{(level*100).toFixed(1)}%</text>
+          {drawing.showLabels!==false&&          <text x={x2+6} y={y-4} fill={drawing.color} fontSize={10}
+            pointerEvents="none">{(level*100).toFixed(1)}%</text>}
         </g>;
       })}
+      {drawing.tool==="rectangle"&&drawing.showMidline&&
+        <line x1={Math.min(a.x,b.x)} x2={Math.max(a.x,b.x)}
+          y1={(a.y+b.y)/2} y2={(a.y+b.y)/2} stroke={drawing.color}
+          strokeWidth={1} strokeDasharray="5 4" opacity={drawing.opacity??1} pointerEvents="none"
+          className="drawing-rectangle-midline"/>}
       {isPreview && <circle cx={a.x} cy={a.y} r={4} fill={drawing.color} pointerEvents="none" />}
-      {selected && !drawing.locked && drawing.tool!=="brush" && drawing.tool!=="text" && [a,b].map((p,i) =>
+      {selected&&!drawing.locked&&drawing.points&&drawing.points.length>=3&&
+        drawing.points.slice(2).map((vertex,index)=>{
+          const projected=project({...drawing,start:vertex,end:vertex});
+          if(!projected)return null;
+          return <circle key={"vertex-"+index} cx={projected.a.x} cy={projected.a.y}
+            r={7} fill="var(--panel)" stroke={drawing.color} strokeWidth={2}
+            className="drawing-handle pattern-vertex-handle"
+            onPointerDown={event=>beginEdit(event,drawing,"vertex",index+2)}/>;
+        })}
+      {selected && !drawing.locked && drawing.tool!=="brush" && drawing.tool!=="text" &&
+        (ONE_ANCHOR_TOOLS.has(drawing.tool)?[a]:[a,b]).map((p,i) =>
         <circle key={i} cx={p.x} cy={p.y} r={7} fill="var(--panel)"
           stroke={drawing.color} strokeWidth={2} className="drawing-handle"
           onPointerDown={event => beginEdit(event, drawing, i === 0 ? "start" : "end")}/>
@@ -520,7 +672,7 @@ export function DrawingOverlay({
   };
 
   return <svg ref={svgRef} className={"drawing-overlay " + (tool ? "armed" : "")}
-    aria-label={tool ? "Draw " + tool + ": drag or click two points" : "Select chart drawings"}
+    aria-label={tool ? "Draw " + tool + ": " + (requiresMultiPoint(tool)?multiPointCount(tool):ONE_ANCHOR_TOOLS.has(tool)?1:2) + " anchors required" : "Select chart drawings"}
     onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
     onPointerCancel={cancel} onLostPointerCapture={() => { /* normal end handled by pointerup */ }}>
     {/* A real transparent SVG rect is required: empty SVG pixels are not reliably
@@ -528,7 +680,15 @@ export function DrawingOverlay({
     <rect className="drawing-plot-surface" data-drawing-surface="true"
       x={0} y={0} width="100%" height="100%"
       fill="transparent" pointerEvents={tool ? "all" : "none"}/>
-    {drawings.filter(d => d.symbol === symbol && !d.hidden).map(d => renderDrawing(draft?.id === d.id ? draft : d))}
+    {drawings.filter(d => d.symbol === symbol && isDrawingVisibleAtFrame(d,frame)).map(d => renderDrawing(draft?.id === d.id ? draft : d))}
     {draft?.id === "preview" && renderDrawing(draft)}
+    {tool&&pendingMultiRef.current&&<g className="drawing-anchor-progress" pointerEvents="none">
+      <rect x={12} y={12} width={188} height={35} rx={6}
+        fill="var(--panel)" fillOpacity={.96} stroke={color} strokeOpacity={.55}/>
+      <text x={23} y={26} fill={color} fontSize={10} fontWeight={750}>
+        {"ANCHOR "+(pendingMultiRef.current.points.length+1)+" / "+pendingMultiRef.current.required}
+      </text>
+      <text x={23} y={39} fill="var(--soft)" fontSize={10}>Click the next pivot to continue</text>
+    </g>}
   </svg>;
 }

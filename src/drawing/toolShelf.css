@@ -1,0 +1,160 @@
+
+/* Professional drawing library: high information density without overlaying the chart permanently. */
+.tool-shelf{display:flex!important;flex-direction:column!important;gap:0!important;width:min(520px,calc(100vw - 120px))!important;max-height:min(690px,80dvh)!important;padding:0!important;overflow:hidden!important;background:var(--panel)!important;border:1px solid var(--accent-border)!important;border-radius:9px!important;box-shadow:0 20px 60px rgba(0,0,0,.32)!important;color:var(--text)!important}
+.tool-shelf-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:17px 18px 15px;border-bottom:1px solid var(--border)}
+.tool-shelf-ident{display:flex;align-items:center;gap:12px}
+.tool-shelf-ident>div{display:flex;flex-direction:column;gap:3px}
+.tool-shelf-ident span:not(.tool-shelf-symbol){font-size:9px;letter-spacing:.12em;color:var(--muted);font-weight:700}
+.tool-shelf-ident strong{font-size:19px;letter-spacing:-.035em;font-weight:650}
+.tool-shelf-symbol{width:39px;height:39px;display:grid;place-items:center;background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent-border);border-radius:7px}
+.tool-shelf-close{width:34px;height:34px;display:grid;place-items:center;background:transparent;border:1px solid transparent;color:var(--muted);border-radius:5px}
+.tool-shelf-close:hover{background:var(--raised);color:var(--text)}
+.tool-shelf-filter{padding:13px 15px 12px;border-bottom:1px solid var(--border)}
+.tool-shelf-search{height:38px;display:flex;align-items:center;gap:8px;background:var(--bg);color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:0 11px}
+.tool-shelf-search:focus-within{border-color:var(--accent);outline:1px solid var(--accent-border)}
+.tool-shelf-search input{flex:1;min-width:0;background:transparent;color:var(--text);border:0;outline:0;font-size:12px}
+.tool-shelf-groups{display:flex;gap:5px;overflow-x:auto;padding-top:11px;scrollbar-width:thin}
+.tool-shelf-groups button{border:1px solid transparent;background:transparent;color:var(--muted);font-size:10px;font-weight:600;padding:8px 9px;white-space:nowrap;border-radius:5px}
+.tool-shelf-groups button:hover{color:var(--text);background:var(--raised)}
+.tool-shelf-groups button.active{background:var(--accent-dim);color:var(--accent);border-color:var(--accent-border)}
+.tool-shelf-pinned{padding:12px 15px;border-bottom:1px solid var(--border)}
+.tool-shelf-section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--muted);font-size:9px;letter-spacing:.09em;font-weight:750}
+.tool-shelf-section-heading>span{display:inline-flex;align-items:center;gap:7px}
+.tool-shelf-section-heading>small{font-size:10px;letter-spacing:0;font-weight:500}
+.tool-shelf-pinned-list{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.tool-shelf-pinned-list p{font-size:10px;color:var(--muted);margin:0}
+.tool-shelf-chip{border:1px solid var(--border);border-radius:5px;padding:7px 10px;background:var(--raised);color:var(--text);font-size:10px;white-space:nowrap}
+.tool-shelf-chip:is(:hover,.selected){border-color:var(--accent-border);background:var(--accent-dim);color:var(--accent)}
+.tool-shelf-recents{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:9px;color:var(--muted);margin-top:11px}
+.tool-shelf-recents button{background:transparent;border:0;color:var(--soft);font-size:10px;padding:3px}
+.tool-shelf-recents button:hover{color:var(--accent)}
+.tool-shelf-scroll{padding:13px 13px 10px;overflow-y:auto;overscroll-behavior:contain;flex:1;min-height:120px;scrollbar-color:var(--border) transparent}
+.tool-shelf-section{padding-top:10px}
+.tool-shelf-section h3{font-size:11px;color:var(--soft);font-weight:650;letter-spacing:.035em;margin:10px 6px 7px}
+.tool-shelf-row{display:flex;align-items:center;gap:3px;border-radius:5px;border:1px solid transparent}
+.tool-shelf-row:hover,.tool-shelf-row:focus-within{background:var(--raised)}
+.tool-shelf-row.active{border-color:var(--accent-border);background:var(--accent-dim)}
+.tool-shelf-select{flex:1;min-width:0;display:flex;align-items:center;gap:11px;background:transparent;color:var(--text);border:0;text-align:left;padding:9px 6px}
+.tool-shelf-tool-mark{width:30px;height:30px;flex-shrink:0;border:1px solid var(--border);background:var(--bg);color:var(--muted);border-radius:5px;font:700 12px ui-monospace,monospace;display:grid;place-items:center}
+.tool-shelf-row.active .tool-shelf-tool-mark{color:var(--accent);border-color:var(--accent-border)}
+.tool-shelf-tool-copy{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.tool-shelf-tool-copy strong{font-size:12px;font-weight:650}
+.tool-shelf-tool-copy small{font-size:10px;color:var(--muted);line-height:1.35}
+.tool-shelf-check{color:var(--accent);flex-shrink:0}
+.tool-shelf-star{width:36px;height:36px;display:grid;place-items:center;flex-shrink:0;border:0;background:none;color:var(--muted);border-radius:5px}
+.tool-shelf-star:hover,.tool-shelf-star.pinned{color:var(--accent)}
+.tool-shelf-empty{display:grid;justify-items:center;gap:10px;text-align:center;color:var(--muted);padding:40px 20px}
+.tool-shelf-empty strong{font-size:12px;color:var(--text)}.tool-shelf-empty p{font-size:10px;line-height:1.6;max-width:270px}
+.tool-shelf-foot{display:flex;gap:12px;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding:12px 15px;color:var(--muted);font-size:10px}
+.tool-shelf-foot>span:first-child{display:inline-flex;align-items:center;gap:7px}
+.tool-shelf-dot{background:var(--positive);width:6px;height:6px;border-radius:50%}
+.studio .terminal-toolbar .tool-shelf,.terminal-toolbar .tool-shelf{z-index:90}
+@media(max-width:900px){
+ .studio .tool-shelf{left:auto;right:0;top:0;width:min(480px,calc(100vw - 95px))!important}
+}
+@media(max-width:700px){
+ .studio .tool-shelf,.terminal-toolbar .tool-shelf{position:fixed!important;inset:auto 9px 9px 9px!important;width:auto!important;max-height:min(75dvh,680px)!important}
+ .tool-shelf-head{padding:11px 14px}
+ .tool-shelf-scroll{padding:8px 10px}
+ .tool-shelf-tool-copy small{font-size:10px}
+ .tool-shelf-pinned{padding:10px 12px}
+ .tool-shelf-foot{padding:10px 12px}
+}
+@media(prefers-reduced-motion:reduce){.tool-shelf *{transition:none!important}}
+
+/* A fixed, bounded workbench prevents the library from falling below short laptop screens. */
+@media(min-width:701px){
+  .terminal-toolbar .tool-shelf,.studio .terminal-toolbar .tool-shelf{
+    position:fixed!important;inset:clamp(76px,12vh,124px) auto 16px clamp(12px,6vw,86px)!important;
+    width:min(515px,calc(100vw - 108px))!important;max-height:none!important;
+    height:auto!important;
+  }
+}
+@media(min-width:701px) and (max-height:620px){
+  .terminal-toolbar .tool-shelf,.studio .terminal-toolbar .tool-shelf{
+    top:58px!important;bottom:8px!important;
+  }
+}
+@media(max-width:700px){
+  .studio .terminal-toolbar .tool-shelf,.terminal-toolbar .tool-shelf{
+    position:fixed!important;inset:auto 9px 9px 9px!important;
+    width:auto!important;max-height:min(74dvh,640px)!important;
+  }
+}
+
+/* Reveal instrument identity and chart controls above the transient library. */
+@media(min-width:701px){
+ .studio .terminal-toolbar .tool-shelf,.terminal-toolbar .tool-shelf{
+   top:clamp(205px,30.5vh,254px)!important;bottom:12px!important;
+ }
+}
+
+/* Screenshot-driven density: keep the header unobstructed while exposing more tools. */
+@media(min-width:701px){
+ .tool-shelf-head{padding:10px 14px 9px}
+ .tool-shelf-symbol{width:34px;height:34px}
+ .tool-shelf-filter{padding:9px 12px 8px}
+ .tool-shelf-search{height:34px}
+ .tool-shelf-groups{padding-top:7px}
+ .tool-shelf-groups button{padding:6px 7px}
+ .tool-shelf-pinned{padding:8px 12px}
+ .tool-shelf-pinned-list{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin;margin-top:7px;gap:6px}
+ .tool-shelf-chip{padding:6px 9px;flex-shrink:0}
+ .tool-shelf-recents{margin-top:7px}
+ .tool-shelf-scroll{padding-top:7px}
+ .tool-shelf-section{padding-top:6px}
+ .tool-shelf-select{padding-block:7px}
+ .tool-shelf-foot{padding:8px 12px}
+}
+
+/* Layered drawing library: fixed family navigation, scrollable tool detail column. */
+.tool-shelf-main{display:grid;grid-template-columns:125px minmax(0,1fr);flex:1;min-height:100px;overflow:hidden}
+.tool-shelf-main .tool-shelf-groups{display:flex;flex-direction:column;gap:3px;align-items:stretch;
+  padding:10px 7px;background:var(--bg);border-right:1px solid var(--border);
+  overflow-x:hidden;overflow-y:auto;scrollbar-width:thin}
+.tool-shelf-main .tool-shelf-groups button{width:100%;min-height:35px;text-align:left;
+  white-space:normal;border-radius:5px;padding:8px 9px;line-height:1.35;font-size:10px}
+.tool-shelf-main .tool-shelf-groups button.active{color:var(--accent);background:var(--accent-dim);border-color:var(--accent-border)}
+.tool-shelf-body{min-height:0;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+.tool-shelf-body .tool-shelf-scroll{flex:1;min-height:0;overflow-y:auto}
+.tool-shelf-main .tool-shelf-pinned{flex-shrink:0}
+.tool-shelf-body .tool-shelf-section h3{letter-spacing:.06em}
+.tool-shelf-backlog{margin:16px 4px 4px;border-top:1px solid var(--border);padding:12px 4px 4px}
+.tool-shelf-backlog summary{cursor:pointer;display:flex;align-items:center;justify-content:space-between;
+  gap:7px;font-size:10px;font-weight:650;color:var(--muted);line-height:1.4}
+.tool-shelf-backlog summary span{border-radius:4px;padding:3px 6px;background:var(--raised);color:var(--accent)}
+.tool-shelf-backlog p{font-size:10px;color:var(--muted);line-height:1.5;padding:6px 0}
+.tool-shelf-backlog>div{display:flex;gap:7px;flex-wrap:wrap}
+.tool-shelf-backlog>div span{font-size:9px;color:var(--muted);background:var(--raised);
+  padding:7px 8px;border-radius:4px;border:1px solid var(--border)}
+/* More than two anchors are an explicit workflow, not an invisible extra click. */
+.tool-shelf-tool-mark{font-size:11px}
+.studio .terminal-toolbar-drawing .studio-rail-root .tool-shelf{
+  left:clamp(74px,8vw,137px)!important;right:auto!important;
+  top:clamp(138px,18vh,195px)!important;bottom:12px!important;
+  width:min(610px,calc(100vw - 170px))!important;max-height:none!important}
+@media(max-width:700px){
+ .tool-shelf-main{display:flex;flex-direction:column;min-height:0}
+ .tool-shelf-main .tool-shelf-groups{flex-direction:row;flex-shrink:0;align-items:center;
+   padding:7px 8px;border:0;border-bottom:1px solid var(--border);
+   overflow-x:auto;overflow-y:hidden;gap:4px;scrollbar-width:thin}
+ .tool-shelf-main .tool-shelf-groups button{white-space:nowrap;width:auto;min-height:31px;
+   padding:7px 9px;font-size:9px}
+ .tool-shelf-body{flex:1}
+ .tool-shelf-backlog{margin-top:10px}
+ .studio .terminal-toolbar-drawing .studio-rail-root .tool-shelf{
+   position:fixed!important;inset:auto 7px 7px 7px!important;
+   width:auto!important;max-height:76dvh!important}
+}
+
+/* Screenshot QA: the flyout must not cover symbol/source identification or market controls. */
+@media(min-width:701px) and (min-height:721px){
+  .studio .terminal-toolbar-drawing .studio-rail-root .tool-shelf{
+    top:232px!important;bottom:10px!important;
+  }
+}
+@media(min-width:701px) and (max-height:720px){
+  .studio .terminal-toolbar-drawing .studio-rail-root .tool-shelf{
+    top:156px!important;bottom:8px!important;
+  }
+}

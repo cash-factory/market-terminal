@@ -14,6 +14,12 @@ import {ChartProfileMenu} from "./charts/ChartProfileMenu";
 import {applyChartProfile,createChartProfile} from "./charts/profiles";
 import { nearestCrosshairBar } from "./charts/sync";
 import type { Drawing, DrawingTool } from "./drawing/types";
+import { ToolShelf } from "./drawing/ToolShelf";
+import { StudioDrawingRail } from "./drawing/StudioDrawingRail";
+import type { ToolGroup } from "./drawing/toolDefinitions";
+import { DrawingSettingsDialog } from "./drawing/DrawingSettingsDialog";
+import { validateDrawingSettings } from "./drawing/drawingSettings";
+import { TOOL_BY_ID } from "./drawing/toolDefinitions";
 import {groupDrawings,ungroupDrawings,styleDrawings,moveDrawingLayers,updateDrawingAndGroup,type DrawingStylePatch} from "./drawing/manage";
 import { frameSeconds, symbols, type Frame, type SymbolId } from "./market";
 import { usePriceFeed } from "./data/usePriceFeed";
@@ -24,7 +30,8 @@ import {calculatePosition,defaultPositionTarget} from "./analysis/positionDrawin
 import { AlertsCenter } from "./alerts/AlertsCenter";
 import { ReplayControls } from "./replay/ReplayControls";
 import { beginReplay,stepReplay,seekReplay,toggleReplayPlayback,setReplaySpeed,visibleReplayCandles,type ReplayState,type ReplaySpeed } from "./replay/model";
-import { evaluatePriceAlerts, type PriceAlert } from "./alerts/engine";
+import { evaluatePriceAlerts, createPriceAlert, type PriceAlert } from "./alerts/engine";
+import { ChartContextLens } from "./context/ChartContextLens";
 import { defaultStudies, studyLabels, type StudySettings } from "./indicators/studies";
 import { BUILTIN_TEMPLATES, captureChartTemplate, selectTemplate } from "./indicators/templates";
 import {defaultStudyParameters,studyParameterBounds,studyParameterKeys,updateStudyParameter} from "./indicators/parameters";
@@ -68,7 +75,7 @@ export default function App() {
   },[]);
   const [page, setPage] = useState<Page>("terminal");
   const [focusMode,setFocusMode]=useState(false);
-  const [panelTab,setPanelTab]=useState<"markets"|"objects">(prefs.drawings.length ? "objects" : "markets");
+  const [panelTab,setPanelTab]=useState<"markets"|"objects"|"context">(prefs.drawings.length ? "objects" : "markets");
   useEffect(()=>{
     const onFocusShortcut=(event:KeyboardEvent)=>{
       const target=event.target;
@@ -99,7 +106,11 @@ export default function App() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [studyMenuOpen, setStudyMenuOpen] = useState(false);
   const [moreToolsOpen,setMoreToolsOpen]=useState(false);
+  const [toolFamily,setToolFamily]=useState<ToolGroup|null>(null);
+  const toolPickerRef=useRef<HTMLDivElement>(null);
+  const [recentDrawingTools,setRecentDrawingTools]=useState<DrawingTool[]>([]);
   const [noteEditingId,setNoteEditingId]=useState<string|null>(null);
+  const [drawingSettingsId,setDrawingSettingsId]=useState<string|null>(null);
   const [noteDraft,setNoteDraft]=useState("");
   const [templateName,setTemplateName]=useState("");
   const [formulaName,setFormulaName]=useState("");
@@ -142,6 +153,7 @@ export default function App() {
     loading: "LOADING BINANCE", connecting: "CONNECTING", historical: "HISTORICAL",
     live: "LIVE · BINANCE SPOT", stale: "STALE FEED", error: "FEED UNAVAILABLE", synthetic: "SYNTHETIC DATA"
   })[feed.status];
+  const settingsObject=drawingSettingsId?prefs.drawings.find(d=>d.id===drawingSettingsId):undefined;
   const selectedObject = selectedDrawingIds.length === 1
     ? prefs.drawings.find(drawing => drawing.id === selectedDrawingIds[0])
     : undefined;
@@ -276,10 +288,11 @@ export default function App() {
     }]}));
     setDrawMode(false);notify("Comparison chart price level saved.");
   };
-  const updateDrawing = (drawing: Drawing, editKind?:"move"|"start"|"end"|"control"|"target") => {
+  const updateDrawing = (drawing: Drawing, editKind?:"move"|"start"|"end"|"control"|"target"|"vertex") => {
     commitDrawings(updateDrawingAndGroup(prefs.drawings,drawing,editKind),"Drawing updated.");
   };
   const removeDrawing = (id: string) => {
+    if(drawingSettingsId===id)setDrawingSettingsId(null);
     commitDrawings(prefs.drawings.filter(d => d.id !== id), "Drawing removed. Use Undo to restore.");
     setSelectedDrawingIds(ids=>ids.filter(item=>item!==id));
   };
@@ -300,6 +313,21 @@ export default function App() {
     const groupIds=new Set(prefs.drawings.filter(d=>chosen.has(d.id)).map(d=>d.groupId).filter((id):id is string=>!!id));
     const affected=prefs.drawings.filter(d=>chosen.has(d.id)||(d.groupId&&groupIds.has(d.groupId))).map(d=>d.id);
     commitDrawings(ungroupDrawings(prefs.drawings,affected),"Drawing group dissolved.");
+  };
+  const saveDrawingSettings=(next:Drawing)=>{
+    const original=prefs.drawings.find(item=>item.id===next.id);
+    if(!original)throw new Error("This drawing has been deleted. Refresh the selection.");
+    const checked=validateDrawingSettings(original,next);
+    commitDrawings(prefs.drawings.map(item=>item.id===checked.id?checked:item),
+      "Drawing properties saved. Undo is available.");
+  };
+  const openDrawingSettings=(id:string)=>{
+    const active=prefs.drawings.find(d=>d.id===id);
+    if(!active){notify("Drawing not found.","error");return;}
+    setSelectedDrawingIds([id]);
+    setDrawingTool(null);
+    setDrawMode(false);
+    setDrawingSettingsId(id);
   };
   const setDrawingStyle=(patch:Partial<DrawingStylePatch>)=>{
     if(!selectedDrawingIds.length)return;
@@ -376,7 +404,30 @@ export default function App() {
     const next = drawingTool === selected ? null : selected;
     setDrawingTool(next);
     setMoreToolsOpen(false);
-    notify(next ? "Drag or click two points to place a " + next + "." : "Drawing tool dismissed.", "info");
+    if(next)setRecentDrawingTools(prev=>[next,...prev.filter(item=>item!==next)].slice(0,6));
+    const definition=TOOL_BY_ID.get(selected);
+    notify(next
+      ? (definition?.points===1?"Click once to place "+definition.label+"."
+        :selected==="channel"?"Draw the base line, then click the third channel rail point."
+        :definition&&definition.points>=3?"Place two anchors, then add "+
+          (definition.points-2)+" more for "+definition.label+"."
+        :"Drag or click two points to place "+(definition?.label??selected)+".")
+      : "Drawing tool dismissed.","info");
+  };
+  const toggleToolFamily=(id:ToolGroup|null)=>{
+    if(moreToolsOpen&&toolFamily===id){setMoreToolsOpen(false);return;}
+    setToolFamily(id);setMoreToolsOpen(true);
+  };
+  const toggleFavoriteDrawingTool=(selected:DrawingTool)=>{
+    const exists=prefs.favoriteDrawingTools.includes(selected);
+    if(!exists&&prefs.favoriteDrawingTools.length>=12){
+      notify("You can pin up to 12 favorite drawing tools.","error");return;
+    }
+    update({favoriteDrawingTools:exists
+      ?prefs.favoriteDrawingTools.filter(item=>item!==selected)
+      :[...prefs.favoriteDrawingTools,selected]});
+    notify((exists?"Removed ":"Pinned ")+(TOOL_BY_ID.get(selected)?.label??selected)+
+      (exists?" from favorites.":" to your tool favorites."));
   };
   const startReplay=()=>{
     try{
@@ -432,6 +483,9 @@ export default function App() {
         notify(prefs.linkTimeRanges?"Independent time windows enabled.":"Chart time windows linked.");break;
       case "objects":setPanelTab("objects");update({rightPanelOpen:true});
         notify("Drawing inspector opened.","info");break;
+      case "tools":setToolFamily(null);setMoreToolsOpen(true);notify("Drawing Tool Library opened.","info");break;
+      case "context":setPanelTab("context");update({rightPanelOpen:true});
+        notify("Chart Context Lens opened.","info");break;
       case "undo":undoDrawing();break;
       case "redo":redoDrawing();break;
     }
@@ -492,6 +546,29 @@ export default function App() {
     setPrefs(old=>({...old,alerts:[...old.alerts,alert]}));
     notify("Price alert armed for "+symbols[alert.symbol].label+".");
   };
+  const armLevelAlert=(price:number)=>{
+    if(replay || viewedLast<=0 || (prefs.priceSource==="binance"&&feed.status!=="live")){
+      notify("Return to an active chart before arming a crossing alert.","error");return;
+    }
+    if(!Number.isFinite(price)||price<=0||Math.abs(price-viewedLast)<1e-10){
+      notify("Choose a valid level above or below the observed close.","error");return;
+    }
+    const direction=price>viewedLast?"above":"below";
+    if(prefs.alerts.some(a=>a.symbol===prefs.symbol&&a.source===prefs.priceSource&&
+       a.direction===direction&&a.price===price&&a.triggeredAtMs===null)){
+      notify("A matching price alert is already armed.","info");return;
+    }
+    try{
+      addAlert(createPriceAlert(prefs.symbol,prefs.priceSource,direction,price,
+        crypto.randomUUID(),Date.now()));
+      notify("Crossing alert armed in this browser. Keep this tab open.");
+    }catch(error){notify(error instanceof Error?error.message:"Cannot arm this alert.","error");}
+  };
+  const openResearchFromChart=()=>{
+    setReplay(current=>current?{...current,playing:false}:current);
+    setPage("decisions");
+    notify("Decision Desk opened with the observed chart context.","info");
+  };
   const removeAlert = (id:string) => {
     setPrefs(old=>({...old,alerts:old.alerts.filter(a=>a.id!==id)}));
     notify("Price alert deleted.");
@@ -523,7 +600,7 @@ export default function App() {
       const json: unknown = JSON.parse(await file.text());
       if (!json || typeof json !== "object" || Array.isArray(json) ||
         !("format" in json) || json.format !== "market-terminal-workspace" ||
-        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15 && json.version !== 16 && json.version !== 17 && json.version !== 18 && json.version !== 19 && json.version !== 20 && json.version !== 21 && json.version !== 22 && json.version !== 23 && json.version !== 24) ||
+        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15 && json.version !== 16 && json.version !== 17 && json.version !== 18 && json.version !== 19 && json.version !== 20 && json.version !== 21 && json.version !== 22 && json.version !== 23 && json.version !== 24 && json.version !== 25) ||
         !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
       const workspace = parseWorkspace(json);
       setReplay(null);
@@ -536,6 +613,17 @@ export default function App() {
     } catch (error) {
       notify(error instanceof Error ? error.message : "Could not import workspace.", "error");
     }
+  };
+  const onRailTabKey=(event:ReactKeyboardEvent<HTMLDivElement>)=>{
+    if(!["ArrowLeft","ArrowRight","Home","End"].includes(event.key))return;
+    const tabs=Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+    const active=tabs.indexOf(document.activeElement as HTMLButtonElement);
+    if(active<0||tabs.length!==3)return;
+    event.preventDefault();
+    const next=event.key==="Home"?0:event.key==="End"?2:
+      (active+(event.key==="ArrowRight"?1:tabs.length-1))%tabs.length;
+    setPanelTab((["markets","objects","context"] as const)[next]);
+    tabs[next]?.focus();
   };
   const onResizeStart = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
@@ -574,11 +662,20 @@ export default function App() {
         event.preventDefault();
         setSearchOpen(value => !value);
       }
-      if (event.key === "Escape") { setSearchOpen(false); setHelpOpen(false); setDrawMode(false); setDrawingTool(null); setStudyMenuOpen(false); }
+      if (event.key === "Escape") { setSearchOpen(false); setHelpOpen(false); setDrawMode(false); setDrawingTool(null); setStudyMenuOpen(false); setMoreToolsOpen(false); }
     };
     window.addEventListener("keydown", shortcut);
     return () => window.removeEventListener("keydown", shortcut);
   }, []);
+  useEffect(()=>{
+    if(!moreToolsOpen)return;
+    const dismiss=(event:PointerEvent)=>{
+      if(event.target instanceof Node&&!toolPickerRef.current?.contains(event.target))
+        setMoreToolsOpen(false);
+    };
+    document.addEventListener("pointerdown",dismiss);
+    return ()=>document.removeEventListener("pointerdown",dismiss);
+  },[moreToolsOpen]);
   useEffect(() => {
     const drawingShortcuts = (event: KeyboardEvent) => {
       if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "z") return;
@@ -643,7 +740,7 @@ export default function App() {
       </nav>}
       <div className="header-center">
         <button className="search-trigger" onClick={() => setSearchOpen(true)}>
-          <Search size={16}/><span>"Search markets & tools"</span><kbd>Ctrl K</kbd>
+          <Search size={16}/><span>Search markets & tools</span><kbd>Ctrl K</kbd>
         </button>
       </div>
       <div className="header-actions">
@@ -915,6 +1012,24 @@ export default function App() {
             </div>
             <div className="studio-body terminal-toolbar">
               <div className="terminal-toolbar-drawing" role="group" aria-label="Drawing and editing tools">
+              {studio ? <StudioDrawingRail
+                containerRef={toolPickerRef}
+                active={drawingTool} opened={moreToolsOpen} category={toolFamily}
+                favorites={prefs.favoriteDrawingTools} recent={recentDrawingTools}
+                magnet={prefs.magnetEnabled} repeat={prefs.keepDrawingToolActive}
+                canUndo={drawingHistory.current.past.length>0}
+                canRedo={drawingHistory.current.future.length>0}
+                disabled={!currentCandles.length}
+                onToggleCategory={toggleToolFamily}
+                onSelect={chooseDrawingTool} onFavorite={toggleFavoriteDrawingTool}
+                onCursor={()=>{setDrawingTool(null);setDrawMode(false);setMoreToolsOpen(false);notify("Cursor ready: select or edit existing chart objects.","info");}}
+                onMagnet={()=>{update({magnetEnabled:!prefs.magnetEnabled});notify(prefs.magnetEnabled?"OHLC magnet disabled.":"OHLC magnet enabled.");}}
+                onRepeat={()=>{update({keepDrawingToolActive:!prefs.keepDrawingToolActive});notify(prefs.keepDrawingToolActive?"Single-use drawing enabled.":"Continuous drawing enabled.");}}
+                onUndo={undoDrawing} onRedo={redoDrawing}
+                onObjects={()=>{setPanelTab("objects");update({rightPanelOpen:true});notify("Object inspector opened.");}}
+                onClose={()=>setMoreToolsOpen(false)}/>
+              : <>
+
               <span className="toolbar-group-label">DRAW</span>
               <button disabled={!currentCandles.length} className={"compact-action draw-toggle " + (drawMode ? "active" : "")} onClick={() => { setDrawingTool(null); setDrawMode(!drawMode); notify(!drawMode ? "Drawing armed: click the chart to place a horizontal level." : "Drawing cancelled.", "info"); }}><Plus size={15}/> Price level</button>
               <span className="tool-divider"/>
@@ -925,25 +1040,15 @@ export default function App() {
                 onClick={() => chooseDrawingTool("ray")}><MoveUpRight size={15}/> Ray</button>
               <button disabled={!currentCandles.length} title="Measure the price and percentage difference between two points" className={"compact-action " + (drawingTool === "measure" ? "active" : "")}
                 onClick={() => chooseDrawingTool("measure")}><ArrowUpRight size={15}/> Measure</button>
-              <div className="study-picker advanced-tool-picker">
+              <div ref={toolPickerRef} className="study-picker advanced-tool-picker">
                 <button className={"compact-action "+(moreToolsOpen?"active":"")}
-                  aria-label="More drawing tools" aria-expanded={moreToolsOpen}
-                  onClick={()=>setMoreToolsOpen(open=>!open)}><Shapes size={15}/> More tools</button>
-                {moreToolsOpen&&<div className="advanced-tool-menu" role="group" aria-label="Advanced drawing tools">
-                  {([
-                    ["arrow","Arrow","Draw a directional arrow"],
-                    ["ellipse","Ellipse","Drag to draw an ellipse"],
-                    ["text","Text note","Click once to place a text annotation"],
-                    ["long-position","Long position","Drag from entry to stop to estimate 2R long position"],
-                    ["short-position","Short position","Drag from entry to stop to estimate 2R short position"],
-                    ["brush","Freehand brush","Draw a freehand multi-point curve"],
-                    ["channel","Parallel channel","Set two points for the base, then click a third point for the parallel rail"]
-                  ] as [DrawingTool,string,string][]).map(([id,label,description])=>
-                    <button key={id} className={"advanced-tool-item "+(drawingTool===id?"active":"")}
-                      title={description} onClick={()=>chooseDrawingTool(id)}>
-                      <strong>{label}</strong><small>{description}</small>
-                    </button>)}
-                </div>}
+                  aria-label="More drawing tools" title="Browse precise chart tools and your favorites" aria-expanded={moreToolsOpen}
+                  onClick={()=>setMoreToolsOpen(open=>!open)}><Shapes size={15}/> Tool library</button>
+                {moreToolsOpen&&<ToolShelf
+                  active={drawingTool} favorites={prefs.favoriteDrawingTools}
+                  recent={recentDrawingTools} disabled={!currentCandles.length}
+                  onSelect={chooseDrawingTool} onFavorite={toggleFavoriteDrawingTool}
+                  onClose={()=>setMoreToolsOpen(false)}/>} 
               </div>
               <button className={"compact-action magnet-toggle " + (prefs.magnetEnabled ? "active" : "")}
                 aria-label="Snap to candle OHLC" aria-pressed={prefs.magnetEnabled}
@@ -961,6 +1066,7 @@ export default function App() {
               <span className="tool-divider"/>
               <button title="Undo drawing" aria-label="Undo drawing" disabled={historyVersion < 0 || !drawingHistory.current.past.length} className="compact-action" onClick={undoDrawing}><Undo2 size={16}/></button>
               <button title="Redo drawing" aria-label="Redo drawing" disabled={!drawingHistory.current.future.length} className="compact-action" onClick={redoDrawing}><Redo2 size={16}/></button>
+              </>}
               </div>
             <div className="studio-chart-column">
             {!studio && <div className="chart-heading"><div>
@@ -1003,9 +1109,15 @@ export default function App() {
                   onChange={event=>setDrawingStyle({strokeWidth:Number(event.target.value)})}>
                   {[1,2,3,4,5,6,7,8].map(width=><option key={width} value={width}>{width} px</option>)}
                 </select></label>
+                <button aria-label="Open selected drawing settings"
+                  title="Edit style, exact coordinates and visibility"
+                  onClick={()=>openDrawingSettings(selectedObject.id)}><Settings2 size={14}/> Properties</button>
                 <button onClick={()=>setSelectedDrawingIds([])}>Done</button>
               </> : <><MousePointer2 size={14}/><strong>{drawMode ? "Price level" : drawingTool ?? "Navigate"}</strong>
-              <span>{drawMode ? "Click a price on the chart" : drawingTool === "channel" ? "Place the baseline, then the parallel edge" : drawingTool === "text" ? "Click to place a note" : drawingTool === "brush" ? "Drag to sketch" : drawingTool ? "Drag or place two anchors" : "Drag to pan · Scroll to zoom"}</span>
+              <span>{drawMode ? "Click a price on the chart" : drawingTool === "channel" ? "Place the baseline, then the parallel edge" : drawingTool === "text" ? "Click to place a note" : drawingTool === "brush" ? "Drag to sketch" : drawingTool ? (TOOL_BY_ID.get(drawingTool)?.points===1?"Click once to place":
+                  (TOOL_BY_ID.get(drawingTool)?.points??2)>2?
+                  "Two anchors first · "+((TOOL_BY_ID.get(drawingTool)?.points??2)-2)+" extra points":
+                  "Drag or place two anchors") : "Drag to pan · Scroll to zoom"}</span>
               {(drawingTool || drawMode) && <button onClick={()=>{setDrawingTool(null);setDrawMode(false);}}>Cancel</button>}</>}
             </div>}
             {!studio && drawMode && <div className="draw-banner"><MousePointer2 size={16}/> Click on the chart to place a level <button onClick={() => setDrawMode(false)}>Cancel <X size={14}/></button></div>}
@@ -1029,7 +1141,7 @@ export default function App() {
                   drawingTool={drawingTool} drawings={replayDrawings} magnetEnabled={prefs.magnetEnabled}
                   drawingColor={prefs.accent === "amber" ? "#e9b368" : prefs.accent === "teal" ? "#32c7aa" : "#9295ff"}
                   onAddDrawing={addDrawing} onUpdateDrawing={updateDrawing} onDeleteDrawing={removeDrawing} onDeleteDrawings={removeDrawings}
-                  selectedDrawingIds={selectedDrawingIds} onDrawingSelectionChange={setSelectedDrawingIds}/>
+                  selectedDrawingIds={selectedDrawingIds} onDrawingSelectionChange={setSelectedDrawingIds} onOpenDrawingSettings={openDrawingSettings}/>
                 </ChartErrorBoundary>
               </section>
               {!replay&&comparisonPanels.slice(0,prefs.chartLayout==="quad"?3:prefs.chartLayout==="dual"?1:0)
@@ -1089,7 +1201,7 @@ export default function App() {
                     magnetEnabled={prefs.magnetEnabled}
                     drawingColor={prefs.accent==="amber"?"#e9b368":prefs.accent==="teal"?"#32c7aa":"#9295ff"}
                     onAddDrawing={drawing=>addDrawingFor(drawing,panel.source)} onUpdateDrawing={updateDrawing} onDeleteDrawing={removeDrawing} onDeleteDrawings={removeDrawings}
-                    selectedDrawingIds={selectedDrawingIds} onDrawingSelectionChange={setSelectedDrawingIds}/>
+                    selectedDrawingIds={selectedDrawingIds} onDrawingSelectionChange={setSelectedDrawingIds} onOpenDrawingSettings={openDrawingSettings}/>
                   </ChartErrorBoundary>
                 </section>)}
             </div>
@@ -1104,13 +1216,16 @@ export default function App() {
               onPointerDown={onResizeStart} onPointerMove={onResizeMove}
               onPointerUp={onResizeStop} onPointerCancel={onResizeStop}
               onKeyDown={onResizeKey}/>
-            <div className="workspace-rail-tabs" role="tablist" aria-label="Workspace side panel">
+            <div className="workspace-rail-tabs context-tabs" role="tablist" aria-label="Workspace side panel" onKeyDown={onRailTabKey}>
               <button type="button" role="tab" id="rail-tab-markets" aria-controls="rail-panel-markets"
-                aria-selected={panelTab==="markets"} className={panelTab==="markets"?"active":""}
+                aria-selected={panelTab==="markets"} tabIndex={panelTab==="markets"?0:-1} className={panelTab==="markets"?"active":""}
                 onClick={()=>setPanelTab("markets")}><Compass size={15}/> Markets</button>
               <button type="button" role="tab" id="rail-tab-objects" aria-controls="rail-panel-objects"
-                aria-selected={panelTab==="objects"} className={panelTab==="objects"?"active":""}
+                aria-selected={panelTab==="objects"} tabIndex={panelTab==="objects"?0:-1} className={panelTab==="objects"?"active":""}
                 onClick={()=>setPanelTab("objects")}><Layers size={15}/> Objects <span className="rail-count">{currentDrawings.length}</span></button>
+              <button type="button" role="tab" id="rail-tab-context" aria-controls="rail-panel-context"
+                aria-selected={panelTab==="context"} tabIndex={panelTab==="context"?0:-1} className={panelTab==="context"?"active":""}
+                onClick={()=>setPanelTab("context")}><Activity size={15}/> Context</button>
             </div>
             {panelTab==="markets"&&<div className="workspace-rail-content" id="rail-panel-markets" role="tabpanel" aria-labelledby="rail-tab-markets">
             {studio && !replay ? <MarketBoard compact frame={prefs.frame} selected={prefs.symbol} onOpen={openDemoMarket}/> : <>
@@ -1175,6 +1290,9 @@ export default function App() {
                     title="Edit annotation text" onClick={()=>{
                       setNoteEditingId(drawing.id);setNoteDraft(drawing.text||"Note");
                     }}><Pencil size={14}/></button>}
+                  <button aria-label={"Settings for drawing "+(index+1)}
+                    title="Open drawing style, coordinates and visibility"
+                    onClick={()=>openDrawingSettings(drawing.id)}><Settings2 size={15}/></button>
                   <button aria-label={(drawing.hidden ? "Show " : "Hide ") + drawing.tool + " " + (index+1)}
                     title={drawing.hidden ? "Show drawing" : "Hide drawing"}
                     onClick={() => toggleDrawingProperty(drawing.id,"hidden")}>
@@ -1220,6 +1338,17 @@ export default function App() {
             </section>}
             {!studio && <p className="panel-note">Drag or click two points to draw. Lock, hide or duplicate objects here. Turn on Repeat to draw continuously. Ctrl+Z and Ctrl+Shift+Z undo and redo.</p>}
             </div>}
+            {panelTab==="context"&&<ChartContextLens
+              symbol={prefs.symbol} frame={prefs.frame} source={prefs.priceSource}
+              status={replay?"historical":feed.status} replay={Boolean(replay)}
+              currentPrice={viewedLast>0?viewedLast:null}
+              lastUpdatedMs={replay?replayTime*1000:feed.lastUpdatedMs}
+              levels={currentLevels} drawings={currentDrawings}
+              decisions={prefs.decisions} alerts={prefs.alerts}
+              onArmAlert={armLevelAlert} onCapture={openResearchFromChart}
+              onOpenDecisions={openResearchFromChart}
+              onShowMarkets={()=>setPanelTab("markets")}
+              onShowObjects={()=>setPanelTab("objects")}/>}
           </aside>}
         </div>}
         {page === "alerts" && <AlertsCenter
@@ -1260,6 +1389,9 @@ export default function App() {
     </div>
     <footer className="statusbar"><span><span className="sync-point">●</span> MARKET TERMINAL / LOCAL-FIRST PREVIEW</span><span>Feed: {sourceStateLabel} · {saveFailed?"Local save failed":"Workspace saved locally"}</span></footer>
     {notice && <div role="status" className={"toast " + notice.kind} key={notice.id}><span>{notice.kind === "success" ? <Check size={17}/> : <Activity size={17}/>}</span><p>{notice.message}</p><button aria-label="Dismiss notification" onClick={() => setNotice(null)}><X size={16}/></button></div>}
+    {settingsObject&&<DrawingSettingsDialog key={settingsObject.id}
+       drawing={settingsObject} onSave={saveDrawingSettings}
+       onClose={()=>setDrawingSettingsId(null)}/>}
     {searchOpen && <CommandPalette onClose={()=>setSearchOpen(false)}
        onOpenInstrument={openInstrument} onExecuteCommand={runTerminalCommand}/>}
      {helpOpen && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setHelpOpen(false); }}><div className="help-dialog" role="dialog" aria-modal="true" aria-label="Help and shortcuts"><button className="dialog-close" aria-label="Close help" onClick={() => setHelpOpen(false)}><X size={18}/></button><Menu size={24}/><h2>Your terminal, your rules.</h2><p>Use the left navigation to switch between overview, charting, saved workspace and preferences. Click <strong>Price level</strong> to place a horizontal level, or drag using the Trendline, Rectangle or Fibonacci tools.</p><div className="shortcut"><span>Open Tool Atlas</span><kbd>Ctrl / ⌘ + K</kbd></div><div className="shortcut"><span>Exit drawing or dismiss dialog</span><kbd>Esc</kbd></div><div className="shortcut"><span>Undo / redo drawings</span><kbd>Ctrl / ⌘ + Z · Shift + Z</kbd></div><div className="shortcut"><span>Save workspace</span><strong>Automatic</strong></div><div className="shortcut"><span>Capture a source-aware decision</span><strong>Decision Desk</strong></div><p className="help-warning">Most instruments use synthetic demo candles. BTC/USDT has an opt-in direct Binance Spot feed. This is not a broker, and YoungMoney3 linking is not available.</p><button className="primary-button" onClick={() => setHelpOpen(false)}>Start exploring <ChevronRight size={16}/></button></div></div>}
