@@ -1,44 +1,208 @@
-import { useEffect, useRef, useState } from "react";
-import { createChart, CandlestickSeries, LineSeries, type IChartApi, type ISeriesApi, type UTCTimestamp } from "lightweight-charts";
-import { Activity, ArrowDownToLine, ChartCandlestick, CircleHelp, Layers, Moon, Plus, RotateCcw, Sun, Trash2 } from "lucide-react";
-import { demoCandles, frameSeconds, sma, symbols, type Frame, type SymbolId } from "./market";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import {
+  Activity, ArrowDownToLine, Bell, BookOpen, ChartCandlestick, Check,
+  ChevronLeft, ChevronRight, Command, Compass, Download, Home, Layers,
+  Menu, Moon, MousePointer2, Plus, RotateCcw, Search, Settings2, Sun,
+  Trash2, Upload, X
+} from "lucide-react";
+import { ChartCanvas } from "./ChartCanvas";
+import { demoCandles, frameSeconds, symbols, type Frame, type SymbolId } from "./market";
+import { defaultWorkspace, loadWorkspace, parseWorkspace, serializeWorkspace, type Workspace } from "./workspace";
 
-type Level={id:string;symbol:SymbolId;price:number;color:string};
-type Preferences={symbol:SymbolId;frame:Frame;dark:boolean;showSma:boolean;levels:Level[]};
-const initial:Preferences={symbol:"EURUSD",frame:"1h",dark:true,showSma:true,levels:[]};
-function readPrefs():Preferences {try{const data=JSON.parse(localStorage.getItem("market-terminal-workspace")||"null");return data?{...initial,...data}:initial;}catch{return initial;}}
-const frames:Frame[]=["1m","5m","15m","1h","4h","1d"];
-export default function App(){
- const [prefs,setPrefs]=useState<Preferences>(readPrefs);
- const [draft,setDraft]=useState("");
- const [notice,setNotice]=useState("Local-first demo workspace");
- const holder=useRef<HTMLDivElement>(null),chart=useRef<IChartApi|null>(null),series=useRef<ISeriesApi<"Candlestick">|null>(null);
- const update=(patch:Partial<Preferences>)=>setPrefs(s=>({...s,...patch}));
- const candles=demoCandles(prefs.symbol,prefs.frame);
- const last=candles[candles.length-1].close;
- useEffect(()=>{localStorage.setItem("market-terminal-workspace",JSON.stringify(prefs));},[prefs]);
- useEffect(()=>{
-  if(!holder.current)return;
-  const c=createChart(holder.current,{autoSize:true,layout:{background:{color:prefs.dark?"#101620":"#fff"},textColor:prefs.dark?"#95a5ba":"#637080"},grid:{vertLines:{color:prefs.dark?"#1e2937":"#e9eef4"},horzLines:{color:prefs.dark?"#1e2937":"#e9eef4"}},timeScale:{borderColor:prefs.dark?"#303c4d":"#d8e0e9"},rightPriceScale:{borderColor:prefs.dark?"#303c4d":"#d8e0e9"}});
-  chart.current=c;
-  const s=c.addSeries(CandlestickSeries,{upColor:"#25b795",downColor:"#e56b79",borderVisible:false,wickUpColor:"#25b795",wickDownColor:"#e56b79",priceFormat:{type:"price",precision:symbols[prefs.symbol].precision,minMove:Math.pow(10,-symbols[prefs.symbol].precision)}});
-  series.current=s;s.setData(candles);
-  if(prefs.showSma){const line=c.addSeries(LineSeries,{color:"#e8b15a",lineWidth:2,priceLineVisible:false,lastValueVisible:false});line.setData(sma(candles,20));}
-  for(const level of prefs.levels.filter(l=>l.symbol===prefs.symbol)){s.createPriceLine({price:level.price,color:level.color,lineWidth:1,lineStyle:2,axisLabelVisible:true,title:"LEVEL"});}
-  c.timeScale().fitContent();
-  return()=>{chart.current=null;series.current=null;c.remove();};
- },[prefs.symbol,prefs.frame,prefs.dark,prefs.showSma,prefs.levels]);
- const addLevel=()=>{const price=Number(draft||last);if(!Number.isFinite(price)||price<=0){setNotice("Enter a valid positive price.");return;}setPrefs(p=>({...p,levels:[...p.levels,{id:crypto.randomUUID(),symbol:p.symbol,price,color:"#8d94fa"}]}));setDraft("");setNotice("Horizontal level saved locally.");};
- const exportWorkspace=()=>{const blob=new Blob([JSON.stringify({format:"market-terminal-workspace",version:1,preferences:prefs},null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="market-terminal-workspace.json";a.click();URL.revokeObjectURL(a.href);setNotice("Workspace exported.");};
- return <div className={prefs.dark?"shell dark":"shell light"}>
-  <header className="topbar"><div className="brand"><span className="brand-icon"><ChartCandlestick size={20}/></span><div><b>MARKET TERMINAL</b><small>FREEDOM-FIRST WORKSTATION</small></div></div><div className="top-actions"><span className="status"><i/> LOCAL DEMO</span><button title="Toggle theme" onClick={()=>update({dark:!prefs.dark})}>{prefs.dark?<Sun size={17}/>:<Moon size={17}/>}</button><button title="Export workspace" onClick={exportWorkspace}><ArrowDownToLine size={17}/></button></div></header>
-  <div className="workspace"><aside className="rail"><button className="selected" title="Charts"><ChartCandlestick size={19}/></button><button title="Analysis" onClick={()=>setNotice("Custom indicators and drawing engine are planned for the next milestone.")}><Activity size={19}/></button><button title="Layouts" onClick={()=>setNotice("Your workspace is saved in this browser automatically.")}><Layers size={19}/></button><button title="About prototype" onClick={()=>setNotice("Demo prices are synthetic, not live or executable market quotes.")}><CircleHelp size={19}/></button></aside>
-  <main><div className="toolbar"><label className="symbol"><span>INSTRUMENT</span><select value={prefs.symbol} onChange={e=>update({symbol:e.target.value as SymbolId})}>{Object.entries(symbols).map(([id,s])=><option key={id} value={id}>{s.label}</option>)}</select></label><div className="timeframes">{frames.map(f=><button key={f} className={prefs.frame===f?"active":""} onClick={()=>update({frame:f})}>{f}</button>)}</div><button className={prefs.showSma?"tool active":"tool"} onClick={()=>update({showSma:!prefs.showSma})}>SMA 20</button></div>
-   <div className="chart-heading"><div><small>{symbols[prefs.symbol].market}</small><h1>{symbols[prefs.symbol].label}</h1><p>Synthetic demonstration data · {frameSeconds[prefs.frame]/60} minute candle interval</p></div><div className="quote"><small>DEMO CLOSE</small><strong>{last.toLocaleString(undefined,{minimumFractionDigits:symbols[prefs.symbol].precision,maximumFractionDigits:symbols[prefs.symbol].precision})}</strong></div></div>
-   <div className="chart" ref={holder}/>
-   <div className="bottom"><span><i/> Workspace autosaved locally</span><span>NO PAYWALLS · NO ARTIFICIAL DRAWING LIMITS</span></div>
-  </main>
-  <aside className="sidebar"><div className="panel-title"><b>Watchlist</b><span>4 MARKETS</span></div><div className="watchlist">{(Object.keys(symbols) as SymbolId[]).map(id=><button key={id} className={id===prefs.symbol?"chosen":""} onClick={()=>update({symbol:id})}><span>{symbols[id].label}<small>{symbols[id].market.split(" · ")[0]}</small></span><span>↗</span></button>)}</div><div className="panel-title border-top"><b>Horizontal levels</b><span>{prefs.levels.filter(l=>l.symbol===prefs.symbol).length}</span></div><div className="level-form"><input aria-label="Level price" type="number" min="0" step="any" placeholder={last.toFixed(symbols[prefs.symbol].precision)} value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addLevel()}/><button aria-label="Add level" title="Add horizontal level" onClick={addLevel}><Plus size={16}/></button></div><div className="levels">{prefs.levels.filter(l=>l.symbol===prefs.symbol).map(l=><div className="level" key={l.id}><span>{l.price.toFixed(symbols[prefs.symbol].precision)}</span><button title="Remove level" onClick={()=>setPrefs(p=>({...p,levels:p.levels.filter(x=>x.id!==l.id)}))}><Trash2 size={14}/></button></div>)}</div><div className="side-note">Levels are stored without a count limit. A full interactive drawing toolkit comes next.</div><div className="spacer"/><button className="reset" onClick={()=>{setPrefs(initial);setNotice("Workspace reset.");}}><RotateCcw size={14}/> Reset workspace</button></aside></div>
-  <footer role="status">{notice}</footer>
- </div>;
+type Page = "home" | "terminal" | "library" | "settings";
+type Notice = { id: number; message: string; kind: "success" | "info" | "error" };
+const frames: Frame[] = ["1m", "5m", "15m", "1h", "4h", "1d"];
+const menu: { id: Page; label: string; Icon: typeof Home }[] = [
+  { id: "home", label: "Overview", Icon: Home },
+  { id: "terminal", label: "Terminal", Icon: ChartCandlestick },
+  { id: "library", label: "Workspace", Icon: Layers },
+  { id: "settings", label: "Preferences", Icon: Settings2 },
+];
+const marketList = Object.keys(symbols) as SymbolId[];
+const titles: Record<Page, string> = {
+  home: "Market overview", terminal: "Trading terminal", library: "My workspace", settings: "Preferences"
+};
+
+export default function App() {
+  const [prefs, setPrefs] = useState<Workspace>(loadWorkspace);
+  const [page, setPage] = useState<Page>("terminal");
+  const [draft, setDraft] = useState("");
+  const [drawMode, setDrawMode] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [notice, setNotice] = useState<Notice | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const inputFile = useRef<HTMLInputElement>(null);
+  const inputSearch = useRef<HTMLInputElement>(null);
+  const currentCandles = useMemo(() => demoCandles(prefs.symbol, prefs.frame), [prefs.symbol, prefs.frame]);
+  const last = currentCandles[currentCandles.length - 1].close;
+  const currentLevels = prefs.levels.filter(level => level.symbol === prefs.symbol);
+  const update = (patch: Partial<Workspace>) => setPrefs(old => ({ ...old, ...patch }));
+  const notify = (message: string, kind: Notice["kind"] = "success") =>
+    setNotice({ id: Date.now(), message, kind });
+  const openInstrument = (symbol: SymbolId) => {
+    update({ symbol });
+    setPage("terminal");
+    setSearchOpen(false);
+    setDrawMode(false);
+    notify(symbols[symbol].label + " opened in the terminal.");
+  };
+  const addLevel = (price: number) => {
+    if (!Number.isFinite(price) || price <= 0) { notify("Enter a valid positive price.", "error"); return; }
+    setPrefs(old => ({
+      ...old, levels: [...old.levels, {
+        id: crypto.randomUUID(), symbol: old.symbol, price,
+        color: old.accent === "amber" ? "#e7b05f" : old.accent === "teal" ? "#24bfa0" : "#9495fa"
+      }]
+    }));
+    setDraft("");
+    setDrawMode(false);
+    notify("Price level added and saved locally.");
+  };
+  const removeLevel = (id: string) => {
+    setPrefs(old => ({ ...old, levels: old.levels.filter(level => level.id !== id) }));
+    notify("Price level removed.");
+  };
+  const exportWorkspace = () => {
+    const blob = new Blob([serializeWorkspace(prefs)], { type: "application/json" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.download = "market-terminal-workspace.json";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    notify("Workspace exported as JSON.");
+  };
+  const importWorkspace = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (file.size > 2_000_000) { notify("Workspace file is too large (max 2 MB).", "error"); return; }
+    try {
+      const json: unknown = JSON.parse(await file.text());
+      if (!json || typeof json !== "object" || Array.isArray(json) ||
+        !("format" in json) || json.format !== "market-terminal-workspace" ||
+        !("version" in json) || (json.version !== 1 && json.version !== 2) ||
+        !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
+      const workspace = parseWorkspace(json);
+      setPrefs(workspace);
+      setDrawMode(false);
+      notify("Workspace imported successfully.");
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Could not import workspace.", "error");
+    }
+  };
+  const filtered = marketList.filter(symbol => (symbol + " " + symbols[symbol].label + " " + symbols[symbol].market)
+    .toLowerCase().includes(query.toLowerCase()));
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("market-terminal-workspace", serializeWorkspace(prefs));
+    } catch {
+      setNotice({ id: Date.now(), message: "Browser storage is unavailable. Export your workspace to keep changes.", kind: "error" });
+    }
+  }, [prefs]);
+  useEffect(() => {
+    const shortcut = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setSearchOpen(value => !value);
+      }
+      if (event.key === "Escape") { setSearchOpen(false); setHelpOpen(false); setDrawMode(false); }
+    };
+    window.addEventListener("keydown", shortcut);
+    return () => window.removeEventListener("keydown", shortcut);
+  }, []);
+  useEffect(() => { if (searchOpen) inputSearch.current?.focus(); }, [searchOpen]);
+  return <div className={"app " + (prefs.dark ? "dark" : "light") + " accent-" + prefs.accent}>
+    <header className="topbar">
+      <div className="branding">
+        <span className="logo"><ChartCandlestick size={20}/></span>
+        <span><strong>MARKET<span className="brand-suffix">/TERMINAL</span></strong><small>Independent trading workspace</small></span>
+      </div>
+      <div className="header-center">
+        <button className="search-trigger" onClick={() => setSearchOpen(true)}>
+          <Search size={16}/><span>Search markets or commands</span><kbd>Ctrl K</kbd>
+        </button>
+      </div>
+      <div className="header-actions">
+        <span className="demo-tag"><span className="pulse-dot"/> SYNTHETIC DATA</span>
+        <button className="icon-button" title="Open notifications" aria-label="Notifications" onClick={() => notify("Notifications are ready. Live market alerts will come in a later release.", "info")}><Bell size={18}/></button>
+        <button className="icon-button" title="Switch appearance" aria-label="Switch appearance" onClick={() => {update({ dark: !prefs.dark }); notify("Appearance updated.");}}>{prefs.dark ? <Sun size={18}/> : <Moon size={18}/>}</button>
+        <span className="avatar" title="Local workspace">MT</span>
+      </div>
+    </header>
+    <div className={"app-body " + (!prefs.sidebarOpen ? "compact" : "")}>
+      <aside className="primary-sidebar" aria-label="Main navigation">
+        <div className="sidebar-upper">
+          <div className="sidebar-caption">{prefs.sidebarOpen ? "WORKSPACE" : "•••"}</div>
+          {menu.map(({ id, label, Icon }) => <button key={id}
+            className={"nav-item " + (page === id ? "active" : "")}
+            title={label} aria-label={label} aria-current={page === id ? "page" : undefined}
+            onClick={() => { setPage(id); setDrawMode(false); }}>
+            <Icon size={18}/>{prefs.sidebarOpen && <span>{label}</span>}
+          </button>)}
+        </div>
+        <div className="sidebar-lower">
+          <button className="nav-item" onClick={() => setHelpOpen(true)} title="Help and shortcuts"><BookOpen size={18}/>{prefs.sidebarOpen && <span>Help & shortcuts</span>}</button>
+          <button className="nav-item collapse" onClick={() => update({ sidebarOpen: !prefs.sidebarOpen })}
+            title={prefs.sidebarOpen ? "Collapse navigation" : "Expand navigation"}>
+            {prefs.sidebarOpen ? <ChevronLeft size={18}/> : <ChevronRight size={18}/>}
+            {prefs.sidebarOpen && <span>Collapse</span>}
+          </button>
+        </div>
+      </aside>
+      <div className="main-area">
+        <div className="page-topline"><span>WORKSPACE <span className="breadcrumb-slash">/</span> {titles[page].toUpperCase()}</span><span>LOCAL SESSION <span className="sync-point">●</span></span></div>
+        {page === "home" && <div className="content-page">
+          <div className="hero"><div className="eyebrow">YOUR WORKSPACE AT A GLANCE</div><h1>A clear view of your markets.</h1><p>Get straight back to analysis. Your setup is saved on this device and basic tools don't have usage quotas.</p><button className="primary-button" onClick={() => setPage("terminal")}><ChartCandlestick size={17}/> Open trading terminal <ChevronRight size={16}/></button></div>
+          <div className="section-head"><div><small>QUICK ACCESS</small><h2>Markets to explore</h2></div><button className="text-button" onClick={() => setSearchOpen(true)}>Browse symbols <ChevronRight size={16}/></button></div>
+          <div className="market-grid">{marketList.map(symbol => <button className="market-tile" key={symbol} onClick={() => openInstrument(symbol)}><span className="market-kind">{symbols[symbol].market}</span><strong>{symbols[symbol].label}</strong><span className="market-tile-bottom">Open chart <ChevronRight size={16}/></span></button>)}</div>
+          <div className="section-head"><div><small>WORKSPACE HEALTH</small><h2>Your local setup</h2></div></div>
+          <div className="summary-grid"><div><span>Current timeframe</span><strong>{prefs.frame.toUpperCase()}</strong></div><div><span>Saved price levels</span><strong>{prefs.levels.length}</strong></div><div><span>Core drawing quota</span><strong>None</strong></div></div>
+          <p className="data-caveat"><Activity size={16}/> All current prices are generated demonstration data. No live market feeds are connected.</p>
+        </div>}
+        {page === "terminal" && <div className="terminal-layout">
+          <section className="terminal-center">
+            <div className="terminal-toolbar">
+              <button className="symbol-button" onClick={() => setSearchOpen(true)}><span>{symbols[prefs.symbol].label}</span><Search size={15}/></button>
+              <div className="timeframes">{frames.map(frame => <button key={frame} className={frame === prefs.frame ? "active" : ""} onClick={() => update({ frame })}>{frame}</button>)}</div>
+              <span className="tool-divider"/>
+              <button className={"compact-action " + (prefs.showSma ? "active" : "")} onClick={() => { update({ showSma: !prefs.showSma }); notify(!prefs.showSma ? "SMA 20 enabled." : "SMA 20 hidden."); }}>SMA 20</button>
+              <button className={"compact-action draw-toggle " + (drawMode ? "active" : "")} onClick={() => { setDrawMode(!drawMode); notify(!drawMode ? "Drawing armed: click the chart to place a horizontal level." : "Drawing cancelled.", "info"); }}><Plus size={15}/> Price level</button>
+            </div>
+            <div className="chart-heading"><div><div className="eyebrow">{symbols[prefs.symbol].market} <span>•</span> {prefs.frame.toUpperCase()}</div><h1>{symbols[prefs.symbol].label} <span className="demo-pill">DEMO</span></h1><p>Illustrative candles, not executable quotes</p></div><div className="quote"><small>SIMULATED LAST</small><strong>{last.toLocaleString(undefined, { minimumFractionDigits: symbols[prefs.symbol].precision, maximumFractionDigits: symbols[prefs.symbol].precision })}</strong></div></div>
+            {drawMode && <div className="draw-banner"><MousePointer2 size={16}/> Click on the chart to place a level <button onClick={() => setDrawMode(false)}>Cancel <X size={14}/></button></div>}
+            <ChartCanvas symbol={prefs.symbol} frame={prefs.frame} dark={prefs.dark} showSma={prefs.showSma} levels={prefs.levels} drawMode={drawMode} onPlaceLevel={addLevel}/>
+            <div className="chart-footer"><span><span className="sync-point">●</span> Locally saved</span><span>Source: Synthetic fixture · {frameSeconds[prefs.frame] / 60}m candle interval</span></div>
+          </section>
+          <aside className="right-panel">
+            <div className="panel-head"><strong>Watchlist</strong><button aria-label="Search instruments" title="Search instruments" className="mini-button" onClick={() => setSearchOpen(true)}><Search size={16}/></button></div>
+            <div className="watchlist">{marketList.map(symbol => <button key={symbol} onClick={() => openInstrument(symbol)} className={symbol === prefs.symbol ? "selected" : ""}><span><b>{symbols[symbol].label}</b><small>{symbols[symbol].market.split(" · ")[0]}</small></span><ChevronRight size={15}/></button>)}</div>
+            <div className="panel-head separated"><strong>Price levels</strong><span className="count">{currentLevels.length}</span></div>
+            <div className="price-form"><input type="number" min="0" step="any" aria-label="Level price" placeholder={last.toFixed(symbols[prefs.symbol].precision)} value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === "Enter") addLevel(draft.trim() ? Number(draft) : last); }}/><button aria-label="Add price level" title="Add price level" onClick={() => addLevel(draft.trim() ? Number(draft) : last)}><Plus size={17}/></button></div>
+            <div className="level-list">{currentLevels.map(level => <div key={level.id}><span className="level-swatch" style={{ background: level.color }}/><span>{level.price.toFixed(symbols[prefs.symbol].precision)}</span><button aria-label={"Remove price level " + level.price} title="Remove level" onClick={() => removeLevel(level.id)}><Trash2 size={15}/></button></div>)}</div>
+            <p className="panel-note">Use the Price level tool to place levels directly on the chart. More drawing tools are next.</p>
+          </aside>
+        </div>}
+        {page === "library" && <div className="content-page">
+          <div className="section-head first"><div><small>LOCAL-FIRST</small><h1>My workspace</h1><p>Save, restore and manage your trading setup without a subscription.</p></div></div>
+          <div className="workspace-card"><div className="workspace-icon"><Layers size={26}/></div><div className="workspace-info"><span className="eyebrow">CURRENT WORKSPACE</span><h2>Personal terminal</h2><p>{symbols[prefs.symbol].label} · {prefs.frame.toUpperCase()} · {prefs.levels.length} saved levels</p></div><button className="primary-button" onClick={() => setPage("terminal")}>Open <ChevronRight size={16}/></button></div>
+          <div className="section-head"><div><small>PORTABILITY</small><h2>Back up your work</h2></div></div>
+          <div className="action-grid"><button onClick={exportWorkspace}><Download size={23}/><strong>Export workspace</strong><span>Download all current preferences and drawing levels as JSON.</span></button><button onClick={() => inputFile.current?.click()}><Upload size={23}/><strong>Import workspace</strong><span>Restore a compatible exported workspace from your device.</span></button></div>
+          <input ref={inputFile} type="file" accept=".json,application/json" className="visually-hidden" onChange={importWorkspace}/>
+        </div>}
+        {page === "settings" && <div className="content-page preferences-page">
+          <div className="section-head first"><div><small>PERSONALIZE</small><h1>Workspace preferences</h1><p>Make the experience yours. Changes are saved automatically in this browser.</p></div></div>
+          <div className="setting-section"><h2>Appearance</h2><p>Choose how Market Terminal looks and feels.</p><div className="choice-row"><button className={prefs.dark ? "chosen" : ""} onClick={() => { update({ dark: true }); notify("Dark appearance selected."); }}><Moon size={18}/> Dark {prefs.dark && <Check size={15}/>}</button><button className={!prefs.dark ? "chosen" : ""} onClick={() => { update({ dark: false }); notify("Light appearance selected."); }}><Sun size={18}/> Light {!prefs.dark && <Check size={15}/>}</button></div></div>
+          <div className="setting-section"><h2>Accent color</h2><p>Three carefully balanced palettes for the workstation.</p><div className="choice-row">{(["violet","teal","amber"] as const).map(accent => <button key={accent} className={prefs.accent === accent ? "chosen" : ""} onClick={() => { update({ accent }); notify("Accent color set to " + accent + "."); }}><span className={"accent-dot " + accent}/>{accent[0].toUpperCase() + accent.slice(1)} {prefs.accent === accent && <Check size={15}/>}</button>)}</div></div>
+          <div className="setting-section"><h2>Workspace data</h2><p>Clear your current local layout and drawing levels. Export first if you want a backup.</p><button className="danger-button" onClick={() => { if (window.confirm("Reset your local workspace and remove all saved levels?")) { setPrefs(defaultWorkspace); setDrawMode(false); notify("Local workspace reset."); } }}><RotateCcw size={16}/> Reset local workspace</button></div>
+        </div>}
+      </div>
+    </div>
+    <footer className="statusbar"><span><span className="sync-point">●</span> MARKET TERMINAL / LOCAL-FIRST PREVIEW</span><span>No artificial analysis limits · Data is synthetic</span></footer>
+    {notice && <div role="status" className={"toast " + notice.kind} key={notice.id}><span>{notice.kind === "success" ? <Check size={17}/> : <Activity size={17}/>}</span><p>{notice.message}</p><button aria-label="Dismiss notification" onClick={() => setNotice(null)}><X size={16}/></button></div>}
+    {searchOpen && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setSearchOpen(false); }}><div className="command-dialog" role="dialog" aria-modal="true" aria-label="Search instruments"><div className="command-input"><Search size={19}/><input ref={inputSearch} placeholder="Search a symbol, market or instrument…" value={query} onChange={e => setQuery(e.target.value)}/><button onClick={() => setSearchOpen(false)} aria-label="Close search"><X size={17}/></button></div><div className="command-results"><small>INSTRUMENTS · DEMONSTRATION DATA</small>{filtered.length ? filtered.map(symbol => <button key={symbol} onClick={() => openInstrument(symbol)}><Compass size={18}/><span><strong>{symbols[symbol].label}</strong><small>{symbols[symbol].market}</small></span><ChevronRight size={16}/></button>) : <p className="empty-search">No matching demonstration instruments.</p>}</div><div className="command-hint"><Command size={14}/> Ctrl K to open · Esc to close</div></div></div>}
+    {helpOpen && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setHelpOpen(false); }}><div className="help-dialog" role="dialog" aria-modal="true" aria-label="Help and shortcuts"><button className="dialog-close" aria-label="Close help" onClick={() => setHelpOpen(false)}><X size={18}/></button><Menu size={24}/><h2>Your terminal, your rules.</h2><p>Use the left navigation to switch between overview, charting, saved workspace and preferences. Click <strong>Price level</strong> to place a horizontal level directly on the chart.</p><div className="shortcut"><span>Open market search</span><kbd>Ctrl / ⌘ + K</kbd></div><div className="shortcut"><span>Exit drawing or dismiss dialog</span><kbd>Esc</kbd></div><div className="shortcut"><span>Save workspace</span><strong>Automatic</strong></div><p className="help-warning">Market prices in this preview are entirely simulated. Live trading and YoungMoney3 linking are not available yet.</p><button className="primary-button" onClick={() => setHelpOpen(false)}>Start exploring <ChevronRight size={16}/></button></div></div>}
+  </div>;
 }
