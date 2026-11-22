@@ -15,16 +15,26 @@ persistence, replay, EMA, Bollinger, RSI, MACD, ATR.
 - [x] Independent two-chart layout, saved comparison instrument (#21)
 - [x] Built-in indicator presets and custom saved chart templates (#23)
 - [x] Configurable study parameters with valid numeric bounds (#24)
-- [x] Saved one/two/four chart layouts with independently selected comparison symbols (#25)
-- [ ] Independent provider feeds and per-pane timeframe controls, including linked/independent crosshairs
-- [ ] Advanced drawing catalog: annotations/text, risk/reward and long/short position tools,
-      channels, geometric tools, brush and multi-point shapes
-- [ ] Drawing precision: snaps to exact live-session timestamps, candle OHLC and other anchors;
-      accurate logical/time mapping across trading session gaps and different venues
-- [ ] Multi-select, grouping, layered object management, custom colors/strokes and keyboard editing
-- [ ] More built-in studies, adjustable chart types, custom study formulas with sandboxed execution
-- [ ] Linked crosshairs, compare symbols, synced/independent zoom, reusable multi-chart templates
-- [ ] Benchmarks for large local workspaces; touch, keyboard and cross-browser testing
+- [x] Saved one/two/four chart layouts and independently selected comparison symbols (#25)
+- [x] Drawing anchor interpolation across actual observed bars and trading gaps (#26)
+- [x] Advanced arrows, ellipses, freehand brush, notes and illustrative long/short position graphics (#27)
+- [x] Multi-select, grouping, layered object ordering and style controls with keyboard deletion (#28)
+- [x] Per-pane timeframes and supported source selection; optional linked crosshairs and time windows (#29)
+- [x] Candlesticks, OHLC bars, close line/area and derived Heikin-Ashi views (#30)
+- [x] Three-anchor parallel-channel drawing with editable third control (#31)
+- [x] Constrained no-eval user-defined indicator formulas and saved overlays (#32)
+- [ ] Complete longer multi-point drawing library: shapes, brush editing and
+      adjustable broker-aware position targets (2R illustration is not trading risk sizing)
+- [ ] Venue-specific exchange calendars, source tick precision, session-aware
+      anchors and fully validated OHLC snapping across live-history transitions
+- [ ] Chart-profile templates covering every pane's frame, source, symbol, style
+      and optional linking; compare overlays and layout presets
+- [ ] Broader curated built-in indicators and safe formula-performance budgets
+      for unusually large workspaces; prevent pathological resource consumption
+- [ ] Touch/keyboard/accessibility QA, Safari and Firefox regression,
+      actual mobile device acceptance and large-workspace benchmarks
+- [ ] Recoverable chart-error states, benchmark baselines and performance
+      regressions across all chart layout modes
 
 **Exit:** confirmed desktop/mobile chart workflows, accurate chart-time alignment,
 reliable save/restore, multiple charts with distinct source provenance, real browser
