@@ -3,7 +3,7 @@ import {
   Activity, ArrowDownToLine, Bell, BookOpen, ChartCandlestick, Check,
   ChevronLeft, ChevronRight, Command, Compass, Download, Home, Layers,
   Menu, Moon, MousePointer2, Plus, RotateCcw, Search, Settings2, Sun,
-  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Target, Film, Magnet, MoveUpRight, ArrowUpRight, Columns2, Grid2X2
+  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Target, Film, Magnet, MoveUpRight, ArrowUpRight, Columns2, Grid2X2, Shapes, Pencil
 } from "lucide-react";
 import { ChartCanvas } from "./ChartCanvas";
 import type { Drawing, DrawingTool } from "./drawing/types";
@@ -53,6 +53,9 @@ export default function App() {
   const [notice, setNotice] = useState<Notice | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [studyMenuOpen, setStudyMenuOpen] = useState(false);
+  const [moreToolsOpen,setMoreToolsOpen]=useState(false);
+  const [noteEditingId,setNoteEditingId]=useState<string|null>(null);
+  const [noteDraft,setNoteDraft]=useState("");
   const [templateName,setTemplateName]=useState("");
   const [replay,setReplay] = useState<ReplayState|null>(null);
   const inputFile = useRef<HTMLInputElement>(null);
@@ -157,9 +160,20 @@ export default function App() {
     const copy: Drawing = {
       ...active, id: crypto.randomUUID(), hidden: false, locked: false,
       start: { time: active.start.time + offset, price: active.start.price * 1.001 },
-      end: { time: active.end.time + offset, price: active.end.price * 1.001 }
+      end: { time: active.end.time + offset, price: active.end.price * 1.001 },
+      ...(active.points?{points:active.points.map(p=>({time:p.time+offset,price:p.price*1.001}))}:{})
     };
     commitDrawings([...prefs.drawings, copy], "Drawing duplicated.");
+  };
+  const saveAnnotation = (id:string, text:string) => {
+    const active=prefs.drawings.find(d=>d.id===id&&d.tool==="text");
+    if(!active){setNoteEditingId(null);return;}
+    const clean=text.trim().slice(0,2000);
+    if(!clean){notify("Annotation text cannot be empty.","error");return;}
+    if(clean!==active.text){
+      commitDrawings(prefs.drawings.map(d=>d.id===id?{...d,text:clean}:d),"Annotation text saved.");
+    }
+    setNoteEditingId(null);
   };
   const undoDrawing = () => {
     const prev = drawingHistory.current.past.pop();
@@ -181,6 +195,7 @@ export default function App() {
     setDrawMode(false);
     const next = drawingTool === selected ? null : selected;
     setDrawingTool(next);
+    setMoreToolsOpen(false);
     notify(next ? "Drag or click two points to place a " + next + "." : "Drawing tool dismissed.", "info");
   };
   const startReplay=()=>{
@@ -243,7 +258,7 @@ export default function App() {
       const json: unknown = JSON.parse(await file.text());
       if (!json || typeof json !== "object" || Array.isArray(json) ||
         !("format" in json) || json.format !== "market-terminal-workspace" ||
-        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14) ||
+        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15) ||
         !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
       const workspace = parseWorkspace(json);
       setPrefs(workspace);
@@ -520,6 +535,25 @@ export default function App() {
                 onClick={() => chooseDrawingTool("ray")}><MoveUpRight size={15}/> Ray</button>
               <button disabled={!currentCandles.length} title="Measure the price and percentage difference between two points" className={"compact-action " + (drawingTool === "measure" ? "active" : "")}
                 onClick={() => chooseDrawingTool("measure")}><ArrowUpRight size={15}/> Measure</button>
+              <div className="study-picker advanced-tool-picker">
+                <button className={"compact-action "+(moreToolsOpen?"active":"")}
+                  aria-label="More drawing tools" aria-expanded={moreToolsOpen}
+                  onClick={()=>setMoreToolsOpen(open=>!open)}><Shapes size={15}/> More tools</button>
+                {moreToolsOpen&&<div className="advanced-tool-menu" role="group" aria-label="Advanced drawing tools">
+                  {([
+                    ["arrow","Arrow","Draw a directional arrow"],
+                    ["ellipse","Ellipse","Drag to draw an ellipse"],
+                    ["text","Text note","Click once to place a text annotation"],
+                    ["long-position","Long position","Drag from entry to stop to estimate 2R long position"],
+                    ["short-position","Short position","Drag from entry to stop to estimate 2R short position"],
+                    ["brush","Freehand brush","Draw a freehand multi-point curve"]
+                  ] as [DrawingTool,string,string][]).map(([id,label,description])=>
+                    <button key={id} className={"advanced-tool-item "+(drawingTool===id?"active":"")}
+                      title={description} onClick={()=>chooseDrawingTool(id)}>
+                      <strong>{label}</strong><small>{description}</small>
+                    </button>)}
+                </div>}
+              </div>
               <button className={"compact-action magnet-toggle " + (prefs.magnetEnabled ? "active" : "")}
                 aria-label="Snap to candle OHLC" aria-pressed={prefs.magnetEnabled}
                 title="Magnet: snap nearby drawing anchors to candle open, high, low or close"
@@ -620,8 +654,14 @@ export default function App() {
             <div className="drawing-object-list">{currentDrawings.map((drawing,index) =>
               <div key={drawing.id} className={"drawing-object-row " + (drawing.hidden ? "object-hidden" : "")}>
                 <span className="level-swatch" style={{background:drawing.color}}/>
-                <span className="drawing-object-name" title={drawing.tool}>{index+1}. {drawing.tool}</span>
+                <span className="drawing-object-name" title={drawing.tool}>
+                  {index+1}. {drawing.tool}{drawing.tool==="text"?" · "+(drawing.text||"Note"):""}
+                </span>
                 <div className="drawing-object-actions">
+                  {drawing.tool==="text"&&<button aria-label={"Edit annotation "+(index+1)}
+                    title="Edit annotation text" onClick={()=>{
+                      setNoteEditingId(drawing.id);setNoteDraft(drawing.text||"Note");
+                    }}><Pencil size={14}/></button>}
                   <button aria-label={(drawing.hidden ? "Show " : "Hide ") + drawing.tool + " " + (index+1)}
                     title={drawing.hidden ? "Show drawing" : "Hide drawing"}
                     onClick={() => toggleDrawingProperty(drawing.id,"hidden")}>
@@ -637,8 +677,15 @@ export default function App() {
                   <button aria-label={"Delete " + drawing.tool + " " + (index+1)}
                     title="Delete drawing" onClick={() => removeDrawing(drawing.id)}><Trash2 size={15}/></button>
                 </div>
+                {noteEditingId===drawing.id&&drawing.tool==="text"&&
+                  <div className="drawing-note-edit">
+                    <textarea aria-label="Annotation text" maxLength={2000} value={noteDraft}
+                      onChange={e=>setNoteDraft(e.target.value)}
+                      onKeyDown={e=>{if(e.key==="Escape"){setNoteEditingId(null);e.stopPropagation();}}}/>
+                    <button aria-label="Save annotation" onClick={()=>saveAnnotation(drawing.id,noteDraft)}>Save note</button>
+                  </div>}
               </div>
-            )}{currentDrawings.length === 0 && <p className="drawing-object-empty">No drawings on this chart yet. Choose Trendline, Rectangle or Fibonacci above.</p>}</div>
+            )}{currentDrawings.length === 0 && <p className="drawing-object-empty">No drawings on this chart yet. Choose a drawing tool above.</p>}</div>
             <p className="panel-note">Drag or click two points to draw. Lock, hide or duplicate objects here. Turn on Repeat to draw continuously. Ctrl+Z and Ctrl+Shift+Z undo and redo.</p>
           </aside>}
         </div>}
