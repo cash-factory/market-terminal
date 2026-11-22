@@ -1151,7 +1151,7 @@ export default function App() {
               onPointerDown={onResizeStart} onPointerMove={onResizeMove}
               onPointerUp={onResizeStop} onPointerCancel={onResizeStop}
               onKeyDown={onResizeKey}/>
-            <div className="workspace-rail-tabs" role="tablist" aria-label="Workspace side panel">
+            <div className="workspace-rail-tabs context-tabs" role="tablist" aria-label="Workspace side panel">
               <button type="button" role="tab" id="rail-tab-markets" aria-controls="rail-panel-markets"
                 aria-selected={panelTab==="markets"} className={panelTab==="markets"?"active":""}
                 onClick={()=>setPanelTab("markets")}><Compass size={15}/> Markets</button>
