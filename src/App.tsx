@@ -595,6 +595,11 @@ export default function App() {
     notify(result.triggered.length+" price alert"+(result.triggered.length===1?"":"s")+" triggered for "+symbols[prefs.symbol].label,"info");
   },[prefs.symbol,prefs.priceSource,prefs.frame,prefs.alerts,last,feed.status,replay]);
   useEffect(() => {
+    if(page==="decisions"&&replay?.playing){
+      setReplay(current=>current?{...current,playing:false}:current);
+    }
+  },[page,replay?.playing]);
+  useEffect(() => {
     if (!notice || notice.kind === "error") return;
     const timer = window.setTimeout(() => setNotice(current => current?.id === notice.id ? null : current), 4200);
     return () => window.clearTimeout(timer);
@@ -608,6 +613,7 @@ export default function App() {
       {studio && <nav className="studio-destinations" aria-label="Workstation pages">
         {menu.map(({id,label})=><button key={id} aria-current={id===page?"page":undefined}
           onClick={()=>{setPage(id);setDrawMode(false);setDrawingTool(null);}}>{label}</button>)}
+        <button aria-label="Search tools and markets" title="Open Tool Atlas" onClick={()=>setSearchOpen(true)}><Search size={16}/></button>
         <button aria-label="Help and shortcuts" onClick={()=>setHelpOpen(true)}><BookOpen size={16}/></button>
       </nav>}
       <div className="header-center">
@@ -616,6 +622,7 @@ export default function App() {
         </button>
       </div>
       <div className="header-actions">
+        <button className="icon-button atlas-header-trigger" title="Search tools and markets" aria-label="Open Tool Atlas" onClick={()=>setSearchOpen(true)}><Search size={18}/></button>
         <span className={"demo-tag source-" + (replay?"historical":feed.status)}><span className="pulse-dot"/> {displaySourceLabel}</span>
         <button className="focus-toggle" type="button" aria-label={focusMode ? "Exit chart focus mode" : "Enter chart focus mode"}
           aria-pressed={focusMode && page === "terminal"} title="Toggle chart focus (Shift+F)"
@@ -1215,14 +1222,14 @@ export default function App() {
           <div className="section-head first"><div><small>LOCAL-FIRST</small><h1>My workspace</h1><p>Save, restore and manage your trading setup without a subscription.</p></div></div>
           <div className="workspace-card"><div className="workspace-icon"><Layers size={26}/></div><div className="workspace-info"><span className="eyebrow">CURRENT WORKSPACE</span><h2>Personal terminal</h2><p>{symbols[prefs.symbol].label} · {prefs.frame.toUpperCase()} · {prefs.levels.length} levels · {prefs.drawings.length} drawings</p></div><button className="primary-button" onClick={() => setPage("terminal")}>Open <ChevronRight size={16}/></button></div>
           <div className="section-head"><div><small>PORTABILITY</small><h2>Back up your work</h2></div></div>
-          <div className="action-grid"><button onClick={exportWorkspace}><Download size={23}/><strong>Export workspace</strong><span>Download all current preferences and drawing levels as JSON.</span></button><button onClick={() => inputFile.current?.click()}><Upload size={23}/><strong>Import workspace</strong><span>Restore a compatible exported workspace from your device.</span></button></div>
+          <div className="action-grid"><button onClick={exportWorkspace}><Download size={23}/><strong>Export workspace</strong><span>Download your chart setup, drawings and decision history as JSON.</span></button><button onClick={() => inputFile.current?.click()}><Upload size={23}/><strong>Import workspace</strong><span>Restore a compatible exported workspace from your device.</span></button></div>
           <input ref={inputFile} type="file" accept=".json,application/json" className="visually-hidden" onChange={importWorkspace}/>
         </div>}
         {page === "settings" && <div className="content-page preferences-page">
           <div className="section-head first"><div><small>PERSONALIZE</small><h1>Workspace preferences</h1><p>Make the experience yours. Changes are saved automatically in this browser.</p></div></div>
           <div className="setting-section"><h2>Appearance</h2><p>Choose how Market Terminal looks and feels.</p><div className="choice-row"><button className={prefs.dark ? "chosen" : ""} onClick={() => { update({ dark: true }); notify("Dark appearance selected."); }}><Moon size={18}/> Dark {prefs.dark && <Check size={15}/>}</button><button className={!prefs.dark ? "chosen" : ""} onClick={() => { update({ dark: false }); notify("Light appearance selected."); }}><Sun size={18}/> Light {!prefs.dark && <Check size={15}/>}</button></div></div>
           <div className="setting-section"><h2>Accent color</h2><p>Three carefully balanced palettes for the workstation.</p><div className="choice-row">{(["violet","teal","amber"] as const).map(accent => <button key={accent} className={prefs.accent === accent ? "chosen" : ""} onClick={() => { update({ accent }); notify("Accent color set to " + accent + "."); }}><span className={"accent-dot " + accent}/>{accent[0].toUpperCase() + accent.slice(1)} {prefs.accent === accent && <Check size={15}/>}</button>)}</div></div>
-          <div className="setting-section"><h2>Workspace data</h2><p>Clear your current local layout and drawing levels. Export first if you want a backup.</p><button className="danger-button" onClick={() => { if (window.confirm("Permanently reset this browser workspace, including drawings, decision records and their review history?")) { setPrefs(defaultWorkspace); drawingHistory.current = { past: [], future: [] }; setHistoryVersion(v => v + 1); setDrawMode(false); setDrawingTool(null); notify("Local workspace reset."); } }}><RotateCcw size={16}/> Reset local workspace</button></div>
+          <div className="setting-section"><h2>Workspace data</h2><p>Reset preferences, drawings, decisions and their review history. Export before resetting.</p><button className="danger-button" onClick={() => { if (window.confirm("Permanently reset this browser workspace, including drawings, decision records and their review history?")) { setPrefs(defaultWorkspace); drawingHistory.current = { past: [], future: [] }; setHistoryVersion(v => v + 1); setDrawMode(false); setDrawingTool(null); notify("Local workspace reset."); } }}><RotateCcw size={16}/> Reset local workspace</button></div>
         </div>}
       </div>
     </div>
@@ -1230,6 +1237,6 @@ export default function App() {
     {notice && <div role="status" className={"toast " + notice.kind} key={notice.id}><span>{notice.kind === "success" ? <Check size={17}/> : <Activity size={17}/>}</span><p>{notice.message}</p><button aria-label="Dismiss notification" onClick={() => setNotice(null)}><X size={16}/></button></div>}
     {searchOpen && <CommandPalette onClose={()=>setSearchOpen(false)}
        onOpenInstrument={openInstrument} onExecuteCommand={runTerminalCommand}/>}
-     {helpOpen && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setHelpOpen(false); }}><div className="help-dialog" role="dialog" aria-modal="true" aria-label="Help and shortcuts"><button className="dialog-close" aria-label="Close help" onClick={() => setHelpOpen(false)}><X size={18}/></button><Menu size={24}/><h2>Your terminal, your rules.</h2><p>Use the left navigation to switch between overview, charting, saved workspace and preferences. Click <strong>Price level</strong> to place a horizontal level, or drag using the Trendline, Rectangle or Fibonacci tools.</p><div className="shortcut"><span>Open market search</span><kbd>Ctrl / ⌘ + K</kbd></div><div className="shortcut"><span>Exit drawing or dismiss dialog</span><kbd>Esc</kbd></div><div className="shortcut"><span>Undo / redo drawings</span><kbd>Ctrl / ⌘ + Z · Shift + Z</kbd></div><div className="shortcut"><span>Save workspace</span><strong>Automatic</strong></div><div className="shortcut"><span>Capture a source-aware decision</span><strong>Decision Desk</strong></div><p className="help-warning">Most instruments use synthetic demo candles. BTC/USDT has an opt-in direct Binance Spot feed. This is not a broker, and YoungMoney3 linking is not available.</p><button className="primary-button" onClick={() => setHelpOpen(false)}>Start exploring <ChevronRight size={16}/></button></div></div>}
+     {helpOpen && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setHelpOpen(false); }}><div className="help-dialog" role="dialog" aria-modal="true" aria-label="Help and shortcuts"><button className="dialog-close" aria-label="Close help" onClick={() => setHelpOpen(false)}><X size={18}/></button><Menu size={24}/><h2>Your terminal, your rules.</h2><p>Use the left navigation to switch between overview, charting, saved workspace and preferences. Click <strong>Price level</strong> to place a horizontal level, or drag using the Trendline, Rectangle or Fibonacci tools.</p><div className="shortcut"><span>Open Tool Atlas</span><kbd>Ctrl / ⌘ + K</kbd></div><div className="shortcut"><span>Exit drawing or dismiss dialog</span><kbd>Esc</kbd></div><div className="shortcut"><span>Undo / redo drawings</span><kbd>Ctrl / ⌘ + Z · Shift + Z</kbd></div><div className="shortcut"><span>Save workspace</span><strong>Automatic</strong></div><div className="shortcut"><span>Capture a source-aware decision</span><strong>Decision Desk</strong></div><p className="help-warning">Most instruments use synthetic demo candles. BTC/USDT has an opt-in direct Binance Spot feed. This is not a broker, and YoungMoney3 linking is not available.</p><button className="primary-button" onClick={() => setHelpOpen(false)}>Start exploring <ChevronRight size={16}/></button></div></div>}
   </div>;
 }
