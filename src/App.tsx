@@ -1,14 +1,15 @@
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type PointerEvent as ReactPointerEvent, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import {
   Activity, ArrowDownToLine, Bell, BookOpen, ChartCandlestick, Check,
   ChevronLeft, ChevronRight, Command, Compass, Download, Home, Layers,
   Menu, Moon, MousePointer2, Plus, RotateCcw, Search, Settings2, Sun,
-  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff
+  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen
 } from "lucide-react";
 import { ChartCanvas } from "./ChartCanvas";
 import type { Drawing, DrawingTool } from "./drawing/types";
 import { frameSeconds, symbols, type Frame, type SymbolId } from "./market";
 import { usePriceFeed } from "./data/usePriceFeed";
+import { panelWidthAfterDrag, panelWidthAfterKey } from "./layout";
 import { defaultWorkspace, loadWorkspace, parseWorkspace, serializeWorkspace, type Workspace } from "./workspace";
 
 type Page = "home" | "terminal" | "library" | "settings";
@@ -35,6 +36,8 @@ export default function App() {
   const [historyVersion, setHistoryVersion] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [searchIndex, setSearchIndex] = useState(0);
+  const resizeStart = useRef<{x:number; width:number} | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const inputFile = useRef<HTMLInputElement>(null);
@@ -42,8 +45,8 @@ export default function App() {
   const feed = usePriceFeed(prefs.symbol, prefs.frame, prefs.priceSource);
   const currentCandles = feed.candles;
   const last = currentCandles.length ? currentCandles[currentCandles.length - 1].close : 0;
-  const currentLevels = prefs.levels.filter(level => level.symbol === prefs.symbol && (level.source ?? "demo") === prefs.priceSource);
-  const currentDrawings = prefs.drawings.filter(drawing => drawing.symbol === prefs.symbol && (drawing.source ?? "demo") === prefs.priceSource);
+  const currentLevels = useMemo(() => prefs.levels.filter(level => level.symbol === prefs.symbol && (level.source ?? "demo") === prefs.priceSource), [prefs.levels, prefs.symbol, prefs.priceSource]);
+  const currentDrawings = useMemo(() => prefs.drawings.filter(drawing => drawing.symbol === prefs.symbol && (drawing.source ?? "demo") === prefs.priceSource), [prefs.drawings, prefs.symbol, prefs.priceSource]);
   const sourceStateLabel = prefs.priceSource === "demo" ? "SYNTHETIC DATA" : ({
     loading: "LOADING BINANCE", connecting: "CONNECTING", historical: "HISTORICAL",
     live: "LIVE · BINANCE SPOT", stale: "STALE FEED", error: "FEED UNAVAILABLE", synthetic: "SYNTHETIC DATA"
@@ -138,7 +141,7 @@ export default function App() {
       const json: unknown = JSON.parse(await file.text());
       if (!json || typeof json !== "object" || Array.isArray(json) ||
         !("format" in json) || json.format !== "market-terminal-workspace" ||
-        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4) ||
+        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5) ||
         !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
       const workspace = parseWorkspace(json);
       setPrefs(workspace);
@@ -153,6 +156,27 @@ export default function App() {
   };
   const filtered = marketList.filter(symbol => (symbol + " " + symbols[symbol].label + " " + symbols[symbol].market)
     .toLowerCase().includes(query.toLowerCase()));
+  const onResizeStart = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    resizeStart.current = {x: event.clientX, width: prefs.rightPanelWidth};
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+  const onResizeMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!resizeStart.current) return;
+    update({rightPanelWidth: panelWidthAfterDrag(resizeStart.current.width, resizeStart.current.x, event.clientX)});
+  };
+  const onResizeStop = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!resizeStart.current) return;
+    resizeStart.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    notify("Watchlist width saved.");
+  };
+  const onResizeKey = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (!["ArrowLeft","ArrowRight","Home","End"].includes(event.key)) return;
+    event.preventDefault();
+    update({rightPanelWidth: panelWidthAfterKey(prefs.rightPanelWidth, event.key)});
+  };
 
   useEffect(() => {
     try {
@@ -185,6 +209,12 @@ export default function App() {
     return () => window.removeEventListener("keydown", drawingShortcuts);
   }, [prefs.drawings]);
   useEffect(() => { if (searchOpen) inputSearch.current?.focus(); }, [searchOpen]);
+  useEffect(() => { setSearchIndex(0); }, [query, searchOpen]);
+  useEffect(() => {
+    if (!notice || notice.kind === "error") return;
+    const timer = window.setTimeout(() => setNotice(current => current?.id === notice.id ? null : current), 4200);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
   return <div className={"app " + (prefs.dark ? "dark" : "light") + " accent-" + prefs.accent}>
     <header className="topbar">
       <div className="branding">
@@ -233,7 +263,8 @@ export default function App() {
           <div className="summary-grid"><div><span>Current timeframe</span><strong>{prefs.frame.toUpperCase()}</strong></div><div><span>Saved price levels</span><strong>{prefs.levels.length}</strong></div><div><span>Core drawing quota</span><strong>None</strong></div></div>
           <p className="data-caveat"><Activity size={16}/> Demo instruments use synthetic prices. Opt-in Binance Spot BTC/USDT is available in the terminal; forex, equities and indices are not connected to live feeds.</p>
         </div>}
-        {page === "terminal" && <div className="terminal-layout">
+        {page === "terminal" && <div className={"terminal-layout " + (prefs.rightPanelOpen ? "" : "panel-closed")}
+          style={{"--right-panel-width": prefs.rightPanelWidth + "px"} as CSSProperties}>
           <section className="terminal-center">
             <div className="terminal-toolbar">
               <button className="symbol-button" onClick={() => setSearchOpen(true)}><span>{symbols[prefs.symbol].label}</span><Search size={15}/></button>
@@ -248,6 +279,14 @@ export default function App() {
                   onClick={() => { update({priceSource:"binance"}); setDrawingTool(null); setDrawMode(false); notify("Connecting to Binance Spot BTC/USDT…", "info"); }}>Binance Spot</button>
               </div>
               <div className="timeframes">{frames.map(frame => <button key={frame} className={frame === prefs.frame ? "active" : ""} onClick={() => update({ frame })}>{frame}</button>)}</div>
+              <span className="tool-divider"/>
+              <button className="compact-action panel-toggle" title={prefs.rightPanelOpen ? "Hide watchlist" : "Show watchlist"}
+                aria-label={prefs.rightPanelOpen ? "Hide watchlist" : "Show watchlist"}
+                aria-pressed={prefs.rightPanelOpen}
+                onClick={() => { update({rightPanelOpen: !prefs.rightPanelOpen}); notify(prefs.rightPanelOpen ? "Watchlist hidden." : "Watchlist opened."); }}>
+                {prefs.rightPanelOpen ? <PanelRightClose size={16}/> : <PanelRightOpen size={16}/>}
+                <span>{prefs.rightPanelOpen ? "Hide panel" : "Show panel"}</span>
+              </button>
               <span className="tool-divider"/>
               <button className={"compact-action " + (prefs.showSma ? "active" : "")} onClick={() => { update({ showSma: !prefs.showSma }); notify(!prefs.showSma ? "SMA 20 enabled." : "SMA 20 hidden."); }}>SMA 20</button>
               <button disabled={!currentCandles.length} className={"compact-action draw-toggle " + (drawMode ? "active" : "")} onClick={() => { setDrawingTool(null); setDrawMode(!drawMode); notify(!drawMode ? "Drawing armed: click the chart to place a horizontal level." : "Drawing cancelled.", "info"); }}><Plus size={15}/> Price level</button>
@@ -279,7 +318,13 @@ export default function App() {
               onAddDrawing={addDrawing} onUpdateDrawing={updateDrawing} onDeleteDrawing={removeDrawing}/>
             <div className="chart-footer"><span><span className="sync-point">●</span> Locally saved</span><span>Source: {feed.sourceLabel} · {frameSeconds[prefs.frame] / 60}m candle interval · {feed.status}{feed.lastUpdatedMs ? " · Updated " + new Date(feed.lastUpdatedMs).toLocaleTimeString() : ""}</span></div>
           </section>
-          <aside className="right-panel">
+          {prefs.rightPanelOpen && <aside className="right-panel">
+            <div className="panel-resizer" role="separator" tabIndex={0} aria-label="Resize watchlist panel"
+              aria-orientation="vertical" aria-valuenow={prefs.rightPanelWidth} aria-valuemin={220} aria-valuemax={460}
+              title="Drag to resize watchlist, or use arrow keys"
+              onPointerDown={onResizeStart} onPointerMove={onResizeMove}
+              onPointerUp={onResizeStop} onPointerCancel={onResizeStop}
+              onKeyDown={onResizeKey}/>
             <div className="panel-head"><strong>Watchlist</strong><button aria-label="Search instruments" title="Search instruments" className="mini-button" onClick={() => setSearchOpen(true)}><Search size={16}/></button></div>
             <div className="watchlist">{marketList.map(symbol => <button key={symbol} onClick={() => openInstrument(symbol)} className={symbol === prefs.symbol ? "selected" : ""}><span><b>{symbols[symbol].label}</b><small>{symbols[symbol].market.split(" · ")[0]}</small></span><ChevronRight size={15}/></button>)}</div>
             <div className="panel-head separated"><strong>Price levels</strong><span className="count">{currentLevels.length}</span></div>
@@ -290,7 +335,7 @@ export default function App() {
               <div key={drawing.id}><span className="level-swatch" style={{background:drawing.color}}/><span>{drawing.tool}</span><button aria-label={"Delete " + drawing.tool} title="Delete drawing" onClick={() => removeDrawing(drawing.id)}><Trash2 size={15}/></button></div>
             )}</div>
             <p className="panel-note">Drag to place drawings. Click a shape to select it, drag to move, drag endpoints to resize, or press Delete. Ctrl+Z / Ctrl+Shift+Z undo and redo.</p>
-          </aside>
+          </aside>}
         </div>}
         {page === "library" && <div className="content-page">
           <div className="section-head first"><div><small>LOCAL-FIRST</small><h1>My workspace</h1><p>Save, restore and manage your trading setup without a subscription.</p></div></div>
@@ -309,7 +354,15 @@ export default function App() {
     </div>
     <footer className="statusbar"><span><span className="sync-point">●</span> MARKET TERMINAL / LOCAL-FIRST PREVIEW</span><span>No artificial analysis limits · Data is synthetic</span></footer>
     {notice && <div role="status" className={"toast " + notice.kind} key={notice.id}><span>{notice.kind === "success" ? <Check size={17}/> : <Activity size={17}/>}</span><p>{notice.message}</p><button aria-label="Dismiss notification" onClick={() => setNotice(null)}><X size={16}/></button></div>}
-    {searchOpen && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setSearchOpen(false); }}><div className="command-dialog" role="dialog" aria-modal="true" aria-label="Search instruments"><div className="command-input"><Search size={19}/><input ref={inputSearch} placeholder="Search a symbol, market or instrument…" value={query} onChange={e => setQuery(e.target.value)}/><button onClick={() => setSearchOpen(false)} aria-label="Close search"><X size={17}/></button></div><div className="command-results"><small>INSTRUMENTS · DEMONSTRATION DATA</small>{filtered.length ? filtered.map(symbol => <button key={symbol} onClick={() => openInstrument(symbol)}><Compass size={18}/><span><strong>{symbols[symbol].label}</strong><small>{symbols[symbol].market}</small></span><ChevronRight size={16}/></button>) : <p className="empty-search">No matching demonstration instruments.</p>}</div><div className="command-hint"><Command size={14}/> Ctrl K to open · Esc to close</div></div></div>}
+    {searchOpen && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setSearchOpen(false); }}><div className="command-dialog" role="dialog" aria-modal="true" aria-label="Search instruments"><div className="command-input"><Search size={19}/><input ref={inputSearch} placeholder="Search a symbol, market or instrument…" value={query}
+  role="combobox" aria-expanded="true" aria-controls="instrument-options"
+  aria-activedescendant={filtered[searchIndex] ? "instrument-" + filtered[searchIndex] : undefined}
+  onChange={e => setQuery(e.target.value)}
+  onKeyDown={event => {
+    if (event.key === "ArrowDown") { event.preventDefault(); setSearchIndex(i => Math.min(Math.max(0,filtered.length - 1),i + 1)); }
+    if (event.key === "ArrowUp") { event.preventDefault(); setSearchIndex(i => Math.max(0,i - 1)); }
+    if (event.key === "Enter" && filtered[searchIndex]) { event.preventDefault(); openInstrument(filtered[searchIndex]); }
+  }}/><button onClick={() => setSearchOpen(false)} aria-label="Close search"><X size={17}/></button></div><div id="instrument-options" role="listbox" className="command-results"><small>INSTRUMENTS · SOURCE SELECTED IN TERMINAL</small>{filtered.length ? filtered.map((symbol,i) => <button id={"instrument-" + symbol} key={symbol} role="option" aria-selected={searchIndex === i} className={searchIndex === i ? "keyboard-active" : ""} onMouseEnter={() => setSearchIndex(i)} onClick={() => openInstrument(symbol)}><Compass size={18}/><span><strong>{symbols[symbol].label}</strong><small>{symbols[symbol].market}</small></span><ChevronRight size={16}/></button>) : <p className="empty-search">No matching demonstration instruments.</p>}</div><div className="command-hint"><Command size={14}/> Ctrl K to open · ↑↓ navigate · Enter select · Esc close</div></div></div>}
     {helpOpen && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setHelpOpen(false); }}><div className="help-dialog" role="dialog" aria-modal="true" aria-label="Help and shortcuts"><button className="dialog-close" aria-label="Close help" onClick={() => setHelpOpen(false)}><X size={18}/></button><Menu size={24}/><h2>Your terminal, your rules.</h2><p>Use the left navigation to switch between overview, charting, saved workspace and preferences. Click <strong>Price level</strong> to place a horizontal level, or drag using the Trendline, Rectangle or Fibonacci tools.</p><div className="shortcut"><span>Open market search</span><kbd>Ctrl / ⌘ + K</kbd></div><div className="shortcut"><span>Exit drawing or dismiss dialog</span><kbd>Esc</kbd></div><div className="shortcut"><span>Undo / redo drawings</span><kbd>Ctrl / ⌘ + Z · Shift + Z</kbd></div><div className="shortcut"><span>Save workspace</span><strong>Automatic</strong></div><p className="help-warning">Market prices in this preview are entirely simulated. Live trading and YoungMoney3 linking are not available yet.</p><button className="primary-button" onClick={() => setHelpOpen(false)}>Start exploring <ChevronRight size={16}/></button></div></div>}
   </div>;
 }

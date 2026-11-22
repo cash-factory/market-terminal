@@ -32,6 +32,7 @@ function chartCandles(rows: readonly Candle[]): CandlestickData<UTCTimestamp>[] 
   }));
 }
 
+const EMPTY_CANDLES: CandlestickData<UTCTimestamp>[] = [];
 const STREAM_URL = "wss://data-stream.binance.vision:443/ws/btcusdt@kline_";
 
 /** Opt-in, browser-side market data: no secrets, no proxy and no synthetic-price fallback. */
@@ -143,6 +144,7 @@ export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSourc
     };
   }, [key, interval, active]);
 
+  const projected = useMemo(() => chartCandles(snapshot.candles), [snapshot.candles]);
   if (!active) return {
     candles: demo, status: "synthetic",
     sourceLabel: "Synthetic demonstration candles", message: null,
@@ -153,7 +155,7 @@ export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSourc
     message: "Loading Binance Spot candles…", asOfMs: null
   };
   return {
-    candles: chartCandles(current.candles),
+    candles: snapshot.key === key ? projected : EMPTY_CANDLES,
     status: current.status,
     sourceLabel: "Binance Spot · BTC/USDT",
     message: current.message,
