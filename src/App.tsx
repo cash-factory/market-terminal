@@ -26,7 +26,8 @@ import {calculatePosition,defaultPositionTarget} from "./analysis/positionDrawin
 import { AlertsCenter } from "./alerts/AlertsCenter";
 import { ReplayControls } from "./replay/ReplayControls";
 import { beginReplay,stepReplay,seekReplay,toggleReplayPlayback,setReplaySpeed,visibleReplayCandles,type ReplayState,type ReplaySpeed } from "./replay/model";
-import { evaluatePriceAlerts, type PriceAlert } from "./alerts/engine";
+import { evaluatePriceAlerts, createPriceAlert, type PriceAlert } from "./alerts/engine";
+import { ChartContextLens } from "./context/ChartContextLens";
 import { defaultStudies, studyLabels, type StudySettings } from "./indicators/studies";
 import { BUILTIN_TEMPLATES, captureChartTemplate, selectTemplate } from "./indicators/templates";
 import {defaultStudyParameters,studyParameterBounds,studyParameterKeys,updateStudyParameter} from "./indicators/parameters";
@@ -70,7 +71,7 @@ export default function App() {
   },[]);
   const [page, setPage] = useState<Page>("terminal");
   const [focusMode,setFocusMode]=useState(false);
-  const [panelTab,setPanelTab]=useState<"markets"|"objects">(prefs.drawings.length ? "objects" : "markets");
+  const [panelTab,setPanelTab]=useState<"markets"|"objects"|"context">(prefs.drawings.length ? "objects" : "markets");
   useEffect(()=>{
     const onFocusShortcut=(event:KeyboardEvent)=>{
       const target=event.target;
@@ -453,6 +454,8 @@ export default function App() {
       case "objects":setPanelTab("objects");update({rightPanelOpen:true});
         notify("Drawing inspector opened.","info");break;
       case "tools":setMoreToolsOpen(true);notify("Drawing Tool Library opened.","info");break;
+      case "context":setPanelTab("context");update({rightPanelOpen:true});
+        notify("Chart Context Lens opened.","info");break;
       case "undo":undoDrawing();break;
       case "redo":redoDrawing();break;
     }
@@ -512,6 +515,29 @@ export default function App() {
   const addAlert = (alert:PriceAlert) => {
     setPrefs(old=>({...old,alerts:[...old.alerts,alert]}));
     notify("Price alert armed for "+symbols[alert.symbol].label+".");
+  };
+  const armLevelAlert=(price:number)=>{
+    if(replay || viewedLast<=0 || (prefs.priceSource==="binance"&&feed.status!=="live")){
+      notify("Return to an active chart before arming a crossing alert.","error");return;
+    }
+    if(!Number.isFinite(price)||price<=0||Math.abs(price-viewedLast)<1e-10){
+      notify("Choose a valid level above or below the observed close.","error");return;
+    }
+    const direction=price>viewedLast?"above":"below";
+    if(prefs.alerts.some(a=>a.symbol===prefs.symbol&&a.source===prefs.priceSource&&
+       a.direction===direction&&a.price===price&&a.triggeredAtMs===null)){
+      notify("A matching price alert is already armed.","info");return;
+    }
+    try{
+      addAlert(createPriceAlert(prefs.symbol,prefs.priceSource,direction,price,
+        crypto.randomUUID(),Date.now()));
+      notify("Crossing alert armed in this browser. Keep this tab open.");
+    }catch(error){notify(error instanceof Error?error.message:"Cannot arm this alert.","error");}
+  };
+  const openResearchFromChart=()=>{
+    setReplay(current=>current?{...current,playing:false}:current);
+    setPage("decisions");
+    notify("Decision Desk opened with the observed chart context.","info");
   };
   const removeAlert = (id:string) => {
     setPrefs(old=>({...old,alerts:old.alerts.filter(a=>a.id!==id)}));
@@ -1122,6 +1148,9 @@ export default function App() {
               <button type="button" role="tab" id="rail-tab-objects" aria-controls="rail-panel-objects"
                 aria-selected={panelTab==="objects"} className={panelTab==="objects"?"active":""}
                 onClick={()=>setPanelTab("objects")}><Layers size={15}/> Objects <span className="rail-count">{currentDrawings.length}</span></button>
+              <button type="button" role="tab" id="rail-tab-context" aria-controls="rail-panel-context"
+                aria-selected={panelTab==="context"} className={panelTab==="context"?"active":""}
+                onClick={()=>setPanelTab("context")}><Activity size={15}/> Context</button>
             </div>
             {panelTab==="markets"&&<div className="workspace-rail-content" id="rail-panel-markets" role="tabpanel" aria-labelledby="rail-tab-markets">
             {studio && !replay ? <MarketBoard compact frame={prefs.frame} selected={prefs.symbol} onOpen={openDemoMarket}/> : <>
@@ -1231,6 +1260,17 @@ export default function App() {
             </section>}
             {!studio && <p className="panel-note">Drag or click two points to draw. Lock, hide or duplicate objects here. Turn on Repeat to draw continuously. Ctrl+Z and Ctrl+Shift+Z undo and redo.</p>}
             </div>}
+            {panelTab==="context"&&<ChartContextLens
+              symbol={prefs.symbol} frame={prefs.frame} source={prefs.priceSource}
+              status={replay?"historical":feed.status} replay={Boolean(replay)}
+              currentPrice={viewedLast>0?viewedLast:null}
+              lastUpdatedMs={replay?replayTime*1000:feed.lastUpdatedMs}
+              levels={currentLevels} drawings={currentDrawings}
+              decisions={prefs.decisions} alerts={prefs.alerts}
+              onArmAlert={armLevelAlert} onCapture={openResearchFromChart}
+              onOpenDecisions={openResearchFromChart}
+              onShowMarkets={()=>setPanelTab("markets")}
+              onShowObjects={()=>setPanelTab("objects")}/>}
           </aside>}
         </div>}
         {page === "alerts" && <AlertsCenter
