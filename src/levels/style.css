@@ -20,3 +20,14 @@
 .price-level-frame-hint{font-size:10px;color:var(--muted);line-height:1.5;margin:0 0 12px}
 .price-level-toggles .drawing-settings-toggle{margin:9px 0 0}
 @media(max-width:540px){.price-level-dialog .drawing-dialog-content{padding:18px 16px}.price-level-fields{gap:11px}}
+
+.level-list .price-level-row-label{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.level-list .price-level-row-label strong{font-size:11px;font-weight:650;color:var(--soft)}
+.level-list .price-level-row-label small{font-size:9px;color:var(--muted);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.level-list>div.price-level-unshown{opacity:.58}
+.level-list>div.price-level-unshown:hover{opacity:1}
+.level-list button{border-radius:5px;display:grid;place-items:center;
+  width:26px;height:27px;flex-shrink:0}
+.level-list button[title="Level properties"]:hover{color:var(--accent);background:var(--accent-dim)}
+.level-list button[title="Remove level"]:hover{color:var(--negative);background:var(--raised)}
