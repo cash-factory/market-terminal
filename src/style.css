@@ -500,3 +500,18 @@
   .study-list-head{position:sticky;top:-12px;z-index:2;background:var(--panel)}
   .drawing-overlay.armed,.drawing-overlay.armed .drawing-plot-surface{touch-action:none}
 }
+
+
+/* Calendar attribution stays separate from actual quote feed health. */
+.market-session-reference{padding:8px 17px;border-block:1px solid var(--border);
+  background:var(--raised);font-size:10px;color:var(--soft)}
+.market-session-reference summary{display:flex;align-items:center;gap:11px;flex-wrap:wrap;
+  cursor:pointer;list-style:none;min-height:25px}
+.market-session-reference summary::before{content:"▸";color:var(--accent);font-size:12px}
+.market-session-reference[open] summary::before{content:"▾"}
+.market-session-reference summary>span{font-size:9px;letter-spacing:.5px;color:var(--muted)}
+.market-session-reference summary>strong{font-size:10px;font-weight:650;color:var(--text)}
+.market-session-reference summary>small{margin-left:auto;font-size:9px;color:var(--muted)}
+.market-session-reference p{font-size:10px;line-height:1.6;color:var(--muted);margin:10px 0}
+.market-session-reference a{color:var(--accent);font-size:10px}
+@media(max-width:620px){.market-session-reference summary>small{width:100%;margin-left:0}}
