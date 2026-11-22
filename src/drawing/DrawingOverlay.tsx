@@ -568,7 +568,10 @@ export function DrawingOverlay({
          const m=measurement(drawing.start,drawing.end,frameSeconds[frame]);
          const left=Math.min(a.x,b.x),top=Math.min(a.y,b.y);
          const width=Math.max(16,Math.abs(b.x-a.x)),height=Math.max(2,Math.abs(b.y-a.y));
-         const sign=m.change>0?"+":"";
+         const label=measurementSegments(drawing,
+           observedBarCount(candleTimes,drawing.start.time,drawing.end.time),
+           formatElapsedDuration(Math.abs(drawing.end.time-drawing.start.time)),
+           symbols[symbol].precision).map(part=>part.label).join(" · ");
          const labelToLeft=left+width>plot.width-145;
          return <>
            <rect x={left} y={top} width={width} height={height}
@@ -576,17 +579,19 @@ export function DrawingOverlay({
              strokeWidth={1} className="drawing-rectangle drawing-price-range"/>
            <line x1={left} x2={left+width} y1={a.y} y2={a.y} {...common} pointerEvents="none"/>
            <line x1={left} x2={left+width} y1={b.y} y2={b.y} {...common} pointerEvents="none"/>
-           <text x={labelToLeft?left+width-6:left+width+6} y={top+height/2} fill={drawing.color}
+           {drawing.showLabels!==false&&<text x={labelToLeft?left+width-6:left+width+6} y={top+height/2} fill={drawing.color}
              fontSize={11} fontWeight={700} dominantBaseline="middle" pointerEvents="none"
              textAnchor={labelToLeft?"end":"start"}>
-             {sign+m.change.toFixed(symbols[symbol].precision)+" / "+sign+m.percent.toFixed(2)+"%"}
-           </text>
+             {label}
+           </text>}
          </>;
        })()}
        {drawing.tool==="date-range" && (() => {
          const left=Math.min(a.x,b.x),width=Math.max(1,Math.abs(b.x-a.x));
          const bars=observedBarCount(candleTimes,drawing.start.time,drawing.end.time);
          const elapsed=formatElapsedDuration(Math.abs(drawing.end.time-drawing.start.time));
+         const label=measurementSegments(drawing,bars,elapsed,symbols[symbol].precision)
+           .map(part=>part.label).join(" · ");
          return <>
            <rect x={left} y={0} width={width} height={plot.height}
              fill={drawing.color} fillOpacity={drawing.fillOpacity??.08} pointerEvents="none"
@@ -595,9 +600,9 @@ export function DrawingOverlay({
              stroke="transparent" strokeWidth={16} fill="none" className="drawing-hit"/>
            <path d={"M "+a.x+" 0 V "+plot.height+" M "+b.x+" 0 V "+plot.height}
              fill="none" {...common} className="drawing-line"/>
-           <text x={Math.min(Math.max(90,left+width/2),Math.max(90,plot.width-90))} y={Math.max(18,Math.min(plot.height-12,28))}
+           {drawing.showLabels!==false&&<text x={Math.min(Math.max(90,left+width/2),Math.max(90,plot.width-90))} y={Math.max(18,Math.min(plot.height-12,28))}
              textAnchor="middle" fontSize={11} fontWeight={650} fill={drawing.color}
-             pointerEvents="none">{elapsed+" · "+bars+" observed bars"}</text>
+             pointerEvents="none">{label}</text>}
          </>;
        })()}
       {drawing.tool === "ray" && (() => {
@@ -614,18 +619,21 @@ export function DrawingOverlay({
         const m=measurement(drawing.start,drawing.end,frameSeconds[frame]);
         const left=Math.min(a.x,b.x),top=Math.min(a.y,b.y);
         const width=Math.max(1,Math.abs(b.x-a.x)),height=Math.max(1,Math.abs(b.y-a.y));
-        const sign=m.change>0?"+":"";
+        const label=measurementSegments(drawing,
+          observedBarCount(candleTimes,drawing.start.time,drawing.end.time),
+          formatElapsedDuration(Math.abs(drawing.end.time-drawing.start.time)),
+          symbols[symbol].precision).map(part=>part.label).join(" · ");
         return <>
           <rect x={left} y={top} width={width} height={height}
             fill={m.change>=0?"#20aa8b":"#dc6575"} fillOpacity={drawing.fillOpacity??.12}
             {...common} className="drawing-rectangle"/>
           <line x1={a.x} y1={a.y} x2={b.x} y2={b.y}
             {...common} className="drawing-line" pointerEvents="none"/>
-          <text x={(a.x+b.x)/2} y={top+height/2}
+          {drawing.showLabels!==false&&<text x={(a.x+b.x)/2} y={top+height/2}
             fill={drawing.color} fontWeight={700} fontSize={11}
             textAnchor="middle" pointerEvents="none">
-            {sign+m.change.toFixed(4)+" ("+sign+m.percent.toFixed(2)+"%) · "+m.bars+" bars"}
-          </text>
+            {label}
+          </text>}
         </>;
       })()}
       {drawing.tool === "trendline" && (() => {
