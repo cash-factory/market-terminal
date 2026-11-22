@@ -82,7 +82,7 @@ function IndicatorPane({kind,candles,priceChart,dark}:PaneProps){
       pane.chart.timeScale().fitContent();
       hasFit.current=true;
     }
-    const range=priceChart.timeScale().getVisibleLogicalRange();
+    const range=priceChart.timeScale().getVisibleRange();
     if(range){
       try{pane.chart.timeScale().setVisibleRange(range);}
       catch{/* visual sync waits for valid data */}
