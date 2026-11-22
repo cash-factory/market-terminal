@@ -7,6 +7,8 @@ import {
 } from "lucide-react";
 import { ChartCanvas,type ChartSurface,type ChartRange } from "./ChartCanvas";
 import {chartStyles,type ChartDisplayStyle} from "./charts/display";
+import {ChartProfileMenu} from "./charts/ChartProfileMenu";
+import {applyChartProfile,createChartProfile} from "./charts/profiles";
 import { nearestCrosshairBar } from "./charts/sync";
 import type { Drawing, DrawingTool } from "./drawing/types";
 import {groupDrawings,ungroupDrawings,styleDrawings,moveDrawingLayers,updateDrawingAndGroup,type DrawingStylePatch} from "./drawing/manage";
@@ -286,6 +288,25 @@ export default function App() {
     update({frame:selected.frame,showSma:selected.showSma,studies:{...selected.studies},studyParameters:{...selected.parameters}});
     notify(selected.name+" chart template applied.");
   };
+  const saveFullChartProfile=(name:string)=>{
+    try{
+      const profile=createChartProfile("profile:"+crypto.randomUUID(),name,prefs,Date.now());
+      setPrefs(old=>({...old,chartProfiles:[...old.chartProfiles,profile]}));
+      notify(profile.name+" chart workspace saved.");
+    }catch(error){notify(error instanceof Error?error.message:"Cannot save chart workspace.","error");}
+  };
+  const applyFullChartProfile=(id:string)=>{
+    const selected=prefs.chartProfiles.find(profile=>profile.id===id);
+    if(!selected){notify("Saved chart workspace not found.","error");return;}
+    setReplay(null);
+    setDrawingTool(null);setDrawMode(false);setSelectedDrawingIds([]);
+    setPrefs(old=>applyChartProfile(old,selected));
+    notify(selected.name+" chart workspace restored.");
+  };
+  const deleteFullChartProfile=(id:string)=>{
+    setPrefs(old=>({...old,chartProfiles:old.chartProfiles.filter(profile=>profile.id!==id)}));
+    notify("Saved chart workspace deleted.");
+  };
   const saveChartTemplate=()=>{
     try{
       const template=captureChartTemplate("custom:"+crypto.randomUUID(),templateName,prefs.frame,prefs.showSma,prefs.studies,prefs.studyParameters);
@@ -348,7 +369,7 @@ export default function App() {
       const json: unknown = JSON.parse(await file.text());
       if (!json || typeof json !== "object" || Array.isArray(json) ||
         !("format" in json) || json.format !== "market-terminal-workspace" ||
-        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15 && json.version !== 16 && json.version !== 17 && json.version !== 18 && json.version !== 19 && json.version !== 20) ||
+        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15 && json.version !== 16 && json.version !== 17 && json.version !== 18 && json.version !== 19 && json.version !== 20 && json.version !== 21) ||
         !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
       const workspace = parseWorkspace(json);
       setPrefs(workspace);
@@ -536,6 +557,10 @@ export default function App() {
                   update({chartLayout:prefs.chartLayout==="quad"?"single":"quad"});
                   notify(prefs.chartLayout==="quad"?"Single chart enabled.":"Four-chart workspace enabled.");
                 }}><Grid2X2 size={15}/> Four charts</button>
+              <ChartProfileMenu profiles={prefs.chartProfiles}
+                onSave={saveFullChartProfile}
+                onApply={applyFullChartProfile}
+                onDelete={deleteFullChartProfile}/>
               <label className="chart-style-switch">Chart style
                 <select aria-label="Chart display style" value={prefs.chartDisplayStyle}
                   onChange={e=>{
