@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import type {
   CandlestickData, IChartApi, ISeriesApi, Logical, UTCTimestamp
 } from "lightweight-charts";
@@ -53,6 +53,7 @@ export function DrawingOverlay({
   const pendingRef = useRef<PendingClick | null>(null);
   const pendingChannelRef=useRef<PendingChannel|null>(null);
   const [draft, setDraftState] = useState<Drawing | null>(null);
+  const candleTimes=useMemo(()=>candles.map(c=>Number(c.time)),[candles]);
   const [, setRevision] = useState(0);
   const animationFrame = useRef<number | null>(null);
 
@@ -513,8 +514,7 @@ export function DrawingOverlay({
        })()}
        {drawing.tool==="date-range" && (() => {
          const left=Math.min(a.x,b.x),width=Math.max(1,Math.abs(b.x-a.x));
-         const bars=observedBarCount(candles.map(c=>Number(c.time)),
-           drawing.start.time,drawing.end.time);
+         const bars=observedBarCount(candleTimes,drawing.start.time,drawing.end.time);
          const elapsed=formatElapsedDuration(Math.abs(drawing.end.time-drawing.start.time));
          return <>
            <rect x={left} y={0} width={width} height={plot.height}
