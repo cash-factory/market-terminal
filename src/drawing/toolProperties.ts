@@ -27,7 +27,7 @@ export function measurementSegments(
   const parts:{kind:keyof MeasurementParts;label:string}[]=[
     {kind:"price",label:sign+change.toFixed(precision)},
     {kind:"percent",label:sign+(change/drawing.start.price*100).toFixed(2)+"%"},
-    {kind:"bars",label:Math.max(0,observedBars-1)+" observed intervals"},
+    {kind:"bars",label:observedBars+" observed bars"},
     {kind:"elapsed",label:elapsed}
   ];
   return parts.filter(item=>selected[item.kind]);
