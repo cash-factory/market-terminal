@@ -77,7 +77,7 @@ export function ToolShelf({
           return <div className={"tool-shelf-row"+(activeTool?" active":"")} key={tool.id}>
             <button type="button" className="tool-shelf-select"
               disabled={disabled} onClick={()=>choose(tool.id)}
-              title={tool.description} aria-pressed={activeTool}>
+              aria-label={tool.label} title={tool.description} aria-pressed={activeTool}>
               <span className="tool-shelf-tool-mark">{tool.points===1?"1":tool.points===2?"2":"3"}</span>
               <span className="tool-shelf-tool-copy"><strong>{tool.label}</strong>
                 <small>{tool.description}</small></span>
