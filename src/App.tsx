@@ -39,7 +39,7 @@ import { defaultStudies, studyLabels, type StudySettings } from "./indicators/st
 import { BUILTIN_TEMPLATES, captureChartTemplate, selectTemplate } from "./indicators/templates";
 import {defaultStudyParameters,studyParameterBounds,studyParameterKeys,updateStudyParameter} from "./indicators/parameters";
 import {createCustomStudy} from "./indicators/formula";
-import { defaultWorkspace, loadWorkspace, parseWorkspace, serializeWorkspace, type Workspace } from "./workspace";
+import { defaultWorkspace, loadWorkspace, parseWorkspace, serializeWorkspace, type Workspace, type Level } from "./workspace";
 import { CommandPalette } from "./commands/CommandPalette";
 
 type Page = "home" | "terminal" | "alerts" | "library" | "settings";
