@@ -11,7 +11,7 @@ const drawing:Drawing={
 
 describe("per-object properties and market safety",()=>{
  it("preserves UTC interpretation and rejects malformed datetime-local input",()=>{
-   expect(formatAnchorUtc(1800000001)).toMatch(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}$/);
+   expect(formatAnchorUtc(1800000001)).toBe("2027-01-15T08:00");
    expect(parseAnchorUtc("2026-11-22T17:20")).toBeGreaterThan(0);
    expect(parseAnchorUtc("2026-02-31T15:30")).toBeNull();
    expect(parseAnchorUtc("2026-11-22T99:00")).toBeNull();
