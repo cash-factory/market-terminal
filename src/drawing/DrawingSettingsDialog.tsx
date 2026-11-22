@@ -142,6 +142,17 @@ export function DrawingSettingsDialog({drawing,onSave,onClose}:Props){
                 onChange={e=>setDraft(old=>({...old,fillOpacity:Number(e.target.value)}))}/>
             </label>}
         </div>
+        {drawing.tool==="callout"&&<label className="drawing-settings-note">
+          Evidence classification
+          <select aria-label="Evidence classification" value={draft.evidenceSide??"unclassified"}
+            onChange={e=>setDraft(old=>({...old,
+              evidenceSide:e.target.value as "supports"|"challenges"|"unclassified"}))}>
+            <option value="unclassified">Observation / unclassified</option>
+            <option value="supports">Evidence supporting the thesis</option>
+            <option value="challenges">Evidence challenging the thesis</option>
+          </select>
+          <small>These labels reflect your interpretation; they do not validate a market prediction.</small>
+        </label>}
         {drawing.tool==="rectangle"&&<label className="drawing-settings-toggle">
           <input type="checkbox" checked={draft.showMidline??false}
             onChange={e=>setDraft(old=>({...old,showMidline:e.target.checked}))}/>
