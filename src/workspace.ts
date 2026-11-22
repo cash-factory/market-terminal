@@ -4,6 +4,7 @@ import { isDrawing, type Drawing } from "./drawing/types";
 import { emptyRiskInputs, parseRiskInputs, type RiskPlannerInputs } from "./analysis/risk";
 import { defaultStudies, parseStudies, type StudySettings } from "./indicators/studies";
 import { parseChartTemplates,type ChartTemplate } from "./indicators/templates";
+import { defaultStudyParameters,parseStudyParameters,type StudyParameters } from "./indicators/parameters";
 import { isPriceAlert, type PriceAlert } from "./alerts/engine";
 
 export type Level = { id: string; symbol: SymbolId; price: number; color: string; source?: "demo" | "binance" };
@@ -25,6 +26,7 @@ export type Workspace = {
   magnetEnabled: boolean;
   riskPlanner: RiskPlannerInputs;
   studies: StudySettings;
+  studyParameters: StudyParameters;
   chartTemplates: ChartTemplate[];
   alerts: PriceAlert[];
 };
@@ -46,6 +48,7 @@ export const defaultWorkspace: Workspace = {
   magnetEnabled: false,
   riskPlanner: {...emptyRiskInputs},
   studies: {...defaultStudies},
+  studyParameters: {...defaultStudyParameters},
   chartTemplates: [],
   alerts: [],
 };
@@ -87,6 +90,7 @@ export function parseWorkspace(value: unknown): Workspace {
     magnetEnabled: typeof raw.magnetEnabled === "boolean" ? raw.magnetEnabled : false,
     riskPlanner: parseRiskInputs(raw.riskPlanner),
     studies: parseStudies(raw.studies),
+    studyParameters: parseStudyParameters(raw.studyParameters),
     chartTemplates: parseChartTemplates(raw.chartTemplates),
     alerts: Array.isArray(raw.alerts)?raw.alerts.filter(isPriceAlert):[],
   };
@@ -100,5 +104,5 @@ export function loadWorkspace(): Workspace {
   }
 }
 export function serializeWorkspace(workspace: Workspace): string {
-  return JSON.stringify({ format: "market-terminal-workspace", version: 12, preferences: workspace }, null, 2);
+  return JSON.stringify({ format: "market-terminal-workspace", version: 13, preferences: workspace }, null, 2);
 }

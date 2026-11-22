@@ -10,6 +10,7 @@ import { DrawingOverlay } from "./drawing/DrawingOverlay";
 import type { Drawing, DrawingTool } from "./drawing/types";
 import { bollingerBands, ema, type StudySettings } from "./indicators/studies";
 import { IndicatorPanels } from "./indicators/IndicatorPanels";
+import type { StudyParameters } from "./indicators/parameters";
 
 interface Props {
   symbol: SymbolId;
@@ -26,6 +27,7 @@ interface Props {
   drawingColor: string;
   magnetEnabled: boolean;
   studies: StudySettings;
+  parameters: StudyParameters;
   onAddDrawing: (drawing: Drawing) => void;
   onUpdateDrawing: (drawing: Drawing) => void;
   onDeleteDrawing: (id: string) => void;
@@ -34,7 +36,7 @@ type Surface = { chart: IChartApi; series: ISeriesApi<"Candlestick"> };
 
 export function ChartCanvas({
   symbol, frame, source, candles, dark, showSma, levels, drawMode, onPlaceLevel,
-  drawingTool, drawings, drawingColor, studies, magnetEnabled, onAddDrawing, onUpdateDrawing, onDeleteDrawing
+  drawingTool, drawings, drawingColor, studies, parameters, magnetEnabled, onAddDrawing, onUpdateDrawing, onDeleteDrawing
 }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const chart = useRef<IChartApi | null>(null);
@@ -101,10 +103,10 @@ export function ChartCanvas({
   useEffect(() => {
     if (!series.current) return;
     series.current.setData(candles);
-    if (average.current) average.current.setData(sma(candles, 20));
-    studyLines.current.ema?.setData(ema(candles,20));
+    if (average.current) average.current.setData(sma(candles, parameters.smaPeriod));
+    studyLines.current.ema?.setData(ema(candles,parameters.emaPeriod));
     if(studyLines.current.bb){
-      const bands=bollingerBands(candles,20);
+      const bands=bollingerBands(candles,parameters.bollingerPeriod,parameters.bollingerDeviations);
       studyLines.current.bb[0].setData(bands.upper);
       studyLines.current.bb[1].setData(bands.middle);
       studyLines.current.bb[2].setData(bands.lower);
@@ -113,7 +115,7 @@ export function ChartCanvas({
       chart.current?.timeScale().fitContent();
       fitted.current = true;
     }
-  }, [candles, symbol, frame, dark, showSma, source, studies.ema20, studies.bollinger20]);
+  }, [candles, symbol, frame, dark, showSma, source, studies.ema20, studies.bollinger20, parameters]);
 
   useEffect(() => {
     const s = series.current;
@@ -136,7 +138,7 @@ export function ChartCanvas({
     />}
   </div>
   {surface && surface.chart === chart.current && <IndicatorPanels
-    chart={surface.chart} candles={candles} dark={dark} studies={studies}
+    chart={surface.chart} candles={candles} dark={dark} studies={studies} parameters={parameters}
   />}
   </div>;
 }

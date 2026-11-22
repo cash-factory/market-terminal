@@ -290,3 +290,16 @@
 .study-template-list button{border:0;color:var(--muted);display:grid;place-items:center;background:transparent}
 .study-template-list button:hover{color:var(--negative)}
 @media(max-width:480px){.study-list{max-width:calc(100vw - 32px)}}
+
+
+/* Customizable indicator numeric inputs in the studies popover. */
+.study-parameter-section{padding:12px 7px 10px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:10px}
+.study-parameter-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.study-parameter-head strong{font-size:11px;color:var(--text)}
+.study-parameter-head button{font-size:10px;border:1px solid var(--border);color:var(--accent);background:var(--raised);border-radius:6px;padding:6px 8px}
+.study-parameter-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.study-parameter-grid label{min-width:0;display:flex;flex-direction:column;gap:5px}
+.study-parameter-grid label span{color:var(--soft);font-size:10px}
+.study-parameter-grid input{width:100%;min-width:0;border:1px solid var(--border);border-radius:6px;background:var(--raised);color:var(--text);padding:8px 9px;font-size:12px;font-variant-numeric:tabular-nums}
+.study-parameter-grid input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.study-parameter-section>small{color:var(--muted);font-size:9px;line-height:1.5}
