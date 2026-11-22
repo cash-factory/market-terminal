@@ -34,7 +34,8 @@ describe("precision line geometry",()=>{
     expect(verticalReference({x:-3,y:55},plot)).toBeNull();
   });
   it("counts observed candles, not inferred timestamps across market closures",()=>{
-    expect(observedBarCount([60,120,300,300,600],120,600)).toBe(4);
+    expect(observedBarCount([60,120,300,600],120,600)).toBe(3);
+    expect(observedBarCount([60,120,300,600],NaN,600)).toBe(0);
     expect(observedBarCount([60,120,300,600],600,120)).toBe(3);
     expect(formatElapsedDuration(3*86400+2*3600+60)).toBe("3d 2h 1m");
     expect(formatElapsedDuration(-10)).toBe("—");
