@@ -12,15 +12,15 @@ export function isDrawingVisibleAtFrame(drawing:Drawing,frame:Frame):boolean{
 
 /** UTC is explicit: datetime-local inputs have no timezone semantics of their own. */
 export function formatAnchorUtc(seconds:number):string{
-  return new Date(seconds*1000).toISOString().slice(0,16);
+  return new Date(seconds*1000).toISOString().slice(0,19);
 }
 export function parseAnchorUtc(value:string):number|null{
-  if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value))return null;
-  const date=Date.parse(value+":00Z");
+  if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/.test(value))return null;
+  const date=Date.parse(value+(value.length===16?":00Z":"Z"));
   if(!Number.isFinite(date))return null;
   const result=Math.round(date/1000);
   return Number.isSafeInteger(result)&&result>=0&&
-    formatAnchorUtc(result)===value?result:null;
+    formatAnchorUtc(result)===(value.length===16?value+":00":value)?result:null;
 }
 
 /** Editing the first or second pattern anchor also updates the corresponding path point. */
