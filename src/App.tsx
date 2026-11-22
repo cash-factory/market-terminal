@@ -3,7 +3,7 @@ import {
   Activity, ArrowDownToLine, Bell, BookOpen, ChartCandlestick, Check,
   ChevronLeft, ChevronRight, Command, Compass, Download, Home, Layers,
   Menu, Moon, MousePointer2, Plus, RotateCcw, Search, Settings2, Sun,
-  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Target, Film, Magnet, MoveUpRight, ArrowUpRight, Columns2
+  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Target, Film, Magnet, MoveUpRight, ArrowUpRight, Columns2, Grid2X2
 } from "lucide-react";
 import { ChartCanvas } from "./ChartCanvas";
 import type { Drawing, DrawingTool } from "./drawing/types";
@@ -61,6 +61,13 @@ export default function App() {
   // Secondary panels are explicitly synthetic until licensed additional feeds
   // can be attached to each pane independently.
   const comparisonFeed = usePriceFeed(prefs.secondarySymbol, prefs.frame, "demo");
+  const thirdFeed = usePriceFeed(prefs.tertiarySymbol,prefs.frame,"demo");
+  const fourthFeed = usePriceFeed(prefs.quaternarySymbol,prefs.frame,"demo");
+  const comparisonPanels = [
+    {slot:"secondarySymbol" as const,symbol:prefs.secondarySymbol,candles:comparisonFeed.candles,number:2},
+    {slot:"tertiarySymbol" as const,symbol:prefs.tertiarySymbol,candles:thirdFeed.candles,number:3},
+    {slot:"quaternarySymbol" as const,symbol:prefs.quaternarySymbol,candles:fourthFeed.candles,number:4}
+  ];
   const currentCandles = feed.candles;
   const last = currentCandles.length ? currentCandles[currentCandles.length - 1].close : 0;
   const viewedCandles=useMemo(()=>replay?visibleReplayCandles(replay):currentCandles,[replay,currentCandles]);
@@ -68,8 +75,6 @@ export default function App() {
   const replayTime=viewedCandles.length?Number(viewedCandles[viewedCandles.length-1].time):0;
   const currentLevels = useMemo(() => prefs.levels.filter(level => level.symbol === prefs.symbol && (level.source ?? "demo") === prefs.priceSource), [prefs.levels, prefs.symbol, prefs.priceSource]);
   const currentDrawings = useMemo(() => prefs.drawings.filter(drawing => drawing.symbol === prefs.symbol && (drawing.source ?? "demo") === prefs.priceSource), [prefs.drawings, prefs.symbol, prefs.priceSource]);
-  const comparisonLevels = useMemo(() => prefs.levels.filter(level => level.symbol === prefs.secondarySymbol && (level.source ?? "demo") === "demo"), [prefs.levels,prefs.secondarySymbol]);
-  const comparisonDrawings = useMemo(() => prefs.drawings.filter(drawing => drawing.symbol === prefs.secondarySymbol && (drawing.source ?? "demo") === "demo"), [prefs.drawings,prefs.secondarySymbol]);
   const sourceStateLabel = prefs.priceSource === "demo" ? "SYNTHETIC DATA" : ({
     loading: "LOADING BINANCE", connecting: "CONNECTING", historical: "HISTORICAL",
     live: "LIVE · BINANCE SPOT", stale: "STALE FEED", error: "FEED UNAVAILABLE", synthetic: "SYNTHETIC DATA"
@@ -121,10 +126,10 @@ export default function App() {
   };
   const addDrawing = (drawing: Drawing) => addDrawingFor(drawing,prefs.priceSource);
   const addComparisonDrawing = (drawing: Drawing) => addDrawingFor(drawing,"demo");
-  const addComparisonLevel = (price:number) => {
+  const addComparisonLevel = (symbol:SymbolId,price:number) => {
     if(!Number.isFinite(price)||price<=0){notify("Enter a valid positive price.","error");return;}
     setPrefs(old=>({...old,levels:[...old.levels,{
-      id:crypto.randomUUID(),symbol:old.secondarySymbol,source:"demo",price,
+      id:crypto.randomUUID(),symbol,source:"demo",price,
       color:old.accent==="amber"?"#e7b05f":old.accent==="teal"?"#24bfa0":"#9495fa"
     }]}));
     setDrawMode(false);notify("Comparison chart price level saved.");
@@ -238,7 +243,7 @@ export default function App() {
       const json: unknown = JSON.parse(await file.text());
       if (!json || typeof json !== "object" || Array.isArray(json) ||
         !("format" in json) || json.format !== "market-terminal-workspace" ||
-        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13) ||
+        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14) ||
         !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
       const workspace = parseWorkspace(json);
       setPrefs(workspace);
@@ -414,11 +419,18 @@ export default function App() {
               <span className="tool-divider"/>
               <button className={"compact-action chart-layout-toggle "+(prefs.chartLayout==="dual"?"active":"")}
                 aria-label="Toggle dual-chart layout" aria-pressed={prefs.chartLayout==="dual"}
-                title="Display one chart or two independent chart panels"
+                title="Switch single and dual views (also from four-chart view)"
                 onClick={()=>{
                   update({chartLayout:prefs.chartLayout==="dual"?"single":"dual"});
                   notify(prefs.chartLayout==="dual"?"Single chart workspace enabled.":"Dual-chart workspace enabled.");
                 }}><Columns2 size={15}/> {prefs.chartLayout==="dual"?"Two charts":"Split chart"}</button>
+              <button className={"compact-action chart-layout-toggle "+(prefs.chartLayout==="quad"?"active":"")}
+                aria-label="Toggle four-chart layout" aria-pressed={prefs.chartLayout==="quad"}
+                title="View four independently selectable market charts"
+                onClick={()=>{
+                  update({chartLayout:prefs.chartLayout==="quad"?"single":"quad"});
+                  notify(prefs.chartLayout==="quad"?"Single chart enabled.":"Four-chart workspace enabled.");
+                }}><Grid2X2 size={15}/> Four charts</button>
               <span className="tool-divider"/>
               <button className="compact-action panel-toggle" title={prefs.rightPanelOpen ? "Hide watchlist" : "Show watchlist"}
                 aria-label={prefs.rightPanelOpen ? "Hide watchlist" : "Show watchlist"}
@@ -545,9 +557,9 @@ export default function App() {
             />}
             {drawMode && <div className="draw-banner"><MousePointer2 size={16}/> Click on the chart to place a level <button onClick={() => setDrawMode(false)}>Cancel <X size={14}/></button></div>}
             {drawingTool && <div className="draw-banner"><MousePointer2 size={16}/> Click two points or drag to draw a {drawingTool}. After drawing, click the shape to move it or drag its handles. <button onClick={() => setDrawingTool(null)}>Cancel <X size={14}/></button></div>}
-            <div className={"chart-grid "+(!replay&&prefs.chartLayout==="dual"?"chart-grid-dual":"chart-grid-single")}>
+            <div className={"chart-grid chart-grid-"+(replay?"single":prefs.chartLayout)}>
               <section className="chart-grid-cell" aria-label="Primary chart">
-                {!replay&&prefs.chartLayout==="dual"&&<div className="chart-cell-label"><span>01 / PRIMARY</span>
+                {!replay&&prefs.chartLayout!=="single"&&<div className="chart-cell-label"><span>01 / PRIMARY</span>
                   <strong>{symbols[prefs.symbol].label}</strong><small>{feed.sourceLabel}</small>
                 </div>}
                 <ChartCanvas key={replay?"historical-replay":"active-chart"} symbol={prefs.symbol} frame={prefs.frame} source={prefs.priceSource} candles={viewedCandles}
