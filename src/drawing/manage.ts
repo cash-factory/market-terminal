@@ -15,14 +15,14 @@ export function ungroupDrawings(drawings:readonly Drawing[],ids:readonly string[
   const selection=new Set(ids);
   return drawings.map(d=>selection.has(d.id)?{...d,groupId:undefined}:d);
 }
-export function updateDrawingAndGroup(drawings:readonly Drawing[],updated:Drawing):Drawing[]{
+export function updateDrawingAndGroup(drawings:readonly Drawing[],updated:Drawing,editKind?:"move"|"start"|"end"):Drawing[]{
   const original=drawings.find(d=>d.id===updated.id);
   if(!original)return [...drawings];
   const dt=updated.start.time-original.start.time;
   const dp=updated.start.price-original.start.price;
   const endDt=updated.end.time-original.end.time;
   const endDp=updated.end.price-original.end.price;
-  const pureMove=Math.abs(endDt-dt)<=1&&Math.abs(endDp-dp)<1e-8;
+  const pureMove=editKind?editKind==="move":Math.abs(endDt-dt)<=1&&Math.abs(endDp-dp)<1e-8;
   if(!original.groupId||!pureMove) return drawings.map(d=>d.id===updated.id?updated:d);
   return drawings.map(d=>{
     if(d.id===updated.id)return updated;
