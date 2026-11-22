@@ -269,7 +269,7 @@ export default function App() {
               <WifiOff size={16}/><span>{feed.message ?? "Connecting to the exchange…"}</span>
               <button onClick={feed.retry}><RefreshCw size={14}/> Retry</button>
               <button onClick={() => update({priceSource:"demo"})}>Use demo</button>
-            </div>
+            </div>}
             {drawMode && <div className="draw-banner"><MousePointer2 size={16}/> Click on the chart to place a level <button onClick={() => setDrawMode(false)}>Cancel <X size={14}/></button></div>}
             {drawingTool && <div className="draw-banner"><MousePointer2 size={16}/> Drag on the chart to create a {drawingTool}. Select an existing shape to reposition or resize it. <button onClick={() => setDrawingTool(null)}>Cancel <X size={14}/></button></div>}
             <ChartCanvas symbol={prefs.symbol} frame={prefs.frame} source={prefs.priceSource} candles={currentCandles}
