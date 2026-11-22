@@ -47,12 +47,29 @@ export function verticalReference(
   return {start:{x:anchor.x,y:0},end:{x:anchor.x,y:plot.height}};
 }
 
-/** Count observed OHLC timestamps, not theoretical intervals across closed markets. */
+/** Count actual normalized ascending candle timestamps, not theoretical
+ * intervals across weekends, exchange closures or missing feed history.
+ * Binary search avoids scanning every candle for each visible drawing.
+ */
 export function observedBarCount(
   times:readonly number[],startSeconds:number,endSeconds:number
 ):number{
+  if(!Number.isFinite(startSeconds)||!Number.isFinite(endSeconds))return 0;
   const lo=Math.min(startSeconds,endSeconds),hi=Math.max(startSeconds,endSeconds);
-  return times.filter(t=>Number.isFinite(t)&&t>=lo&&t<=hi).length;
+  let left=0,right=times.length;
+  while(left<right){
+    const mid=(left+right)>>>1;
+    if(times[mid]<lo)left=mid+1;
+    else right=mid;
+  }
+  const start=left;
+  right=times.length;
+  while(left<right){
+    const mid=(left+right)>>>1;
+    if(times[mid]<=hi)left=mid+1;
+    else right=mid;
+  }
+  return left-start;
 }
 
 export function formatElapsedDuration(seconds:number):string{
