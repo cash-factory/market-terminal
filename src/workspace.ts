@@ -110,5 +110,5 @@ export function loadWorkspace(): Workspace {
   }
 }
 export function serializeWorkspace(workspace: Workspace): string {
-  return JSON.stringify({ format: "market-terminal-workspace", version: 14, preferences: workspace }, null, 2);
+  return JSON.stringify({ format: "market-terminal-workspace", version: 15, preferences: workspace }, null, 2);
 }
