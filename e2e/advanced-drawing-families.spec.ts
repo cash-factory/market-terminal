@@ -50,8 +50,11 @@ test("four-to-six pivot patterns preserve exact sequence, vertex handles and sto
   await page.goto("/market-terminal/?classic");
   await choose(page,"ABCD pattern");
   await baseline(page,[.22,.65],[.42,.38]);
+  await expect(page.locator(".drawing-anchor-progress")).toContainText("ANCHOR 3 / 4");
   await click(page,.58,.58);
+  await expect(page.locator(".drawing-anchor-progress")).toContainText("ANCHOR 4 / 4");
   await click(page,.76,.29);
+  await expect(page.locator(".drawing-anchor-progress")).toHaveCount(0);
   await expect(page.locator(".drawing-pattern-path")).toHaveCount(1);
   let data=await page.evaluate(()=>JSON.parse(localStorage.getItem("market-terminal-workspace")??"{}"));
   expect(data.preferences.drawings[0].tool).toBe("pattern-abcd");
