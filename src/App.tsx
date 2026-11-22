@@ -5,7 +5,8 @@ import {
   Menu, Moon, MousePointer2, Plus, RotateCcw, Search, Settings2, Sun,
   Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Target, Film, Magnet, MoveUpRight, ArrowUpRight, Columns2, Grid2X2, Shapes, Pencil, ArrowUp, ArrowDown
 } from "lucide-react";
-import { ChartCanvas } from "./ChartCanvas";
+import { ChartCanvas,type ChartSurface,type ChartRange } from "./ChartCanvas";
+import { nearestCrosshairBar } from "./charts/sync";
 import type { Drawing, DrawingTool } from "./drawing/types";
 import {groupDrawings,ungroupDrawings,styleDrawings,moveDrawingLayers,updateDrawingAndGroup,type DrawingStylePatch} from "./drawing/manage";
 import { frameSeconds, symbols, type Frame, type SymbolId } from "./market";
@@ -45,6 +46,9 @@ export default function App() {
   const [drawMode, setDrawMode] = useState(false);
   const [drawingTool, setDrawingTool] = useState<DrawingTool | null>(null);
   const [selectedDrawingIds,setSelectedDrawingIds]=useState<string[]>([]);
+  const linkedChartRefs=useRef<Record<string,ChartSurface>>({});
+  const paneCandlesRef=useRef<Record<string,ReturnType<typeof usePriceFeed>["candles"]>>({});
+  const syncingChartsRef=useRef(false);
   const drawingHistory = useRef<{ past: Drawing[][]; future: Drawing[][] }>({ past: [], future: [] });
   const [historyVersion, setHistoryVersion] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -65,19 +69,28 @@ export default function App() {
   const feed = usePriceFeed(prefs.symbol, prefs.frame, prefs.priceSource);
   // Secondary panels are explicitly synthetic until licensed additional feeds
   // can be attached to each pane independently.
-  const comparisonFeed = usePriceFeed(prefs.secondarySymbol, prefs.frame, "demo");
-  const thirdFeed = usePriceFeed(prefs.tertiarySymbol,prefs.frame,"demo");
-  const fourthFeed = usePriceFeed(prefs.quaternarySymbol,prefs.frame,"demo");
+  const comparisonFeed = usePriceFeed(prefs.secondarySymbol,prefs.secondaryFrame,prefs.secondarySource);
+  const thirdFeed = usePriceFeed(prefs.tertiarySymbol,prefs.tertiaryFrame,prefs.tertiarySource);
+  const fourthFeed = usePriceFeed(prefs.quaternarySymbol,prefs.quaternaryFrame,prefs.quaternarySource);
   const comparisonPanels = [
-    {slot:"secondarySymbol" as const,symbol:prefs.secondarySymbol,candles:comparisonFeed.candles,number:2},
-    {slot:"tertiarySymbol" as const,symbol:prefs.tertiarySymbol,candles:thirdFeed.candles,number:3},
-    {slot:"quaternarySymbol" as const,symbol:prefs.quaternarySymbol,candles:fourthFeed.candles,number:4}
+    {slot:"secondarySymbol" as const,frameSlot:"secondaryFrame" as const,sourceSlot:"secondarySource" as const,
+      symbol:prefs.secondarySymbol,frame:prefs.secondaryFrame,source:prefs.secondarySource,feed:comparisonFeed,number:2},
+    {slot:"tertiarySymbol" as const,frameSlot:"tertiaryFrame" as const,sourceSlot:"tertiarySource" as const,
+      symbol:prefs.tertiarySymbol,frame:prefs.tertiaryFrame,source:prefs.tertiarySource,feed:thirdFeed,number:3},
+    {slot:"quaternarySymbol" as const,frameSlot:"quaternaryFrame" as const,sourceSlot:"quaternarySource" as const,
+      symbol:prefs.quaternarySymbol,frame:prefs.quaternaryFrame,source:prefs.quaternarySource,feed:fourthFeed,number:4}
   ];
   const currentCandles = feed.candles;
   const last = currentCandles.length ? currentCandles[currentCandles.length - 1].close : 0;
   const viewedCandles=useMemo(()=>replay?visibleReplayCandles(replay):currentCandles,[replay,currentCandles]);
   const viewedLast=viewedCandles.length?viewedCandles[viewedCandles.length-1].close:0;
   const replayTime=viewedCandles.length?Number(viewedCandles[viewedCandles.length-1].time):0;
+  paneCandlesRef.current={
+    primary:viewedCandles,
+    secondarySymbol:comparisonFeed.candles,
+    tertiarySymbol:thirdFeed.candles,
+    quaternarySymbol:fourthFeed.candles
+  };
   const currentLevels = useMemo(() => prefs.levels.filter(level => level.symbol === prefs.symbol && (level.source ?? "demo") === prefs.priceSource), [prefs.levels, prefs.symbol, prefs.priceSource]);
   const currentDrawings = useMemo(() => prefs.drawings.filter(drawing => drawing.symbol === prefs.symbol && (drawing.source ?? "demo") === prefs.priceSource), [prefs.drawings, prefs.symbol, prefs.priceSource]);
   const sourceStateLabel = prefs.priceSource === "demo" ? "SYNTHETIC DATA" : ({
@@ -130,11 +143,10 @@ export default function App() {
     if (!prefs.keepDrawingToolActive) setDrawingTool(null);
   };
   const addDrawing = (drawing: Drawing) => addDrawingFor(drawing,prefs.priceSource);
-  const addComparisonDrawing = (drawing: Drawing) => addDrawingFor(drawing,"demo");
-  const addComparisonLevel = (symbol:SymbolId,price:number) => {
+  const addComparisonLevel = (symbol:SymbolId,source:"demo"|"binance",price:number) => {
     if(!Number.isFinite(price)||price<=0){notify("Enter a valid positive price.","error");return;}
     setPrefs(old=>({...old,levels:[...old.levels,{
-      id:crypto.randomUUID(),symbol,source:"demo",price,
+      id:crypto.randomUUID(),symbol,source,price,
       color:old.accent==="amber"?"#e7b05f":old.accent==="teal"?"#24bfa0":"#9495fa"
     }]}));
     setDrawMode(false);notify("Comparison chart price level saved.");
@@ -288,7 +300,7 @@ export default function App() {
       const json: unknown = JSON.parse(await file.text());
       if (!json || typeof json !== "object" || Array.isArray(json) ||
         !("format" in json) || json.format !== "market-terminal-workspace" ||
-        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15 && json.version !== 16) ||
+        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15 && json.version !== 16 && json.version !== 17) ||
         !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
       const workspace = parseWorkspace(json);
       setPrefs(workspace);
