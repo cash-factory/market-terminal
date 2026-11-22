@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { CandlestickData, UTCTimestamp } from "lightweight-charts";
-import { demoCandles, type Frame, type SymbolId } from "../market";
+import { demoCandles, isSecondsFrame, type Frame, type SymbolId } from "../market";
+import { aggregateSeconds } from "./seconds";
 import { fetchBinanceSpotCandles } from "./binance";
 import type { Candle } from "./contracts";
 import { mergeStreamCandle, parseBinanceStreamCandle } from "./stream";
@@ -44,6 +45,7 @@ export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSourc
     key: "", candles: [], status: "loading", message: null, asOfMs: null,
   });
   const active = mode === "binance" && symbol === "BTCUSDT";
+  const nativeFrame:Frame = isSecondsFrame(interval) ? "1s" : interval;
 
   useEffect(() => {
     if (!active) return;
@@ -68,7 +70,7 @@ export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSourc
         return;
       }
       try {
-        socket = new WebSocket(STREAM_URL + interval);
+        socket = new WebSocket(STREAM_URL + nativeFrame);
       } catch {
         scheduleRetry("Could not open the Binance WebSocket.");
         return;
@@ -82,7 +84,7 @@ export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSourc
       socket.onmessage = event => {
         let parsed: unknown;
         try { parsed = JSON.parse(String(event.data)); } catch { return; }
-        const candle = parseBinanceStreamCandle(parsed, interval);
+        const candle = parseBinanceStreamCandle(parsed, nativeFrame);
         if (!candle || disposed) return;
         receivedAt = Date.now();
         setSnapshot(old => {
@@ -111,14 +113,14 @@ export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSourc
 
     (async () => {
       try {
-        const batch = await fetchBinanceSpotCandles({ interval, signal: controller.signal });
+        const batch = await fetchBinanceSpotCandles({ interval:nativeFrame, signal: controller.signal });
         if (disposed) return;
         if (!batch.candles.length) throw new Error("Binance did not return any valid candles.");
         begin("historical", "Historical candles loaded. Connecting live stream…",
           batch.candles, batch.attribution.asOfMs);
         connect();
         healthTimer = setInterval(() => {
-          if (receivedAt && Date.now() - receivedAt > 30_000) {
+          if (receivedAt && Date.now() - receivedAt > (isSecondsFrame(interval)?8_000:30_000)) {
             setSnapshot(old => old.key === key && old.status === "live"
               ? {...old, status: "stale", message: "No live update received for over 30 seconds."} : old);
           }
@@ -142,9 +144,12 @@ export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSourc
         socket.close();
       }
     };
-  }, [key, interval, active]);
+  }, [key, nativeFrame, interval, active]);
 
-  const projected = useMemo(() => chartCandles(snapshot.candles), [snapshot.candles]);
+  const projected = useMemo(() => chartCandles(
+    isSecondsFrame(interval)?
+      aggregateSeconds(snapshot.candles,interval as "1s"|"5s"|"10s"|"15s"|"30s"|"45s"):
+      snapshot.candles), [snapshot.candles,interval]);
   if (!active) return {
     candles: demo, status: "synthetic",
     sourceLabel: "Synthetic demonstration candles", message: null,
@@ -157,7 +162,8 @@ export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSourc
   return {
     candles: snapshot.key === key ? projected : EMPTY_CANDLES,
     status: current.status,
-    sourceLabel: "Binance Spot · BTC/USDT",
+    sourceLabel: isSecondsFrame(interval) && interval!=="1s" ?
+      "Binance Spot · BTC/USDT · aggregated native 1s klines" : "Binance Spot · BTC/USDT",
     message: current.message,
     lastUpdatedMs: current.asOfMs,
     retry: () => setRevision(value => value + 1),
