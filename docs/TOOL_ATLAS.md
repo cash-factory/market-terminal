@@ -14,14 +14,14 @@ The tool taxonomy below is informed by established professional charting categor
 | Family | Available now | In development / later |
 | --- | --- | --- |
 | Market interaction | Synthetic demo instruments; opt-in direct Binance Spot BTC/USDT; instrument search; timeframes; candlestick/OHLC/line/area/Heikin-Ashi; linked/independent one, two or four panes | Permissioned market catalog, venue-specific forex/equities/indices, robust WebSocket backfill and source verification |
-| Trend geometry | Trendline, ray, horizontal level, three-point parallel channel, editable anchors | Extended/horizontal/vertical rays, median pitchforks, regression channels and other variants with mathematically tested anchors |
+| Trend geometry | Trendline, ray, extended line, horizontal line, horizontal ray, vertical line, cross line, three-point parallel channel, editable anchors | Extended/horizontal/vertical rays, median pitchforks, regression channels and other variants with mathematically tested anchors |
 | Fibonacci | Basic Fibonacci drawing | Extension, time zones, arcs and multi-anchor tools; avoid implying predictive accuracy |
 | Geometric drawing | Rectangle, ellipse, directional arrow, freehand brush | Polygon, path, arc, highlighter, editable multi-point drawing and accessible editing |
 | Annotation | Time/price anchored text; style/lock/hide/duplicate/group | Callouts, price flags, structured scenario annotation |
-| Measurement/position | Price/time measurement and *illustrative* long/short position target graphics | Broker-aware contract/tick/lot/pip-value position sizing, currency conversion, execution/fee assumptions and order simulation |
+| Measurement/position | Price/time measurement, separate date and price ranges (observed bars, not assumed market-open bars), and *illustrative* long/short position target graphics | Broker-aware contract/tick/lot/pip-value position sizing, currency conversion, execution/fee assumptions and order simulation |
 | Technical studies | SMA, EMA, RSI, MACD, ATR, Bollinger, presets; parameterized custom formulas | Curated studies in trend/momentum/volatility/volume families, source-aware study metadata, performance budgets |
 | Replay and research | Historical replay, browser-local alerts, chart profiles, study templates, Decision Desk | Strategy Lab with fees/slippage, deterministic backtesting, performance metrics, no-lookahead proofs |
-| Workflow UX | Local workspace persistence and export/import, object inspector, resizable panel, dark/light, three accents, Tool Atlas commands | Complete design-token system, keyboard shortcut editor, guided product tour, offline restore, multi-workspace naming |
+| Workflow UX | Local workspace persistence and export/import, object inspector, resizable panel, dark/light, three accents, Tool Atlas commands, category-based Tool Library with searchable implemented tools, per-user pinned favorites and recent tools | Complete design-token system, keyboard shortcut editor, guided product tour, offline restore, multi-workspace naming |
 | Intelligence / discovery | Four explicitly synthetic overview instruments | Reproducible screener, economic calendar, market-session overlaps, watchlists on licensed data, source-safe multi-market alerting |
 | YoungMoney3 | **Not connected** | Optional scoped read-only history and execution markers; never use public preview to collect broker credentials |
 
@@ -53,6 +53,16 @@ When a backtest or replay is used, label which bar was visible, prevent future o
 Group repeated *self-reported* strategy deviations and hypothesis invalidations separately from P/L. Do not claim to diagnose trader psychology or promise financial outcomes.
 
 **Test:** Validate usefulness with trader observation, qualitative feedback and privacy/comprehension testing.
+
+## Current drawing-library coverage
+
+**19 usable drawing tools are registered in the catalog.** This covers the core line, basic Fibonacci, shapes, annotations, measurement and illustrative position families. The Tool Library exposes only implemented operations. Favorites are workspace-local and capped at 12 for usability, *not as a product paywall*. The application also has a standalone one-click horizontal **price level** action.
+
+**TradingView's wider taxonomy is a roadmap reference, not a licensed feature entitlement**. Their published categories include trend and drawing geometry, Gann and Fibonacci constructions, pattern tools (including Elliott Wave and harmonic patterns), brushes/annotation/icons, forecasting/measurement, and additional chart controls. Some require multi-anchor interaction, projection semantics or exchange/volume metadata we do not yet have.
+
+Before adding a new family, engineering must establish (a) a mathematically defined independent model, (b) exact input/selection/edit contracts, (c) import/export safety, (d) touch and keyboard QA, (e) source/provenance constraints and (f) performance at large drawing counts.
+
+References: [TradingView drawing-tool directory](https://www.tradingview.com/support/solutions/43000703396-drawing-tools-available-on-tradingview/), [TradingView favorites](https://www.tradingview.com/support/solutions/43000662392-how-to-favorite-indicators-financials-drawing-tools-and-timeframes/), [TradingView's quick search behavior](https://www.tradingview.com/support/solutions/43000659671-quick-search-on-tradingview-find-anything-super-fast/).
 
 ## Responsible sequence
 
