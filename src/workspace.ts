@@ -1,10 +1,11 @@
 import type { Frame, SymbolId } from "./market";
 import { isDrawing, type Drawing } from "./drawing/types";
 
-export type Level = { id: string; symbol: SymbolId; price: number; color: string };
+export type Level = { id: string; symbol: SymbolId; price: number; color: string; source?: "demo" | "binance" };
 export type Workspace = {
   symbol: SymbolId;
   frame: Frame;
+  priceSource: "demo" | "binance";
   dark: boolean;
   showSma: boolean;
   levels: Level[];
@@ -15,6 +16,7 @@ export type Workspace = {
 export const defaultWorkspace: Workspace = {
   symbol: "EURUSD",
   frame: "1h",
+  priceSource: "demo",
   dark: true,
   showSma: true,
   levels: [],
@@ -41,11 +43,13 @@ export function parseWorkspace(value: unknown): Workspace {
       if (!isRecord(level) || typeof level.price !== "number" || !Number.isFinite(level.price) || level.price <= 0 ||
           typeof level.id !== "string" || !SYMBOLS.includes(level.symbol as SymbolId)) continue;
       levels.push({ id: level.id, symbol: level.symbol as SymbolId, price: level.price,
-        color: typeof level.color === "string" && /^#[0-9a-fA-F]{6}$/.test(level.color) ? level.color : "#8d94fa" });
+        color: typeof level.color === "string" && /^#[0-9a-fA-F]{6}$/.test(level.color) ? level.color : "#8d94fa",
+        source: level.source === "binance" ? "binance" : "demo" });
     }
   }
   return {
     symbol, frame, accent, levels,
+    priceSource: symbol === "BTCUSDT" && raw.priceSource === "binance" ? "binance" : "demo",
     drawings: Array.isArray(raw.drawings) ? raw.drawings.filter(isDrawing) : [],
     dark: typeof raw.dark === "boolean" ? raw.dark : true,
     showSma: typeof raw.showSma === "boolean" ? raw.showSma : true,
@@ -61,5 +65,5 @@ export function loadWorkspace(): Workspace {
   }
 }
 export function serializeWorkspace(workspace: Workspace): string {
-  return JSON.stringify({ format: "market-terminal-workspace", version: 3, preferences: workspace }, null, 2);
+  return JSON.stringify({ format: "market-terminal-workspace", version: 4, preferences: workspace }, null, 2);
 }
