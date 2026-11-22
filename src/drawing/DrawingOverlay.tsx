@@ -34,17 +34,19 @@ interface Props {
   onAdd: (drawing: Drawing) => void;
   onUpdate: (drawing: Drawing) => void;
   onDelete: (id: string) => void;
+  onDeleteMany: (ids: string[]) => void;
+  selectedIds: string[];
+  onSelectionChange: (ids: string[]) => void;
 }
 
 export function DrawingOverlay({
-  chart, series, symbol, frame, candles, tool, drawings, color, magnetEnabled, onAdd, onUpdate, onDelete
+  chart, series, symbol, frame, candles, tool, drawings, color, magnetEnabled, onAdd, onUpdate, onDelete, onDeleteMany, selectedIds, onSelectionChange
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const gestureRef = useRef<Gesture | null>(null);
   const draftRef = useRef<Drawing | null>(null);
   const pendingRef = useRef<PendingClick | null>(null);
   const [draft, setDraftState] = useState<Drawing | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [, setRevision] = useState(0);
   const animationFrame = useRef<number | null>(null);
 
@@ -120,7 +122,7 @@ export function DrawingOverlay({
     gestureRef.current = null;
     pendingRef.current = null;
     setDraft(null);
-    setSelectedId(null);
+    onSelectionChange([]);
   }, [symbol, tool, frame]);
 
   useEffect(() => {
@@ -129,32 +131,43 @@ export function DrawingOverlay({
         gestureRef.current = null;
         pendingRef.current = null;
         setDraft(null);
-        setSelectedId(null);
+        onSelectionChange([]);
         return;
       }
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
-      if ((event.key === "Delete" || event.key === "Backspace") && selectedId) {
-        const selected = drawings.find(d => d.id === selectedId);
-        if (selected && !selected.locked) {
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement ||
+          event.target instanceof HTMLSelectElement) return;
+      if ((event.key === "Delete" || event.key === "Backspace") && selectedIds.length) {
+        const removable=selectedIds.filter(id=>drawings.some(d=>d.id===id&&!d.locked));
+        if(removable.length){
           event.preventDefault();
-          onDelete(selectedId);
-          setSelectedId(null);
+          onDeleteMany(removable);
+          onSelectionChange([]);
         }
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [drawings, onDelete, selectedId]);
+  }, [drawings, onDeleteMany, selectedIds, onSelectionChange]);
 
   const capture = (event: ReactPointerEvent<SVGElement>) => {
     try { svgRef.current?.setPointerCapture(event.pointerId); } catch { /* pointer was released */ }
   };
   const beginEdit = (event: ReactPointerEvent<SVGElement>, drawing: Drawing, kind: Gesture["kind"]) => {
-    if (tool || drawing.locked || event.button !== 0) return;
+    if (tool || event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
+    const linked=drawing.groupId?
+      drawings.filter(d=>d.groupId===drawing.groupId).map(d=>d.id):[drawing.id];
+    if(event.shiftKey) {
+      const selected=new Set(selectedIds);
+      const shouldAdd=linked.some(id=>!selected.has(id));
+      for(const id of linked)shouldAdd?selected.add(id):selected.delete(id);
+      onSelectionChange([...selected]);
+      return;
+    }
+    onSelectionChange(linked);
+    if(drawing.locked)return;
     capture(event);
-    setSelectedId(drawing.id);
     gestureRef.current = { kind, origin: pointFromEvent(event), original: drawing };
     setDraft(null);
   };
@@ -178,7 +191,7 @@ export function DrawingOverlay({
     if(tool==="brush")drawing.points=[anchor];
     if(tool==="text")drawing.text="Note";
     setDraft(drawing);
-    setSelectedId(null);
+    onSelectionChange([]);
   };
   const onPointerMove = (event: ReactPointerEvent<SVGSVGElement>) => {
     const point = pointFromEvent(event);
@@ -271,11 +284,12 @@ export function DrawingOverlay({
     if (!position) return null;
     const { a, b } = position;
     const isPreview = drawing.id === "preview";
-    const selected = selectedId === drawing.id && !tool;
+    const selected = selectedIds.includes(drawing.id) && !tool;
     const common = {
       stroke: drawing.color,
-      strokeWidth: selected ? 2.4 : 1.8,
-      strokeDasharray: isPreview ? "5 4" : undefined,
+      strokeWidth: selected ? Math.max(2.4,drawing.strokeWidth??1.8) : drawing.strokeWidth??1.8,
+      strokeDasharray: isPreview ? "5 4" : drawing.dash==="dashed" ? "7 5" : drawing.dash==="dotted" ? "2 5" : undefined,
+      opacity: drawing.opacity ?? 1,
       vectorEffect: "non-scaling-stroke" as const,
     };
     return <g key={drawing.id} className={"drawing-shape " + (selected ? "is-selected" : "")}
