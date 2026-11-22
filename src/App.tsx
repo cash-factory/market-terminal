@@ -3,7 +3,7 @@ import {
   Activity, ArrowDownToLine, Bell, BookOpen, ChartCandlestick, Check,
   ChevronLeft, ChevronRight, Command, Compass, Download, Home, Layers,
   Menu, Moon, MousePointer2, Plus, RotateCcw, Search, Settings2, Sun, Maximize2, Minimize2,
-  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Target, Film, Magnet, MoveUpRight, ArrowUpRight, Columns2, Grid2X2, Shapes, Pencil, ArrowUp, ArrowDown, Link2, Unlink2
+  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, ClipboardList, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Target, Film, Magnet, MoveUpRight, ArrowUpRight, Columns2, Grid2X2, Shapes, Pencil, ArrowUp, ArrowDown, Link2, Unlink2
 } from "lucide-react";
 import { ChartCanvas,type ChartSurface,type ChartRange } from "./ChartCanvas";
 import { MarketBoard } from "./charts/MarketBoard";
@@ -30,14 +30,17 @@ import { BUILTIN_TEMPLATES, captureChartTemplate, selectTemplate } from "./indic
 import {defaultStudyParameters,studyParameterBounds,studyParameterKeys,updateStudyParameter} from "./indicators/parameters";
 import {createCustomStudy} from "./indicators/formula";
 import { defaultWorkspace, loadWorkspace, parseWorkspace, serializeWorkspace, type Workspace } from "./workspace";
+import { DecisionDesk } from "./decisions/DecisionDesk";
+import { captureDecision, appendDecisionReview, type DecisionSetup, type DecisionRecord, type PlanAdherence, type ObservationOutcome } from "./decisions/model";
 
-type Page = "home" | "terminal" | "risk" | "alerts" | "library" | "settings";
+type Page = "home" | "terminal" | "decisions" | "risk" | "alerts" | "library" | "settings";
 type Notice = { id: number; message: string; kind: "success" | "info" | "error" };
 const frames: Frame[] = ["1m", "5m", "15m", "1h", "4h", "1d"];
 const studyKeys=Object.keys(defaultStudies) as (keyof StudySettings)[];
 const menu: { id: Page; label: string; Icon: typeof Home }[] = [
   { id: "home", label: "Overview", Icon: Home },
   { id: "terminal", label: "Terminal", Icon: ChartCandlestick },
+  { id: "decisions", label: "Decision Desk", Icon: ClipboardList },
   { id: "risk", label: "Risk Planner", Icon: Target },
   { id: "alerts", label: "Price Alerts", Icon: Bell },
   { id: "library", label: "Workspace", Icon: Layers },
@@ -45,7 +48,7 @@ const menu: { id: Page; label: string; Icon: typeof Home }[] = [
 ];
 const marketList = Object.keys(symbols) as SymbolId[];
 const titles: Record<Page, string> = {
-  home: "Market overview", terminal: "Trading terminal", risk: "Risk planner", alerts:"Price alerts", library: "My workspace", settings: "Preferences"
+  home: "Market overview", terminal: "Trading terminal", decisions: "Decision Desk", risk: "Risk planner", alerts:"Price alerts", library: "My workspace", settings: "Preferences"
 };
 
 const studio = !new URLSearchParams(window.location.search).has("classic");
@@ -184,6 +187,38 @@ export default function App() {
   const update = (patch: Partial<Workspace>) => setPrefs(old => ({ ...old, ...patch }));
   const notify = (message: string, kind: Notice["kind"] = "success") =>
     setNotice({ id: Date.now(), message, kind });
+  const createDecision=(setup:DecisionSetup):string|null=>{
+    try{
+      const id=crypto.randomUUID();
+      const record=captureDecision({
+        symbol:prefs.symbol,frame:prefs.frame,source:prefs.priceSource,
+        feedStatus:replay?"historical":feed.status,replay:Boolean(replay),visibleCandles:viewedCandles
+      },setup,id,Date.now());
+      setPrefs(old=>({...old,decisions:[...old.decisions,record]}));
+      notify("Decision captured with original candle and source provenance.");
+      return id;
+    }catch(error){notify(error instanceof Error?error.message:"Could not capture decision.","error");return null;}
+  };
+  const reviewDecision=(id:string,input:{adherence:PlanAdherence;outcome:ObservationOutcome;note:string}):boolean=>{
+    const original=prefs.decisions.find(item=>item.id===id);
+    if(!original){notify("Decision no longer exists.","error");return false;}
+    try{
+      const revised=appendDecisionReview(original,input,crypto.randomUUID(),Date.now());
+      setPrefs(old=>({...old,decisions:old.decisions.map(item=>item.id===id?revised:item)}));
+      notify("Review appended; original observation preserved.");
+      return true;
+    }catch(error){notify(error instanceof Error?error.message:"Could not add review.","error");return false;}
+  };
+  const deleteDecision=(id:string)=>{
+    setPrefs(old=>({...old,decisions:old.decisions.filter(item=>item.id!==id)}));
+    notify("Local decision and its history deleted.");
+  };
+  const openDecisionChart=(record:DecisionRecord)=>{
+    setReplay(null);setDrawingTool(null);setDrawMode(false);
+    update({symbol:record.symbol,frame:record.frame,priceSource:record.source});
+    setPage("terminal");
+    notify("Opened the current chart. The historical observation remains frozen in Decision Desk.","info");
+  };
   const openInstrument = (symbol: SymbolId) => {
     update({ symbol, priceSource: symbol === "BTCUSDT" ? prefs.priceSource : "demo" });
     setPage("terminal");
@@ -430,7 +465,7 @@ export default function App() {
       const json: unknown = JSON.parse(await file.text());
       if (!json || typeof json !== "object" || Array.isArray(json) ||
         !("format" in json) || json.format !== "market-terminal-workspace" ||
-        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15 && json.version !== 16 && json.version !== 17 && json.version !== 18 && json.version !== 19 && json.version !== 20 && json.version !== 21 && json.version !== 22 && json.version !== 23) ||
+        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15 && json.version !== 16 && json.version !== 17 && json.version !== 18 && json.version !== 19 && json.version !== 20 && json.version !== 21 && json.version !== 22 && json.version !== 23 && json.version !== 24) ||
         !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
       const workspace = parseWorkspace(json);
       setPrefs(workspace);
