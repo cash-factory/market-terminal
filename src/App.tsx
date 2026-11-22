@@ -568,31 +568,39 @@ export default function App() {
                   drawingColor={prefs.accent === "amber" ? "#e9b368" : prefs.accent === "teal" ? "#32c7aa" : "#9295ff"}
                   onAddDrawing={addDrawing} onUpdateDrawing={updateDrawing} onDeleteDrawing={removeDrawing}/>
               </section>
-              {!replay&&prefs.chartLayout==="dual"&&<section className="chart-grid-cell" aria-label="Secondary chart">
-                <div className="chart-cell-label"><span>02 / COMPARISON</span>
-                  <label className="secondary-symbol-select">Symbol
-                    <select aria-label="Secondary chart symbol" value={prefs.secondarySymbol}
-                      onChange={e=>update({secondarySymbol:e.target.value as SymbolId})}>
-                      {marketList.map(symbol=><option key={symbol} value={symbol}>{symbols[symbol].label}</option>)}
-                    </select>
-                  </label>
-                  <small>SIMULATED · DEMO</small>
-                  <button className="chart-make-primary" aria-label="Make comparison chart primary"
-                    title="Swap comparison symbol into the main chart for full watchlist management"
-                    onClick={()=>{
-                      setPrefs(old=>({...old,symbol:old.secondarySymbol,secondarySymbol:old.symbol,priceSource:"demo"}));
-                      setDrawingTool(null);setDrawMode(false);
-                      notify("Chart symbols swapped; primary quote source is now demonstration data.");
-                    }}>Make primary</button>
-                </div>
-                <ChartCanvas key={"secondary-"+prefs.secondarySymbol} symbol={prefs.secondarySymbol} frame={prefs.frame}
-                  source="demo" candles={comparisonFeed.candles} dark={prefs.dark}
-                  showSma={prefs.showSma} studies={prefs.studies} parameters={prefs.studyParameters} levels={comparisonLevels}
-                  drawMode={drawMode} onPlaceLevel={addComparisonLevel}
-                  drawingTool={drawingTool} drawings={comparisonDrawings} magnetEnabled={prefs.magnetEnabled}
-                  drawingColor={prefs.accent === "amber" ? "#e9b368" : prefs.accent === "teal" ? "#32c7aa" : "#9295ff"}
-                  onAddDrawing={addComparisonDrawing} onUpdateDrawing={updateDrawing} onDeleteDrawing={removeDrawing}/>
-              </section>}
+              {!replay&&comparisonPanels.slice(0,prefs.chartLayout==="quad"?3:prefs.chartLayout==="dual"?1:0)
+                .map(panel=><section key={panel.slot} className="chart-grid-cell"
+                  aria-label={panel.number===2?"Secondary chart":"Comparison chart "+panel.number}>
+                  <div className="chart-cell-label"><span>{String(panel.number).padStart(2,"0")} / COMPARISON</span>
+                    <label className="secondary-symbol-select">Symbol
+                      <select aria-label={panel.number===2?"Secondary chart symbol":"Chart "+panel.number+" symbol"}
+                        value={panel.symbol}
+                        onChange={e=>update({[panel.slot]:e.target.value as SymbolId})}>
+                        {marketList.map(symbol=><option key={symbol} value={symbol}>{symbols[symbol].label}</option>)}
+                      </select>
+                    </label>
+                    <small>SIMULATED · DEMO</small>
+                    <button className="chart-make-primary"
+                      aria-label={panel.number===2?"Make comparison chart primary":"Make chart "+panel.number+" primary"}
+                      title="Swap this chart into the main workspace for complete object management"
+                      onClick={()=>{
+                        setPrefs(old=>({...old,symbol:old[panel.slot],[panel.slot]:old.symbol,priceSource:"demo"}));
+                        setDrawingTool(null);setDrawMode(false);
+                        notify("Chart symbols swapped; primary quote source is demonstration data.");
+                      }}>Make primary</button>
+                  </div>
+                  <ChartCanvas key={"comparison-"+panel.slot+"-"+panel.symbol}
+                    symbol={panel.symbol} frame={prefs.frame}
+                    source="demo" candles={panel.candles} dark={prefs.dark}
+                    showSma={prefs.showSma} studies={prefs.studies} parameters={prefs.studyParameters}
+                    levels={prefs.levels.filter(level=>level.symbol===panel.symbol&&(level.source??"demo")==="demo")}
+                    drawMode={drawMode} onPlaceLevel={price=>addComparisonLevel(panel.symbol,price)}
+                    drawingTool={drawingTool}
+                    drawings={prefs.drawings.filter(d=>d.symbol===panel.symbol&&(d.source??"demo")==="demo")}
+                    magnetEnabled={prefs.magnetEnabled}
+                    drawingColor={prefs.accent==="amber"?"#e9b368":prefs.accent==="teal"?"#32c7aa":"#9295ff"}
+                    onAddDrawing={addComparisonDrawing} onUpdateDrawing={updateDrawing} onDeleteDrawing={removeDrawing}/>
+                </section>)}
             </div>
             <div className="chart-footer"><span><span className="sync-point">●</span> Locally saved</span><span>Source: {feed.sourceLabel} · {frameSeconds[prefs.frame] / 60}m candle interval · {replay?"historical replay":feed.status}{feed.lastUpdatedMs ? " · Updated " + new Date(feed.lastUpdatedMs).toLocaleTimeString() : ""}</span></div>
           </section>
