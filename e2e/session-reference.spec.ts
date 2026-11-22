@@ -1,0 +1,22 @@
+import {test,expect} from "@playwright/test";
+
+test("reference market calendars disclose exact provenance without claiming live execution",async({page})=>{
+  await page.goto("/market-terminal/");
+  await expect(page.locator(".market-session-reference summary")).toContainText("Broker hours not configured");
+  await page.locator(".market-session-reference summary").click();
+  await expect(page.locator(".market-session-reference")).toContainText("Demonstration display precision");
+  await expect(page.locator(".market-session-reference")).toContainText("No executable market-hours assertion");
+  await page.locator(".watchlist button").filter({hasText:"AAPL"}).click();
+  await expect(page.locator(".market-session-reference summary")).toContainText("Nasdaq");
+  await page.locator(".market-session-reference summary").click();
+  await expect(page.getByRole("link",{name:"View official Nasdaq calendar"}))
+    .toHaveAttribute("href","https://www.nasdaq.com/holiday-trading-hours");
+  await expect(page.locator(".market-session-reference")).toContainText("not a live quote or trading-eligibility confirmation");
+  await page.locator(".watchlist button").filter({hasText:"US100"}).click();
+  await expect(page.locator(".market-session-reference summary")).toContainText("Contract hours not configured");
+  await page.getByRole("button",{name:"Toggle dual-chart layout"}).click();
+  await expect(page.locator(".chart-grid-cell")).toHaveCount(2);
+  await page.reload();
+  await expect(page.locator(".market-session-reference summary")).toContainText("Contract hours not configured");
+  await expect(page.locator(".chart-grid-cell")).toHaveCount(2);
+});
