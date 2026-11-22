@@ -146,3 +146,29 @@ test("save-as-default is isolated by drawing tool and never copies price anchors
   saved=await page.evaluate(()=>JSON.parse(localStorage.getItem("market-terminal-workspace")??"{}"));
   expect(saved.preferences.toolPresets.fibonacci).toBeUndefined();
 });
+
+test("opt-in Binance 5s chart requests native 1s Spot candles instead of fabricating intraminute data",async({page})=>{
+  const requested:string[]=[];
+  await page.route("**/api/v3/klines?**",async route=>{
+    requested.push(route.request().url());
+    const now=Math.floor(Date.now()/1000/5)*5000-15_000;
+    const bars=Array.from({length:15},(_,i)=>{
+      const t=now+i*1000,open=100+i,close=101+i;
+      return [t,String(open),String(close+1),String(open-1),
+        String(close),"2",t+999,"0",1,"0","0","0"];
+    });
+    await route.fulfill({status:200,contentType:"application/json",body:JSON.stringify(bars)});
+  });
+  await page.addInitScript(()=>{
+    localStorage.setItem("market-terminal-workspace",JSON.stringify({
+      format:"market-terminal-workspace",version:25,
+      preferences:{symbol:"BTCUSDT",frame:"5s",priceSource:"binance"}
+    }));
+  });
+  await page.goto("/market-terminal/");
+  await expect.poll(()=>requested.length).toBeGreaterThan(0);
+  expect(new URL(requested[0]).searchParams.get("interval")).toBe("1s");
+  await expect(page.getByRole("button",{name:"Chart interval"})).toContainText("5s");
+  await expect(page.locator("svg.drawing-overlay")).toBeVisible();
+  await expect(page.getByText("Binance Spot · BTC/USDT · aggregated native 1s klines").first()).toBeVisible();
+});
