@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Clock3, Compass, Pin, Search, Star, X } from "lucide-react";
 import type { DrawingTool } from "./types";
+import { REFERENCE_BACKLOG } from "./referenceInventory";
 import {
   filterDrawingTools, TOOL_BY_ID, TOOL_GROUPS, type ToolGroup, type ToolDefinition
 } from "./toolDefinitions";
@@ -14,10 +15,11 @@ type Props={
   onSelect:(tool:DrawingTool)=>void;
   onFavorite:(tool:DrawingTool)=>void;
   onClose:()=>void;
+  initialGroup?:ToolGroup|null;
 };
 
 export function ToolShelf({
-  active,favorites,recent,disabled,onSelect,onFavorite,onClose
+  active,favorites,recent,disabled,onSelect,onFavorite,onClose,initialGroup=null
 }:Props){
   const [query,setQuery]=useState("");
   const searchRef=useRef<HTMLInputElement>(null);
@@ -26,7 +28,8 @@ export function ToolShelf({
     searchRef.current?.focus();
     return ()=>{if(previous?.isConnected)previous.focus();};
   },[]);
-  const [group,setGroup]=useState<ToolGroup|null>(null);
+  const [group,setGroup]=useState<ToolGroup|null>(initialGroup);
+  useEffect(()=>{setGroup(initialGroup);setQuery("");},[initialGroup]);
   const visible=useMemo(()=>filterDrawingTools(query,group??undefined),[query,group]);
   const favoriteTools=favorites.map(id=>TOOL_BY_ID.get(id)).filter(
     (tool):tool is ToolDefinition=>Boolean(tool)
@@ -44,15 +47,17 @@ export function ToolShelf({
     <div className="tool-shelf-filter">
       <label className="tool-shelf-search"><Search size={16}/>
         <input ref={searchRef} type="search" aria-label="Search drawing tools" placeholder="Search tools and techniques…"
-          value={query} onChange={event=>setQuery(event.target.value)}/></label>
-      <div className="tool-shelf-groups" role="group" aria-label="Drawing tool category">
+          value={query} onChange={event=>{setQuery(event.target.value);if(event.target.value)setGroup(null);}}/></label>
+    </div>
+    <div className="tool-shelf-main">
+    <nav className="tool-shelf-groups" aria-label="Drawing tool category">
         <button type="button" className={!group?"active":""} aria-pressed={!group}
           onClick={()=>setGroup(null)}>All tools</button>
         {TOOL_GROUPS.map(value=><button key={value} type="button"
           className={group===value?"active":""} aria-pressed={group===value}
           onClick={()=>setGroup(old=>old===value?null:value)}>{value}</button>)}
-      </div>
-    </div>
+    </nav>
+    <div className="tool-shelf-body">
     {(!query&&!group)&&<div className="tool-shelf-pinned">
       <div className="tool-shelf-section-heading"><span><Pin size={13}/> YOUR FAVORITES</span>
         <small>{favorites.length}/12 pinned</small></div>
@@ -82,7 +87,7 @@ export function ToolShelf({
             <button type="button" className="tool-shelf-select"
               disabled={disabled} onClick={()=>choose(tool.id)}
               aria-label={tool.label} title={tool.description} aria-pressed={activeTool}>
-              <span className="tool-shelf-tool-mark">{tool.points===1?"1":tool.points===2?"2":"3"}</span>
+              <span className="tool-shelf-tool-mark">{tool.points}</span>
               <span className="tool-shelf-tool-copy"><strong>{tool.label}</strong>
                 <small>{tool.description}</small></span>
               {activeTool&&<Check size={15} className="tool-shelf-check"/>}
@@ -99,6 +104,13 @@ export function ToolShelf({
         <Search size={22}/><strong>No implemented tools found</strong>
         <p>Search another technique. Unimplemented drawing families are not selectable.</p>
       </div>}
+      {(group&&!query)&&<details className="tool-shelf-backlog">
+        <summary>Additional tools researched for this family <span>{REFERENCE_BACKLOG[group].length}</span></summary>
+        <p>The following TradingView reference types are not implemented here. They require independent geometry, data rights or acceptance testing.</p>
+        <div>{REFERENCE_BACKLOG[group].map(name=><span key={name}>{name} · Planned</span>)}</div>
+      </details>}
+    </div>
+    </div>
     </div>
     <footer className="tool-shelf-foot">
       <span><span className="tool-shelf-dot"/> {disabled?"Awaiting candles":"Ready to place on chart"}</span>

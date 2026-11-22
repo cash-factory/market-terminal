@@ -34,6 +34,9 @@ export function ChartContextLens({
   const relevant=decisions.filter(row=>row.symbol===symbol&&row.source===source);
   const openReviews=relevant.filter(row=>!row.reviews.length).length;
   const activeAlerts=alerts.filter(row=>row.symbol===symbol&&row.source===source&&row.triggeredAtMs===null);
+  const supporting=drawings.filter(d=>d.tool==="callout"&&d.evidenceSide==="supports").length;
+  const challenging=drawings.filter(d=>d.tool==="callout"&&d.evidenceSide==="challenges").length;
+  const unclassified=drawings.filter(d=>d.tool==="callout"&&(!d.evidenceSide||d.evidenceSide==="unclassified")).length;
   const statusLabel=replay?"REPLAY":source==="demo"?"SYNTHETIC":status.toUpperCase();
   const alertsAllowed=!replay&&(source==="demo"||status==="live");
   const sourceName=source==="demo"?"Synthetic demonstration candles":"Binance Spot BTC/USDT";
@@ -100,6 +103,19 @@ export function ChartContextLens({
         <small>{activeAlerts.length} alerts armed</small>
       </button>
     </div>
+    {(supporting+challenging+unclassified)>0&&<section className="context-counterweight"
+      aria-label="Evidence counterweight">
+      <div className="context-counterweight-head"><strong>Evidence counterweight</strong>
+        <span>MANUAL LABELS</span></div>
+      <p>Your annotated observations, organized without a predictive score.</p>
+      <div className="context-counterweight-counts">
+        <span className="supporting"><strong>{supporting}</strong> Supporting</span>
+        <span className="challenging"><strong>{challenging}</strong> Challenging</span>
+        <span><strong>{unclassified}</strong> Unclassified</span>
+      </div>
+      {supporting>0&&challenging===0&&<small>Consider what evidence would disconfirm this thesis.</small>}
+      {challenging>0&&supporting===0&&<small>Consider what evidence would strengthen or revise this thesis.</small>}
+    </section>}
     <button type="button" className="context-capture-button" onClick={onCapture}>
       <ClipboardList size={16}/> Capture current thesis <ArrowRight size={15}/></button>
     <div className="context-caveat"><Info size={15}/>

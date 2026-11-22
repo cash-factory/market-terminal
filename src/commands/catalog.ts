@@ -69,6 +69,21 @@ export const TERMINAL_COMMANDS: TerminalCommand[] = [
   draw("measure","Price/Time Measure","Measure a move across prices and bars","ruler range"),
   draw("long-position","Long Position Illustration","Visualize entry, stop and target","buy risk reward"),
   draw("short-position","Short Position Illustration","Visualize entry, stop and target","sell risk reward"),
+  draw("info-line","Info Line","Measure price, percent, observed bars and elapsed time","trend information delta"),
+  draw("pitchfork","Median Pitchfork","Set three median-line geometry anchors","andrews pitchfork"),
+  draw("fib-extension","Trend Fib Extension","Project price ratios from three points","fibonacci extension targets"),
+  draw("fib-timezone","Fibonacci Time Zones","Project Fibonacci time intervals on the chart","fib times"),
+  draw("fib-circles","Fibonacci Circles","Draw concentric price/time ratio rings","fib circles"),
+  draw("gann-box","Gann Box","Draw a proportional price/time grid; scale sensitive","gann geometric"),
+  draw("triangle","Triangle","Mark a three-corner price region","geometry polygon"),
+  draw("pattern-abcd","ABCD Pattern","Mark four pivots to compare swing-leg ratios","abcd"),
+  draw("pattern-xabcd","XABCD Pattern","Annotate five price/time swing points","harmonic"),
+  draw("elliott-impulse","Elliott Impulse 0–5","Annotate six manually selected wave pivots","elliott wave"),
+  draw("cyclic-lines","Cyclic Lines","Repeat a measured chart-bar interval","time cycle"),
+  draw("callout","Evidence Callout","Attach an editable observation to a price/time anchor","annotation research"),
+  draw("price-note","Price Note","Annotate an exact price and context","label price"),
+  draw("arrow-marker","Arrow Marker","Mark an observed event with a directional icon","marker arrow"),
+  draw("date-price-range","Date + Price Range","Measure time, price, and observed candles together","range measurement"),
 ];
 
 export function filterTerminalCommands(query: string): TerminalCommand[] {
