@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   createChart, CandlestickSeries, LineSeries, BarSeries, AreaSeries, type CandlestickData,
   type IChartApi, type ISeriesApi, type IPriceLine, type UTCTimestamp
@@ -12,6 +12,7 @@ import { bollingerBands, ema, type StudySettings } from "./indicators/studies";
 import { IndicatorPanels } from "./indicators/IndicatorPanels";
 import type { StudyParameters } from "./indicators/parameters";
 import {closeLineData,heikinAshi,type ChartDisplayStyle} from "./charts/display";
+import {rebaseComparison,comparePercentChange} from "./charts/compare";
 import {evaluateFormula,type CustomStudy} from "./indicators/formula";
 
 export type ChartSurface = {chart:IChartApi;series:ISeriesApi<"Candlestick">};
@@ -25,6 +26,8 @@ interface Props {
   frame: Frame;
   source: PriceSource;
   chartStyle: ChartDisplayStyle;
+  comparisonCandles?: readonly CandlestickData<UTCTimestamp>[];
+  comparisonLabel?: string;
   candles: CandlestickData<UTCTimestamp>[];
   dark: boolean;
   showSma: boolean;
@@ -49,7 +52,7 @@ type Surface = ChartSurface;
 
 export function ChartCanvas({
   paneId,onSurfaceReady,onRangeChanged,onCrosshairChanged,
-  symbol, frame, source, chartStyle, candles, dark, showSma, levels, drawMode, onPlaceLevel,
+  symbol, frame, source, chartStyle, candles, dark, comparisonCandles, comparisonLabel, showSma, levels, drawMode, onPlaceLevel,
   drawingTool, drawings, drawingColor, studies, customStudies, parameters, magnetEnabled, onAddDrawing, onUpdateDrawing, onDeleteDrawing, onDeleteDrawings, selectedDrawingIds, onDrawingSelectionChange
 }: Props) {
   const callbacks=useRef({onSurfaceReady,onRangeChanged,onCrosshairChanged});
@@ -68,6 +71,7 @@ export function ChartCanvas({
   const studyLines = useRef<{ ema?: ISeriesApi<"Line">; bb?: [ISeriesApi<"Line">, ISeriesApi<"Line">, ISeriesApi<"Line">] }>({});
   const priceLines = useRef<IPriceLine[]>([]);
   const formulaLines=useRef(new Map<string,ISeriesApi<"Line">>());
+  const comparisonLine=useRef<ISeriesApi<"Line">|null>(null);
   const fitted = useRef(false);
   const [surface, setSurface] = useState<Surface | null>(null);
   const callback = useRef(onPlaceLevel);
@@ -154,6 +158,7 @@ export function ChartCanvas({
       average.current = null;
       studyLines.current = {};
       formulaLines.current.clear();
+      comparisonLine.current=null;
       c.remove();
     };
   }, [symbol, frame, dark, showSma, source, chartStyle, studies.ema20, studies.bollinger20, paneId]);
@@ -212,6 +217,27 @@ export function ChartCanvas({
       catch{line.setData([]);}
     }
   },[customStudies,candles,symbol,frame,source,chartStyle,dark,showSma,studies.ema20,studies.bollinger20]);
+  const normalizedComparison=useMemo(()=>comparisonCandles?
+    rebaseComparison(candles,comparisonCandles):[],[candles,comparisonCandles]);
+  useEffect(()=>{
+    const c=chart.current;
+    if(!c)return;
+    if(!comparisonLabel){
+      if(comparisonLine.current){
+        c.removeSeries(comparisonLine.current);comparisonLine.current=null;
+      }
+      return;
+    }
+    if(!comparisonLine.current){
+      comparisonLine.current=c.addSeries(LineSeries,{
+        color:"#dea75f",lineWidth:2,priceLineVisible:false,lastValueVisible:false,
+        title:"Rebased comparison"
+      });
+    }
+    comparisonLine.current.applyOptions({title:comparisonLabel+" · indexed"});
+    comparisonLine.current.setData(normalizedComparison);
+  },[comparisonLabel,normalizedComparison,chartStyle,symbol,frame,source,dark,showSma,studies.ema20,studies.bollinger20]);
+  const comparisonReturn=comparePercentChange(normalizedComparison);
   return <div className="technical-chart-stack" data-visible-candles={candles.length}><div className="chart-surface">
     <div ref={host} className={drawMode ? "chart-canvas drawing-armed" : "chart-canvas"}
       role="img" aria-label={(source==="demo"?"Synthetic ":"Binance Spot ")+
@@ -224,6 +250,13 @@ export function ChartCanvas({
       selectedIds={selectedDrawingIds} onSelectionChange={onDrawingSelectionChange}
     />}
   </div>
+  {comparisonLabel&&<div className="chart-comparison-attribution" role="status">
+    <strong>{comparisonLabel}</strong> · relative comparison rebased to the primary chart's
+    first matching closing price; not the comparison instrument's executable quote.
+    {comparisonReturn!==null?
+      <span>{comparisonReturn>=0?"+":""}{comparisonReturn.toFixed(2)}% over matched candles</span>:
+      <span>Not enough matching UTC bars. Nothing is interpolated across market closures.</span>}
+  </div>}
   {surface && surface.chart === chart.current && <IndicatorPanels
     chart={surface.chart} candles={candles} dark={dark} studies={studies} parameters={parameters}
   />}
