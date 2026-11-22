@@ -1,4 +1,4 @@
-import { ChevronRight, Compass, GitBranch, Layers, Magnet, MousePointer2, Repeat2, RotateCcw,
+import { ChevronRight, GitBranch, Layers, Magnet, MousePointer2, Repeat2,
   Ruler, Shapes, Smile, Star, TrendingUp, Type, Undo2, Redo2, Waves } from "lucide-react";
 import type { RefObject } from "react";
 import type { DrawingTool } from "./types";
