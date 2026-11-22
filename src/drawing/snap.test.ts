@@ -18,7 +18,7 @@ describe("OHLC drawing magnet",()=>{
  });
  it("snaps ONLY near the actual candle OHLC point, preserving exact price/time",()=>{
    const snap=snapAnchorToOhlc(
-     {time:1062,price:105.5},{x:59,y:96},
+     {time:1062,price:105.5},{x:59,y:94},
      bars,time=>(time-1000)*1,price=>200-price,14
    );
    expect(snap).toEqual({
