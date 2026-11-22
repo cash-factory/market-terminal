@@ -1,33 +1,36 @@
 # Market Terminal
 
-A local-first, free-to-use multi-market analysis workstation. Market Terminal is independent of YoungMoney3, with optional read-only integration planned.
+**Market Terminal** is a local-first, multi-market charting and analysis workstation. It is independent of YoungMoney3. An optional permissioned, read-only bridge is planned, but not implemented.
 
-## Features available in this prototype
+## What works today
 
-- Responsive market overview and trading terminal
-- Synthetic demonstration candles for forex, crypto, stocks and indices
-- Timeframes, SMA overlay and symbol search
-- Horizontal levels, trendlines, rectangles and Fibonacci drawings
-- Drawing management, undo/redo, browser-local preferences and workspace export/import
-- Dark/light appearance and several accent styles
+- A responsive Chart Studio with one-, two-, and four-chart layouts, per-pane symbols, timeframes, chart styles and source selection.
+- Interactive trendlines, levels, channels, Fibonacci, shapes, annotations, measurement and illustrative position drawings; selection, styling, grouping, lock/hide, undo/redo and snap controls.
+- Multiple built-in technical studies, configurable indicator settings and a constrained, non-eval formula system.
+- Market selection, local watchlist/overview, price alerts, chart replay, saved chart profiles and workspace import/export.
+- Browser-local workspace persistence, theme options and focused-chart controls.
+- Automated unit tests and Playwright workflows, including browser and mobile-emulation smoke coverage.
 
-**All prices currently displayed by the application are synthetic.** The Binance Spot historical adapter exists in the codebase but is not yet integrated into the chart UI. This is not a broker, live trading terminal or source of real-time quotes.
+**Data provenance matters:**
 
-## View the public preview
+- **EUR/USD, AAPL, US100 and default BTC/USDT charts are synthetic demonstrations**, not live quotes, and must not be used for execution or backtesting performance claims.
+- **BTC/USDT has an opt-in, direct Binance Spot public-data mode.** It fetches exchange candles and subscribes to a public WebSocket for updates. On disconnect it can re-fetch history; missing bars are marked stale until reconciled.
+- Binance Spot quotes are **not CFD, forex, equity, broker execution, or universally available data**. Direct exchange access may be blocked by network restrictions or Binance policy; public redistribution and commercial use require a separate rights assessment.
+- This is **not a broker, trade execution interface, authenticated trading account, or provider of guaranteed real-time market data**. No automatic synthetic fallback may be represented as live.
 
-The project is configured to auto-deploy to **GitHub Pages** whenever code is merged into `main`.
+See [the phase delivery program](docs/DELIVERY_SEQUENCE.md) and [current QA requirements](docs/PHASE1_QA.md) for the work remaining before a broader beta claim.
 
-**One-time repository configuration is required:**
+## Public review preview
 
-1. Visit [Settings → Pages](https://github.com/cash-factory/market-terminal/settings/pages).
-2. Under **Build and deployment**, change **Source** to **GitHub Actions**.
-3. Save the selection.
-4. In [Actions](https://github.com/cash-factory/market-terminal/actions/workflows/deploy-preview.yml), re-run the failed deployment job, or select **Run workflow** on `main`.
-5. Confirm the **Deploy Market Terminal preview** workflow succeeds, then open the site URL shown in the deployment's `github-pages` environment.
+When GitHub Pages is enabled in the repository, merging to `main` triggers the [Deploy Market Terminal preview](.github/workflows/deploy-preview.yml) workflow. The configured Pages environment contains the resulting URL.
 
-GitHub Pages serves publicly accessible static sites. Do not put secrets, broker credentials, or restricted personal records into this app or repository. Browser-local workspaces remain on each device and are not shared through GitHub Pages.
+If Pages has not been configured, in **Settings → Pages**, select **GitHub Actions** as the build source, then trigger the deployment workflow. A preview cannot be considered deployed until the workflow succeeds and the URL loads.
+
+GitHub Pages is public. Do not upload passwords, brokerage credentials, paid feeds, private accounts or personal trade records. Browser-local workspaces remain on the viewer's own device; export before clearing browser data.
 
 ## Local development
+
+Requires Node.js 22 or another supported Node.js version for the installed toolchain.
 
 ```bash
 npm install
@@ -36,12 +39,14 @@ npm run build
 npm run dev
 ```
 
-Vite is configured with `/market-terminal/` as the GitHub Pages project-base path.
+The Vite base path is `/market-terminal/` for GitHub Pages.
 
-## Current engineering work
+## Engineering principles
 
-Tracked in [GitHub issues](https://github.com/cash-factory/market-terminal/issues), including drawing improvements, market-data integration, richer UX, and YoungMoney3 linking.
+- Truthful source, market, and freshness labels; failures degrade to **stale/unavailable**, never to invented prices.
+- Core analysis workflows remain local-first and accessible without compulsory account creation.
+- No artificial object-count or indicator-count paywalls; protect usability through practical performance budgets and recovery states.
+- Read-only integrations must use explicit scoped permissions and preserve trade provenance.
+- Passing CI is necessary but insufficient: verify real mouse, touch, keyboard, browser and hardware workflows before sign-off.
 
-## Product principles
-
-No artificial quotas on core drawing objects, indicators or workspace layouts. Real constraints include client performance, storage availability, market data entitlements and provider licensing.
+Contributions and known issues are tracked in [GitHub Issues](https://github.com/cash-factory/market-terminal/issues).
