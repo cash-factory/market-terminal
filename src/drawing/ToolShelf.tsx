@@ -21,7 +21,11 @@ export function ToolShelf({
 }:Props){
   const [query,setQuery]=useState("");
   const searchRef=useRef<HTMLInputElement>(null);
-  useEffect(()=>{searchRef.current?.focus();},[]);
+  useEffect(()=>{
+    const previous=document.activeElement instanceof HTMLElement?document.activeElement:null;
+    searchRef.current?.focus();
+    return ()=>{if(previous?.isConnected)previous.focus();};
+  },[]);
   const [group,setGroup]=useState<ToolGroup|null>(null);
   const visible=useMemo(()=>filterDrawingTools(query,group??undefined),[query,group]);
   const favoriteTools=favorites.map(id=>TOOL_BY_ID.get(id)).filter(
