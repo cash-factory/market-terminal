@@ -677,3 +677,10 @@
  .content-page{padding:22px 14px}
  .hero{padding:26px 21px}
 }
+
+/* An open mobile study sheet must sit above sticky navigation.
+   The picker creates a stacking context, so a child z-index alone is insufficient. */
+@media(max-width:620px){
+  .terminal-toolbar-market .study-picker:has(.study-list){z-index:80}
+  .terminal-toolbar-market .study-list{z-index:120}
+}
