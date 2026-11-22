@@ -35,6 +35,7 @@ export function DrawingSettingsDialog({drawing,onSave,onClose}:Props){
   const [fields,setFields]=useState(()=>fieldsFrom(drawing));
   const [error,setError]=useState("");
   const closeRef=useRef<HTMLButtonElement>(null);
+  const dialogRef=useRef<HTMLDivElement>(null);
   const originalFocus=useRef<HTMLElement|null>(null);
   useEffect(()=>{
     originalFocus.current=document.activeElement instanceof HTMLElement?document.activeElement:null;
@@ -78,9 +79,22 @@ export function DrawingSettingsDialog({drawing,onSave,onClose}:Props){
       onClose();
     }catch(reason){setError(reason instanceof Error?reason.message:"Settings could not be saved.");}
   };
+  const trapFocus=(event:import("react").KeyboardEvent<HTMLDivElement>)=>{
+    if(event.key!=="Tab")return;
+    const elements=Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(
+      'button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'
+    )??[]).filter(item=>item.getClientRects().length>0);
+    if(!elements.length)return;
+    const first=elements[0],last=elements[elements.length-1];
+    if(event.shiftKey&&(document.activeElement===first||!dialogRef.current?.contains(document.activeElement))){
+      event.preventDefault();last.focus();
+    }else if(!event.shiftKey&&(document.activeElement===last||!dialogRef.current?.contains(document.activeElement))){
+      event.preventDefault();first.focus();
+    }
+  };
   return <div className="drawing-dialog-backdrop" onMouseDown={event=>{
     if(event.target===event.currentTarget)onClose();
-  }}><div className="drawing-dialog" role="dialog" aria-modal="true"
+  }}><div ref={dialogRef} onKeyDown={trapFocus} className="drawing-dialog" role="dialog" aria-modal="true"
       aria-label={"Drawing settings — "+name}>
     <div className="drawing-dialog-header">
       <div className="drawing-dialog-mark"><SlidersHorizontal size={18}/></div>
