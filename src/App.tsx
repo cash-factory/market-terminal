@@ -31,6 +31,7 @@ import {defaultStudyParameters,studyParameterBounds,studyParameterKeys,updateStu
 import {createCustomStudy} from "./indicators/formula";
 import { defaultWorkspace, loadWorkspace, parseWorkspace, serializeWorkspace, type Workspace } from "./workspace";
 import { DecisionDesk } from "./decisions/DecisionDesk";
+import { CommandPalette } from "./commands/CommandPalette";
 import "./decisions/style.css";
 import { captureDecision, appendDecisionReview, type DecisionSetup, type DecisionRecord, type PlanAdherence, type ObservationOutcome } from "./decisions/model";
 
@@ -92,8 +93,6 @@ export default function App() {
   const drawingHistory = useRef<{ past: Drawing[][]; future: Drawing[][] }>({ past: [], future: [] });
   const [historyVersion, setHistoryVersion] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [searchIndex, setSearchIndex] = useState(0);
   const resizeStart = useRef<{x:number; width:number} | null>(null);
   const observedPriceRef = useRef<{key:string;price:number}|null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -108,7 +107,6 @@ export default function App() {
   const [formulaColor,setFormulaColor]=useState("#59c8d0");
   const [replay,setReplay] = useState<ReplayState|null>(null);
   const inputFile = useRef<HTMLInputElement>(null);
-  const inputSearch = useRef<HTMLInputElement>(null);
   const feed = usePriceFeed(prefs.symbol, prefs.frame, prefs.priceSource);
   const sessionReference=referenceMarketHours(prefs.symbol,prefs.priceSource,marketClock);
   const instrumentPrecision=priceMetadata(prefs.symbol,prefs.priceSource);
@@ -379,6 +377,41 @@ export default function App() {
     }catch(error){notify(error instanceof Error?error.message:"Not enough bars to replay.","error");}
   };
   const exitReplay=()=>{setReplay(null);notify("Returned to the active market chart.","info");};
+  const runTerminalCommand=(id:string)=>{
+    setSearchOpen(false);
+    if(id.startsWith("page:")){
+      const destination=id.slice(5) as Page;
+      if(menu.some(item=>item.id===destination)){
+        setPage(destination);setDrawMode(false);setDrawingTool(null);
+        if(destination==="decisions")setReplay(current=>current?{...current,playing:false}:current);
+        notify(titles[destination]+" opened.","info");
+      }
+      return;
+    }
+    if(id.startsWith("draw:")){
+      setPage("terminal");
+      chooseDrawingTool(id.slice(5) as DrawingTool);
+      return;
+    }
+    if(!id.startsWith("chart:"))return;
+    setPage("terminal");
+    switch(id.slice(6)){
+      case "indicators":setStudyMenuOpen(true);notify("Technical indicators opened.","info");break;
+      case "setup":setSetupOpen(true);notify("Chart configuration expanded.","info");break;
+      case "replay":replay?exitReplay():startReplay();break;
+      case "focus":setFocusMode(current=>!current);notify("Chart focus toggled.","info");break;
+      case "single":case "dual":case "quad":{
+        const layout=id.slice(6) as Workspace["chartLayout"];
+        update({chartLayout:layout});notify(layout+" chart layout activated.");break;
+      }
+      case "magnet":update({magnetEnabled:!prefs.magnetEnabled});
+        notify(prefs.magnetEnabled?"OHLC magnet disabled.":"OHLC magnet enabled.");break;
+      case "objects":setPanelTab("objects");update({rightPanelOpen:true});
+        notify("Drawing inspector opened.","info");break;
+      case "undo":undoDrawing();break;
+      case "redo":redoDrawing();break;
+    }
+  };
   const applyChartTemplate=(id:string)=>{
     const selected=selectTemplate(id,prefs.chartTemplates);
     if(!selected){notify("Chart template was not found.","error");return;}
@@ -479,8 +512,6 @@ export default function App() {
       notify(error instanceof Error ? error.message : "Could not import workspace.", "error");
     }
   };
-  const filtered = marketList.filter(symbol => (symbol + " " + symbols[symbol].label + " " + symbols[symbol].market)
-    .toLowerCase().includes(query.toLowerCase()));
   const onResizeStart = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
     event.preventDefault();
@@ -563,8 +594,6 @@ export default function App() {
     });
     notify(result.triggered.length+" price alert"+(result.triggered.length===1?"":"s")+" triggered for "+symbols[prefs.symbol].label,"info");
   },[prefs.symbol,prefs.priceSource,prefs.frame,prefs.alerts,last,feed.status,replay]);
-  useEffect(() => { if (searchOpen) inputSearch.current?.focus(); }, [searchOpen]);
-  useEffect(() => { setSearchIndex(0); }, [query, searchOpen]);
   useEffect(() => {
     if (!notice || notice.kind === "error") return;
     const timer = window.setTimeout(() => setNotice(current => current?.id === notice.id ? null : current), 4200);
@@ -583,7 +612,7 @@ export default function App() {
       </nav>}
       <div className="header-center">
         <button className="search-trigger" onClick={() => setSearchOpen(true)}>
-          <Search size={16}/><span>{studio ? "Search instruments" : "Search markets or commands"}</span><kbd>Ctrl K</kbd>
+          <Search size={16}/><span>"Search markets & tools"</span><kbd>Ctrl K</kbd>
         </button>
       </div>
       <div className="header-actions">
@@ -661,7 +690,7 @@ export default function App() {
               <button className="compact-action decision-capture-action" aria-label="Capture decision"
                  title="Freeze your current market observation and record a decision"
                  disabled={!viewedCandles.length}
-                 onClick={()=>{setPage("decisions");notify("Decision Desk opened with your chart context.","info");}}>
+                 onClick={()=>{setReplay(current=>current?{...current,playing:false}:current);setPage("decisions");notify("Decision Desk opened with your chart context.","info");}}>
                  <ClipboardList size={16}/> Capture decision
                </button>
                <span className="tool-divider"/>
@@ -1193,21 +1222,14 @@ export default function App() {
           <div className="section-head first"><div><small>PERSONALIZE</small><h1>Workspace preferences</h1><p>Make the experience yours. Changes are saved automatically in this browser.</p></div></div>
           <div className="setting-section"><h2>Appearance</h2><p>Choose how Market Terminal looks and feels.</p><div className="choice-row"><button className={prefs.dark ? "chosen" : ""} onClick={() => { update({ dark: true }); notify("Dark appearance selected."); }}><Moon size={18}/> Dark {prefs.dark && <Check size={15}/>}</button><button className={!prefs.dark ? "chosen" : ""} onClick={() => { update({ dark: false }); notify("Light appearance selected."); }}><Sun size={18}/> Light {!prefs.dark && <Check size={15}/>}</button></div></div>
           <div className="setting-section"><h2>Accent color</h2><p>Three carefully balanced palettes for the workstation.</p><div className="choice-row">{(["violet","teal","amber"] as const).map(accent => <button key={accent} className={prefs.accent === accent ? "chosen" : ""} onClick={() => { update({ accent }); notify("Accent color set to " + accent + "."); }}><span className={"accent-dot " + accent}/>{accent[0].toUpperCase() + accent.slice(1)} {prefs.accent === accent && <Check size={15}/>}</button>)}</div></div>
-          <div className="setting-section"><h2>Workspace data</h2><p>Clear your current local layout and drawing levels. Export first if you want a backup.</p><button className="danger-button" onClick={() => { if (window.confirm("Reset your local workspace and remove all saved levels?")) { setPrefs(defaultWorkspace); drawingHistory.current = { past: [], future: [] }; setHistoryVersion(v => v + 1); setDrawMode(false); setDrawingTool(null); notify("Local workspace reset."); } }}><RotateCcw size={16}/> Reset local workspace</button></div>
+          <div className="setting-section"><h2>Workspace data</h2><p>Clear your current local layout and drawing levels. Export first if you want a backup.</p><button className="danger-button" onClick={() => { if (window.confirm("Permanently reset this browser workspace, including drawings, decision records and their review history?")) { setPrefs(defaultWorkspace); drawingHistory.current = { past: [], future: [] }; setHistoryVersion(v => v + 1); setDrawMode(false); setDrawingTool(null); notify("Local workspace reset."); } }}><RotateCcw size={16}/> Reset local workspace</button></div>
         </div>}
       </div>
     </div>
     <footer className="statusbar"><span><span className="sync-point">●</span> MARKET TERMINAL / LOCAL-FIRST PREVIEW</span><span>Feed: {sourceStateLabel} · {saveFailed?"Local save failed":"Workspace saved locally"}</span></footer>
     {notice && <div role="status" className={"toast " + notice.kind} key={notice.id}><span>{notice.kind === "success" ? <Check size={17}/> : <Activity size={17}/>}</span><p>{notice.message}</p><button aria-label="Dismiss notification" onClick={() => setNotice(null)}><X size={16}/></button></div>}
-    {searchOpen && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setSearchOpen(false); }}><div className="command-dialog" role="dialog" aria-modal="true" aria-label="Search instruments"><div className="command-input"><Search size={19}/><input ref={inputSearch} placeholder="Search a symbol, market or instrument…" value={query}
-  role="combobox" aria-expanded="true" aria-controls="instrument-options"
-  aria-activedescendant={filtered[searchIndex] ? "instrument-" + filtered[searchIndex] : undefined}
-  onChange={e => setQuery(e.target.value)}
-  onKeyDown={event => {
-    if (event.key === "ArrowDown") { event.preventDefault(); setSearchIndex(i => Math.min(Math.max(0,filtered.length - 1),i + 1)); }
-    if (event.key === "ArrowUp") { event.preventDefault(); setSearchIndex(i => Math.max(0,i - 1)); }
-    if (event.key === "Enter" && filtered[searchIndex]) { event.preventDefault(); openInstrument(filtered[searchIndex]); }
-  }}/><button onClick={() => setSearchOpen(false)} aria-label="Close search"><X size={17}/></button></div><div id="instrument-options" role="listbox" className="command-results"><small>INSTRUMENTS · SOURCE SELECTED IN TERMINAL</small>{filtered.length ? filtered.map((symbol,i) => <button id={"instrument-" + symbol} key={symbol} role="option" aria-selected={searchIndex === i} className={searchIndex === i ? "keyboard-active" : ""} onMouseEnter={() => setSearchIndex(i)} onClick={() => openInstrument(symbol)}><Compass size={18}/><span><strong>{symbols[symbol].label}</strong><small>{symbols[symbol].market}</small></span><ChevronRight size={16}/></button>) : <p className="empty-search">No matching demonstration instruments.</p>}</div><div className="command-hint"><Command size={14}/> Ctrl K to open · ↑↓ navigate · Enter select · Esc close</div></div></div>}
-    {helpOpen && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setHelpOpen(false); }}><div className="help-dialog" role="dialog" aria-modal="true" aria-label="Help and shortcuts"><button className="dialog-close" aria-label="Close help" onClick={() => setHelpOpen(false)}><X size={18}/></button><Menu size={24}/><h2>Your terminal, your rules.</h2><p>Use the left navigation to switch between overview, charting, saved workspace and preferences. Click <strong>Price level</strong> to place a horizontal level, or drag using the Trendline, Rectangle or Fibonacci tools.</p><div className="shortcut"><span>Open market search</span><kbd>Ctrl / ⌘ + K</kbd></div><div className="shortcut"><span>Exit drawing or dismiss dialog</span><kbd>Esc</kbd></div><div className="shortcut"><span>Undo / redo drawings</span><kbd>Ctrl / ⌘ + Z · Shift + Z</kbd></div><div className="shortcut"><span>Save workspace</span><strong>Automatic</strong></div><div className="shortcut"><span>Capture a source-aware decision</span><strong>Decision Desk</strong></div><p className="help-warning">Most instruments use synthetic demo candles. BTC/USDT has an opt-in direct Binance Spot feed. This is not a broker, and YoungMoney3 linking is not available.</p><button className="primary-button" onClick={() => setHelpOpen(false)}>Start exploring <ChevronRight size={16}/></button></div></div>}
+    {searchOpen && <CommandPalette onClose={()=>setSearchOpen(false)}
+       onOpenInstrument={openInstrument} onExecuteCommand={runTerminalCommand}/>}
+     {helpOpen && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setHelpOpen(false); }}><div className="help-dialog" role="dialog" aria-modal="true" aria-label="Help and shortcuts"><button className="dialog-close" aria-label="Close help" onClick={() => setHelpOpen(false)}><X size={18}/></button><Menu size={24}/><h2>Your terminal, your rules.</h2><p>Use the left navigation to switch between overview, charting, saved workspace and preferences. Click <strong>Price level</strong> to place a horizontal level, or drag using the Trendline, Rectangle or Fibonacci tools.</p><div className="shortcut"><span>Open market search</span><kbd>Ctrl / ⌘ + K</kbd></div><div className="shortcut"><span>Exit drawing or dismiss dialog</span><kbd>Esc</kbd></div><div className="shortcut"><span>Undo / redo drawings</span><kbd>Ctrl / ⌘ + Z · Shift + Z</kbd></div><div className="shortcut"><span>Save workspace</span><strong>Automatic</strong></div><div className="shortcut"><span>Capture a source-aware decision</span><strong>Decision Desk</strong></div><p className="help-warning">Most instruments use synthetic demo candles. BTC/USDT has an opt-in direct Binance Spot feed. This is not a broker, and YoungMoney3 linking is not available.</p><button className="primary-button" onClick={() => setHelpOpen(false)}>Start exploring <ChevronRight size={16}/></button></div></div>}
   </div>;
 }
