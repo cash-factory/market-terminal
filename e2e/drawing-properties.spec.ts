@@ -108,3 +108,20 @@ test("evidence callout classification remains source-bound and appears in Contex
   await page.getByRole("tab",{name:"Context"}).click();
   await expect(page.getByRole("region",{name:"Evidence counterweight"})).toBeVisible();
 });
+
+test("properties dialog is keyboard-contained and Escape restores chart controls",async({page})=>{
+  await page.goto("/market-terminal/?classic");
+  await page.getByRole("button",{name:"Trendline",exact:true}).click();
+  await draw(page,[.25,.39],[.57,.62]);
+  const original=page.getByRole("button",{name:"Settings for drawing 1"});
+  await original.click();
+  const dialog=page.getByRole("dialog",{name:/Drawing settings/});
+  await expect(dialog).toBeVisible();
+  const close=dialog.getByRole("button",{name:"Close drawing settings"});
+  await expect(close).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(dialog.getByRole("button",{name:"Apply changes"})).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await expect(original).toBeFocused();
+});
