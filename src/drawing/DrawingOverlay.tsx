@@ -188,7 +188,9 @@ export function DrawingOverlay({
     }
     onSelectionChange(linked);
     if(drawing.locked)return;
-    capture(event);
+    // Do not capture a stationary object-selection click: pointer capture
+    // retargets the subsequent click to the SVG root and breaks double-click.
+    // Acquire capture only once an actual drag begins.
     gestureRef.current = { kind, origin: pointFromEvent(event), original: drawing,vertexIndex };
     setDraft(null);
   };
@@ -278,6 +280,8 @@ export function DrawingOverlay({
       return;
     }
     if (!active.original) return;
+    if(pointerDistance(active.origin,point)>=2&&!svgRef.current?.hasPointerCapture(event.pointerId))
+      capture(event);
     const originalProjected = project(active.original);
     if (!originalProjected) return;
     const dx = point.x - active.origin.x;
