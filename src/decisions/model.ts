@@ -1,5 +1,5 @@
 import type { CandlestickData, UTCTimestamp } from "lightweight-charts";
-import type { Frame, SymbolId } from "../market";
+import {ALL_FRAMES,type Frame,type SymbolId} from "../market";
 import type { PriceSource, PriceStatus } from "../data/usePriceFeed";
 
 export type DecisionDirection = "bullish" | "bearish" | "wait";
@@ -57,7 +57,7 @@ type CaptureContext = {
 };
 
 const SYMBOLS = ["EURUSD", "BTCUSDT", "AAPL", "US100"] as const;
-const FRAMES = ["1m", "5m", "15m", "1h", "4h", "1d"] as const;
+const FRAMES:readonly Frame[]=ALL_FRAMES;
 const SOURCES = ["demo", "binance"] as const;
 const STATUSES = ["synthetic", "loading", "connecting", "historical", "live", "stale", "error"] as const;
 const DIRECTIONS = ["bullish", "bearish", "wait"] as const;
