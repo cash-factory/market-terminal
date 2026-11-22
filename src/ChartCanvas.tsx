@@ -3,7 +3,7 @@ import {
   createChart, CandlestickSeries, LineSeries, BarSeries, AreaSeries, type CandlestickData,
   type IChartApi, type ISeriesApi, type IPriceLine, type UTCTimestamp
 } from "lightweight-charts";
-import { sma, symbols, type Frame, type SymbolId } from "./market";
+import { sma, symbols, isSecondsFrame, type Frame, type SymbolId } from "./market";
 import type { Level } from "./workspace";
 import type { PriceSource } from "./data/usePriceFeed";
 import { DrawingOverlay } from "./drawing/DrawingOverlay";
@@ -89,7 +89,7 @@ export function ChartCanvas({
       autoSize: true,
       layout: { background: { color: dark ? "#101821" : "#ffffff" }, textColor: dark ? "#8e9bad" : "#64748b" },
       grid: { vertLines: { color: dark ? "#202d39" : "#edf1f5" }, horzLines: { color: dark ? "#202d39" : "#edf1f5" } },
-      timeScale: { borderColor: dark ? "#293644" : "#dce4eb" },
+      timeScale: { borderColor: dark ? "#293644" : "#dce4eb",timeVisible:true,secondsVisible:isSecondsFrame(frame) },
       rightPriceScale: { borderColor: dark ? "#293644" : "#dce4eb" },
     });
     const s = c.addSeries(CandlestickSeries, {
