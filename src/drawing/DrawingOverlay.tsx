@@ -15,8 +15,8 @@ import { clippedExtendedLine, horizontalReference, verticalReference,
   observedBarCount, formatElapsedDuration } from "./precision";
 import { ONE_ANCHOR_TOOLS } from "./toolDefinitions";
 import { isDrawingVisibleAtFrame } from "./drawingSettings";
-import { addMultiPointAnchor, multiPointCount, requiresMultiPoint,
-  FIB_EXTENSION_LEVELS,FIB_TIME_SEQUENCE,fibExtensionPrices,patternPriceRatios } from "./multiAnchor";
+import { addMultiPointAnchor, multiPointCount, requiresMultiPoint } from "./multiAnchor";
+import { AdvancedDrawingPrimitives } from "./AdvancedDrawingPrimitives";
 import {calculatePosition,defaultPositionTarget,positionTargetAnchor} from "../analysis/positionDrawing";
 
 type Projected = { a: ChartPoint; b: ChartPoint };
@@ -352,7 +352,9 @@ export function DrawingOverlay({
       }else if(ONE_ANCHOR_TOOLS.has(tool)){
         pendingRef.current=null;
         setDraft(null);
-        onAdd({...makeDrawing(active.first,active.first,tool),id:crypto.randomUUID()});
+        const note=tool==="callout"?"Observation":tool==="price-note"?"Marked price":undefined;
+        onAdd({...makeDrawing(active.first,active.first,tool),
+          ...(note?{text:note}:{}),id:crypto.randomUUID()});
       }else if(tool==="brush"){
         const points=draftRef.current?.points??[];
         pendingRef.current=null;
@@ -418,6 +420,11 @@ export function DrawingOverlay({
     return <g key={drawing.id} className={"drawing-shape " + (selected ? "is-selected" : "")}
       onPointerDown={event => { if (!isPreview) beginEdit(event, drawing, "move"); }}
       onDoubleClick={event=>{if(!isPreview){event.stopPropagation();onOpenSettings(drawing.id);}}}>
+      <AdvancedDrawingPrimitives drawing={drawing} a={a} b={b} plot={plot}
+        common={common} precision={symbols[symbol].precision}
+        candleTimes={candleTimes}
+        projectAnchor={anchor=>project({...drawing,start:anchor,end:anchor})?.a??null}
+        projectPrice={price=>series.priceToCoordinate(price)}/>
       {drawing.tool==="channel"&&(()=>{
         const control=drawing.control??drawing.start;
         const projected=project({...drawing,start:control,end:control});
@@ -639,6 +646,15 @@ export function DrawingOverlay({
           strokeWidth={1} strokeDasharray="5 4" opacity={drawing.opacity??1} pointerEvents="none"
           className="drawing-rectangle-midline"/>}
       {isPreview && <circle cx={a.x} cy={a.y} r={4} fill={drawing.color} pointerEvents="none" />}
+      {selected&&!drawing.locked&&drawing.points&&drawing.points.length>=3&&
+        drawing.points.slice(2).map((vertex,index)=>{
+          const projected=project({...drawing,start:vertex,end:vertex});
+          if(!projected)return null;
+          return <circle key={"vertex-"+index} cx={projected.a.x} cy={projected.a.y}
+            r={7} fill="var(--panel)" stroke={drawing.color} strokeWidth={2}
+            className="drawing-handle pattern-vertex-handle"
+            onPointerDown={event=>beginEdit(event,drawing,"vertex",index+2)}/>;
+        })}
       {selected && !drawing.locked && drawing.tool!=="brush" && drawing.tool!=="text" &&
         (ONE_ANCHOR_TOOLS.has(drawing.tool)?[a]:[a,b]).map((p,i) =>
         <circle key={i} cx={p.x} cy={p.y} r={7} fill="var(--panel)"
