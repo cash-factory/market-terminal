@@ -659,7 +659,7 @@ export function DrawingOverlay({
           <line x1={x1} x2={x2} y1={y} y2={y} stroke="transparent"
             strokeWidth={12} className="drawing-hit"/>
           <line x1={x1} x2={x2} y1={y} y2={y} {...common} stroke={level.color}
-            strokeOpacity={level.ratio===0||level.ratio===1?1:.75} className="drawing-fib-level"/>
+            strokeOpacity={level.ratio===0||level.ratio===1?1:.75} className="drawing-line drawing-fib-level"/>
           {drawing.showLabels!==false&&<text x={x2+6} y={y-4} fill={level.color} fontSize={10}
             pointerEvents="none">{formatFibLabel(level.ratio,price,symbols[symbol].precision,drawing.labelMode)}</text>}
         </g>;
