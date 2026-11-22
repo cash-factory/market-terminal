@@ -18,9 +18,7 @@ export function mergeExchangeHistory(
   for (const candle of normalizeCandles(previous)) byTime.set(candle.openTimeMs, candle);
   for (const candle of normalizeCandles(history)) {
     const existing = byTime.get(candle.openTimeMs);
-    if (!existing || candle.isFinal || !existing.isFinal && !candle.isFinal && !previous.some(
-      original => original.openTimeMs === candle.openTimeMs,
-    )) {
+    if (!existing || candle.isFinal) {
       byTime.set(candle.openTimeMs, candle);
     }
   }
