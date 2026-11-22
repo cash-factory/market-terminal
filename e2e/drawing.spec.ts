@@ -113,10 +113,14 @@ test("all synthetic market charts allow creating and retaining drawings across t
     await page.locator(".symbol-button").click();
     await page.getByRole("option", { name: new RegExp(market.replace("/", "\\/")) }).click();
     await expect(page.locator("svg.drawing-overlay")).toBeVisible();
+    await page.getByRole("button", { name: "1h", exact: true }).click();
     const before = await page.locator(".drawing-shape").count();
     await drawDrag(page, "Rectangle", [0.30, 0.40], [0.56, 0.62]);
     await expect(page.locator(".drawing-shape")).toHaveCount(before + 1);
     await page.getByRole("button", { name: "5m", exact: true }).click();
+    const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("market-terminal-workspace") ?? "{}"));
+    expect(stored.preferences.drawings.filter((d: { symbol: string }) => d.symbol === ({ "EUR / USD":"EURUSD", "BTC / USDT":"BTCUSDT", AAPL:"AAPL", US100:"US100" } as Record<string,string>)[market])).toHaveLength(1);
+    await page.getByRole("button", { name: "1h", exact: true }).click();
     await expect(page.locator(".drawing-shape")).toHaveCount(before + 1);
   }
 });
