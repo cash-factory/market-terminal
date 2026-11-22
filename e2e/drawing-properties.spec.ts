@@ -79,3 +79,32 @@ test("double-clicking a plotted object opens the same coherent settings dialog",
   await page.getByRole("button",{name:"Close drawing settings"}).click();
   await expect(page.getByRole("dialog",{name:/Drawing settings/})).toHaveCount(0);
 });
+
+test("evidence callout classification remains source-bound and appears in Context Lens",async({page})=>{
+  await page.goto("/market-terminal/?classic");
+  await page.getByRole("button",{name:"More drawing tools"}).click();
+  await page.getByRole("group",{name:"Advanced drawing tools"})
+    .getByRole("button",{name:"Callout",exact:true}).click();
+  const box=await page.locator("svg.drawing-overlay").first().boundingBox();
+  if(!box)throw new Error("Chart input absent");
+  await page.mouse.click(box.x+box.width*.42,box.y+box.height*.41);
+  await expect(page.locator(".drawing-callout")).toHaveCount(1);
+  await page.getByRole("button",{name:"Settings for drawing 1"}).click();
+  const dialog=page.getByRole("dialog",{name:/Drawing settings/});
+  await dialog.getByRole("textbox",{name:"Drawing annotation text"}).fill("A failed break weakens this scenario");
+  await dialog.getByRole("combobox",{name:"Evidence classification"}).selectOption("challenges");
+  await dialog.getByRole("button",{name:"Apply changes"}).click();
+  await page.getByRole("tab",{name:"Context"}).click();
+  const evidence=page.getByRole("region",{name:"Evidence counterweight"});
+  await expect(evidence).toBeVisible();
+  await expect(evidence.getByText("1", {exact:true})).toHaveCount(1);
+  await expect(page.locator(".drawing-callout")).toContainText("[CHALLENGES]");
+  const state=await page.evaluate(()=>JSON.parse(localStorage.getItem("market-terminal-workspace")??"{}"));
+  expect(state.preferences.drawings[0]).toMatchObject({
+    tool:"callout",evidenceSide:"challenges",source:"demo",
+    text:"A failed break weakens this scenario"
+  });
+  await page.reload();
+  await page.getByRole("tab",{name:"Context"}).click();
+  await expect(page.getByRole("region",{name:"Evidence counterweight"})).toBeVisible();
+});
