@@ -39,15 +39,17 @@ export function cycleLinePositions(x0:number,x1:number,plotWidth:number):number[
   return result;
 }
 
-export function gannGrid(plot:PlotSize,a:Point2D,b:Point2D):{
+export function gannGrid(plot:PlotSize,a:Point2D,b:Point2D,divisions=4):{
   vertical:number[];horizontal:number[];diag:[Point2D,Point2D][]
 }|null{
-  if(![plot.width,plot.height,a.x,a.y,b.x,b.y].every(Number.isFinite))return null;
+  if(![plot.width,plot.height,a.x,a.y,b.x,b.y].every(Number.isFinite)||
+     !Number.isInteger(divisions)||divisions<2||divisions>12)return null;
   const left=Math.min(a.x,b.x),right=Math.max(a.x,b.x);
   const top=Math.min(a.y,b.y),bottom=Math.max(a.y,b.y);
   if(right-left<1||bottom-top<1)return null;
-  const vertical=[.25,.5,.75].map(p=>left+(right-left)*p);
-  const horizontal=[.25,.5,.75].map(p=>top+(bottom-top)*p);
+  const fractions=Array.from({length:divisions-1},(_,index)=>(index+1)/divisions);
+  const vertical=fractions.map(p=>left+(right-left)*p);
+  const horizontal=fractions.map(p=>top+(bottom-top)*p);
   return {vertical,horizontal,diag:[
     [{x:left,y:bottom},{x:right,y:top}],
     [{x:left,y:top},{x:right,y:bottom}]
