@@ -12,6 +12,7 @@ import { bollingerBands, ema, type StudySettings } from "./indicators/studies";
 import { IndicatorPanels } from "./indicators/IndicatorPanels";
 import type { StudyParameters } from "./indicators/parameters";
 import {closeLineData,heikinAshi,type ChartDisplayStyle} from "./charts/display";
+import {evaluateFormula,type CustomStudy} from "./indicators/formula";
 
 export type ChartSurface = {chart:IChartApi;series:ISeriesApi<"Candlestick">};
 export type ChartRange=ReturnType<ReturnType<IChartApi["timeScale"]>["getVisibleRange"]>;
@@ -35,6 +36,7 @@ interface Props {
   drawingColor: string;
   magnetEnabled: boolean;
   studies: StudySettings;
+  customStudies: CustomStudy[];
   parameters: StudyParameters;
   onAddDrawing: (drawing: Drawing) => void;
   onUpdateDrawing: (drawing: Drawing,editKind?:"move"|"start"|"end"|"control") => void;
@@ -48,7 +50,7 @@ type Surface = ChartSurface;
 export function ChartCanvas({
   paneId,onSurfaceReady,onRangeChanged,onCrosshairChanged,
   symbol, frame, source, chartStyle, candles, dark, showSma, levels, drawMode, onPlaceLevel,
-  drawingTool, drawings, drawingColor, studies, parameters, magnetEnabled, onAddDrawing, onUpdateDrawing, onDeleteDrawing, onDeleteDrawings, selectedDrawingIds, onDrawingSelectionChange
+  drawingTool, drawings, drawingColor, studies, customStudies, parameters, magnetEnabled, onAddDrawing, onUpdateDrawing, onDeleteDrawing, onDeleteDrawings, selectedDrawingIds, onDrawingSelectionChange
 }: Props) {
   const callbacks=useRef({onSurfaceReady,onRangeChanged,onCrosshairChanged});
   callbacks.current={onSurfaceReady,onRangeChanged,onCrosshairChanged};
@@ -65,6 +67,7 @@ export function ChartCanvas({
   const average = useRef<ISeriesApi<"Line"> | null>(null);
   const studyLines = useRef<{ ema?: ISeriesApi<"Line">; bb?: [ISeriesApi<"Line">, ISeriesApi<"Line">, ISeriesApi<"Line">] }>({});
   const priceLines = useRef<IPriceLine[]>([]);
+  const formulaLines=useRef(new Map<string,ISeriesApi<"Line">>());
   const fitted = useRef(false);
   const [surface, setSurface] = useState<Surface | null>(null);
   const callback = useRef(onPlaceLevel);
@@ -150,6 +153,7 @@ export function ChartCanvas({
       priceLineOwner.current=null;
       average.current = null;
       studyLines.current = {};
+      formulaLines.current.clear();
       c.remove();
     };
   }, [symbol, frame, dark, showSma, source, chartStyle, studies.ema20, studies.bollinger20, paneId]);
@@ -184,6 +188,30 @@ export function ChartCanvas({
     );
   }, [levels, symbol, frame, dark, showSma, source, chartStyle]);
 
+  useEffect(()=>{
+    const c=chart.current;
+    if(!c)return;
+    const enabled=customStudies.filter(study=>study.enabled);
+    const ids=new Set(enabled.map(study=>study.id));
+    for(const [id,line] of formulaLines.current){
+      if(!ids.has(id)){
+        c.removeSeries(line);formulaLines.current.delete(id);
+      }
+    }
+    for(const study of enabled){
+      let line=formulaLines.current.get(study.id);
+      if(!line){
+        line=c.addSeries(LineSeries,{
+          color:study.color,lineWidth:2,priceLineVisible:false,lastValueVisible:false,
+          title:study.name,
+        });
+        formulaLines.current.set(study.id,line);
+      }
+      line.applyOptions({color:study.color,title:study.name});
+      try{line.setData(evaluateFormula(study.expression,candles));}
+      catch{line.setData([]);}
+    }
+  },[customStudies,candles,symbol,frame,source,chartStyle,dark,showSma,studies.ema20,studies.bollinger20]);
   return <div className="technical-chart-stack" data-visible-candles={candles.length}><div className="chart-surface">
     <div ref={host} className={drawMode ? "chart-canvas drawing-armed" : "chart-canvas"}
       role="img" aria-label={(source==="demo"?"Synthetic ":"Binance Spot ")+

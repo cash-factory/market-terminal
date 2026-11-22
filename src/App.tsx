@@ -21,6 +21,7 @@ import { evaluatePriceAlerts, type PriceAlert } from "./alerts/engine";
 import { defaultStudies, studyLabels, type StudySettings } from "./indicators/studies";
 import { BUILTIN_TEMPLATES, captureChartTemplate, selectTemplate } from "./indicators/templates";
 import {defaultStudyParameters,studyParameterBounds,studyParameterKeys,updateStudyParameter} from "./indicators/parameters";
+import {createCustomStudy} from "./indicators/formula";
 import { defaultWorkspace, loadWorkspace, parseWorkspace, serializeWorkspace, type Workspace } from "./workspace";
 
 type Page = "home" | "terminal" | "risk" | "alerts" | "library" | "settings";
@@ -64,6 +65,9 @@ export default function App() {
   const [noteEditingId,setNoteEditingId]=useState<string|null>(null);
   const [noteDraft,setNoteDraft]=useState("");
   const [templateName,setTemplateName]=useState("");
+  const [formulaName,setFormulaName]=useState("");
+  const [formulaExpression,setFormulaExpression]=useState("");
+  const [formulaColor,setFormulaColor]=useState("#59c8d0");
   const [replay,setReplay] = useState<ReplayState|null>(null);
   const inputFile = useRef<HTMLInputElement>(null);
   const inputSearch = useRef<HTMLInputElement>(null);
@@ -98,7 +102,7 @@ export default function App() {
     loading: "LOADING BINANCE", connecting: "CONNECTING", historical: "HISTORICAL",
     live: "LIVE · BINANCE SPOT", stale: "STALE FEED", error: "FEED UNAVAILABLE", synthetic: "SYNTHETIC DATA"
   })[feed.status];
-  const activeStudyCount=studyKeys.filter(key=>prefs.studies[key]).length+(prefs.showSma?1:0);
+  const activeStudyCount=studyKeys.filter(key=>prefs.studies[key]).length+(prefs.showSma?1:0)+prefs.customStudies.filter(s=>s.enabled).length;
   const activeAlertCount=prefs.alerts.filter(a=>a.triggeredAtMs===null).length;
   const quoteText = viewedLast > 0 ? viewedLast.toLocaleString(undefined, {
     minimumFractionDigits: symbols[prefs.symbol].precision,
@@ -293,6 +297,22 @@ export default function App() {
     setPrefs(old=>({...old,chartTemplates:old.chartTemplates.filter(t=>t.id!==id)}));
     notify("Chart template removed.");
   };
+  const saveCustomStudy=()=>{
+    try{
+      const study=createCustomStudy("custom:"+crypto.randomUUID(),formulaName,formulaExpression,formulaColor);
+      setPrefs(old=>({...old,customStudies:[...old.customStudies,study]}));
+      setFormulaName("");setFormulaExpression("");
+      notify(study.name+" custom study added.");
+    }catch(error){notify(error instanceof Error?error.message:"Invalid study expression.","error");}
+  };
+  const removeCustomStudy=(id:string)=>{
+    setPrefs(old=>({...old,customStudies:old.customStudies.filter(study=>study.id!==id)}));
+    notify("Custom study deleted.");
+  };
+  const toggleCustomStudy=(id:string,enabled:boolean)=>{
+    setPrefs(old=>({...old,customStudies:old.customStudies.map(study=>
+      study.id===id?{...study,enabled}:study)}));
+  };
   const addAlert = (alert:PriceAlert) => {
     setPrefs(old=>({...old,alerts:[...old.alerts,alert]}));
     notify("Price alert armed for "+symbols[alert.symbol].label+".");
@@ -328,7 +348,7 @@ export default function App() {
       const json: unknown = JSON.parse(await file.text());
       if (!json || typeof json !== "object" || Array.isArray(json) ||
         !("format" in json) || json.format !== "market-terminal-workspace" ||
-        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15 && json.version !== 16 && json.version !== 17 && json.version !== 18 && json.version !== 19) ||
+        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15 && json.version !== 16 && json.version !== 17 && json.version !== 18 && json.version !== 19 && json.version !== 20) ||
         !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
       const workspace = parseWorkspace(json);
       setPrefs(workspace);
@@ -592,6 +612,31 @@ export default function App() {
                     </div>
                     <small>Changes update every chart in this workspace. MACD fast must be less than slow.</small>
                   </div>
+                  <div className="custom-study-section">
+                    <strong>Custom formula studies</strong>
+                    <small>Supported: open, high, low, close, hl2, ohlc4, SMA, EMA, ABS, MIN, MAX and arithmetic.
+                      No scripts or external code are executed.</small>
+                    <input aria-label="Custom study name" placeholder="Study name"
+                      maxLength={80} value={formulaName} onChange={e=>setFormulaName(e.target.value)}/>
+                    <input aria-label="Custom study expression" placeholder="EMA(close,21) - SMA(close,50)"
+                      maxLength={256} value={formulaExpression} onChange={e=>setFormulaExpression(e.target.value)}/>
+                    <div className="custom-study-create">
+                      <label>Line color <input type="color" aria-label="Custom study color"
+                        value={formulaColor} onChange={e=>setFormulaColor(e.target.value)}/></label>
+                      <button aria-label="Add custom study" onClick={saveCustomStudy}>Add formula</button>
+                    </div>
+                    {prefs.customStudies.length>0&&<div className="custom-study-list">
+                      {prefs.customStudies.map(study=><div key={study.id}>
+                        <label title={study.expression}>
+                          <input type="checkbox" aria-label={"Enable custom study "+study.name}
+                            checked={study.enabled} onChange={e=>toggleCustomStudy(study.id,e.target.checked)}/>
+                          <span>{study.name}</span>
+                        </label>
+                        <button aria-label={"Delete custom study "+study.name}
+                          onClick={()=>removeCustomStudy(study.id)}><Trash2 size={14}/></button>
+                      </div>)}
+                    </div>}
+                  </div>
                   <div className="study-template-section">
                     <strong>Chart templates</strong>
                     <select aria-label="Apply chart template" value="" onChange={e=>applyChartTemplate(e.target.value)}>
@@ -698,7 +743,7 @@ export default function App() {
                 <ChartCanvas chartStyle={prefs.chartDisplayStyle} paneId="primary" onSurfaceReady={registerChartSurface}
                   onRangeChanged={onChartRangeChanged} onCrosshairChanged={onChartCrosshairChanged}
                   key={replay?"historical-replay":"active-chart"} symbol={prefs.symbol} frame={prefs.frame} source={prefs.priceSource} candles={viewedCandles}
-                  dark={prefs.dark} showSma={prefs.showSma} studies={prefs.studies} parameters={prefs.studyParameters} levels={replay?[]:currentLevels} drawMode={drawMode} onPlaceLevel={addLevel}
+                  dark={prefs.dark} showSma={prefs.showSma} studies={prefs.studies} customStudies={prefs.customStudies} parameters={prefs.studyParameters} levels={replay?[]:currentLevels} drawMode={drawMode} onPlaceLevel={addLevel}
                   drawingTool={drawingTool} drawings={replayDrawings} magnetEnabled={prefs.magnetEnabled}
                   drawingColor={prefs.accent === "amber" ? "#e9b368" : prefs.accent === "teal" ? "#32c7aa" : "#9295ff"}
                   onAddDrawing={addDrawing} onUpdateDrawing={updateDrawing} onDeleteDrawing={removeDrawing} onDeleteDrawings={removeDrawings}
@@ -751,7 +796,7 @@ export default function App() {
                     key={"comparison-"+panel.slot+"-"+panel.symbol+"-"+panel.frame+"-"+panel.source}
                     symbol={panel.symbol} frame={panel.frame}
                     source={panel.source} candles={panel.feed.candles} dark={prefs.dark}
-                    showSma={prefs.showSma} studies={prefs.studies} parameters={prefs.studyParameters}
+                    showSma={prefs.showSma} studies={prefs.studies} customStudies={prefs.customStudies} parameters={prefs.studyParameters}
                     levels={prefs.levels.filter(level=>level.symbol===panel.symbol&&(level.source??"demo")===panel.source)}
                     drawMode={drawMode} onPlaceLevel={price=>addComparisonLevel(panel.symbol,panel.source,price)}
                     drawingTool={drawingTool}
