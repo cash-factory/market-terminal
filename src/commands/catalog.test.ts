@@ -9,7 +9,9 @@ describe("Tool Atlas discoverability",()=>{
   it("finds drawing tools by natural trader vocabulary",()=>{
     expect(filterTerminalCommands("fib retracement").map(item=>item.id)).toContain("draw:fibonacci");
     expect(filterTerminalCommands("risk reward").map(item=>item.id)).toContain("draw:long-position");
-    expect(filterTerminalCommands("trading psychology").map(item=>item.id)).toContain("page:decisions");
+    expect(filterTerminalCommands("seconds").map(item=>item.id)).toContain("chart:frame-1s");
+    expect(filterTerminalCommands("Decision Desk")).toEqual([]);
+    expect(filterTerminalCommands("Risk Planner")).toEqual([]);
   });
   it("filters case-insensitively and does not pretend non-existent commands exist",()=>{
     expect(filterTerminalCommands("RSI").map(item=>item.id)).toContain("chart:indicators");
