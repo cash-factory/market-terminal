@@ -16,6 +16,7 @@ import { frameSeconds, symbols, type Frame, type SymbolId } from "./market";
 import { usePriceFeed } from "./data/usePriceFeed";
 import { panelWidthAfterDrag, panelWidthAfterKey } from "./layout";
 import { RiskPlanner } from "./analysis/RiskPlanner";
+import {calculatePosition,defaultPositionTarget} from "./analysis/positionDrawing";
 import { AlertsCenter } from "./alerts/AlertsCenter";
 import { ReplayControls } from "./replay/ReplayControls";
 import { beginReplay,stepReplay,seekReplay,toggleReplayPlayback,setReplaySpeed,visibleReplayCandles,type ReplayState,type ReplaySpeed } from "./replay/model";
@@ -187,7 +188,7 @@ export default function App() {
     }]}));
     setDrawMode(false);notify("Comparison chart price level saved.");
   };
-  const updateDrawing = (drawing: Drawing, editKind?:"move"|"start"|"end"|"control") => {
+  const updateDrawing = (drawing: Drawing, editKind?:"move"|"start"|"end"|"control"|"target") => {
     commitDrawings(updateDrawingAndGroup(prefs.drawings,drawing,editKind),"Drawing updated.");
   };
   const removeDrawing = (id: string) => {
@@ -239,9 +240,22 @@ export default function App() {
       ...active, id: crypto.randomUUID(), hidden: false, locked: false, groupId: undefined,
       start: { time: active.start.time + offset, price: active.start.price * 1.001 },
       end: { time: active.end.time + offset, price: active.end.price * 1.001 },
-      ...(active.points?{points:active.points.map(p=>({time:p.time+offset,price:p.price*1.001}))}:{})
+      ...(active.points?{points:active.points.map(p=>({time:p.time+offset,price:p.price*1.001}))}:{}),
+      ...(active.control?{control:{time:active.control.time+offset,price:active.control.price*1.001}}:{}),
+      ...(active.target?{target:{time:active.target.time+offset,price:active.target.price*1.001}}:{})
     };
     commitDrawings([...prefs.drawings, copy], "Drawing duplicated.");
+  };
+  const setPositionTarget=(drawing:Drawing,price:number)=>{
+    if(drawing.tool!=="long-position"&&drawing.tool!=="short-position")return;
+    const calc=calculatePosition(drawing.tool,drawing.start.price,drawing.end.price,price);
+    if(!calc||!calc.targetIsValid){
+      notify("Target must be beyond entry in the direction of the position.","error");
+      return;
+    }
+    commitDrawings(prefs.drawings.map(item=>item.id===drawing.id?
+      {...item,target:{time:drawing.end.time,price}}:item),
+      "Position target set to "+calc.multiple.toFixed(2)+"R.");
   };
   const saveAnnotation = (id:string, text:string) => {
     const active=prefs.drawings.find(d=>d.id===id&&d.tool==="text");
@@ -371,7 +385,7 @@ export default function App() {
       const json: unknown = JSON.parse(await file.text());
       if (!json || typeof json !== "object" || Array.isArray(json) ||
         !("format" in json) || json.format !== "market-terminal-workspace" ||
-        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15 && json.version !== 16 && json.version !== 17 && json.version !== 18 && json.version !== 19 && json.version !== 20 && json.version !== 21 && json.version !== 22) ||
+        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15 && json.version !== 16 && json.version !== 17 && json.version !== 18 && json.version !== 19 && json.version !== 20 && json.version !== 21 && json.version !== 22 && json.version !== 23) ||
         !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
       const workspace = parseWorkspace(json);
       setPrefs(workspace);
@@ -941,6 +955,18 @@ export default function App() {
                   <button aria-label={"Delete " + drawing.tool + " " + (index+1)}
                     title="Delete drawing" onClick={() => removeDrawing(drawing.id)}><Trash2 size={15}/></button>
                 </div>
+                {(drawing.tool==="long-position"||drawing.tool==="short-position")&&
+                  <label className="drawing-position-target-edit">Profit target
+                    <input type="number" min="0.00000001" step="any"
+                      key={drawing.id+":"+(drawing.target?.price??"default")}
+                      aria-label={"Position target "+(index+1)}
+                      defaultValue={drawing.target?.price??
+                        defaultPositionTarget(drawing.tool,drawing.start.price,drawing.end.price)??""}
+                      onKeyDown={event=>{if(event.key==="Enter")event.currentTarget.blur();}}
+                      onBlur={event=>{
+                        if(event.target.value)setPositionTarget(drawing,Number(event.target.value));
+                      }}/>
+                  </label>}
                 {noteEditingId===drawing.id&&drawing.tool==="text"&&
                   <div className="drawing-note-edit">
                     <textarea aria-label="Annotation text" maxLength={2000} value={noteDraft}
