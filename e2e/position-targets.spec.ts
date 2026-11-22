@@ -1,0 +1,28 @@
+import {test,expect} from "@playwright/test";
+test("long position target is editable through object inspector and restores with R multiple",async({page})=>{
+  await page.goto("/market-terminal/");
+  await page.getByRole("button",{name:"More drawing tools"}).click();
+  await page.getByRole("button",{name:/^Long position/}).click();
+  const box=await page.locator("svg.drawing-overlay").boundingBox();
+  if(!box)throw new Error("Chart plot missing");
+  const a={x:box.x+box.width*.29,y:box.y+box.height*.48};
+  const b={x:box.x+box.width*.56,y:box.y+box.height*.54};
+  await page.mouse.move(a.x,a.y);await page.mouse.down();
+  await page.mouse.move(b.x,b.y,{steps:12});await page.mouse.up();
+  await expect(page.locator(".drawing-position-risk")).toHaveCount(1);
+  const before=await page.evaluate(()=>JSON.parse(localStorage.getItem("market-terminal-workspace")??"{}"));
+  const shape=before.preferences.drawings[0];
+  expect(shape.target).toBeDefined();
+  expect(shape.tool).toBe("long-position");
+  const threeR=shape.start.price+(shape.start.price-shape.end.price)*3;
+  const input=page.getByRole("spinbutton",{name:"Position target 1"});
+  await input.fill(String(threeR));
+  await input.press("Tab");
+  const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem("market-terminal-workspace")??"{}"));
+  expect(saved.preferences.drawings[0].target.price).toBeCloseTo(threeR,7);
+  await expect(page.locator(".drawing-position-reward")).toHaveCount(1);
+  await page.reload();
+  await expect(page.getByRole("spinbutton",{name:"Position target 1"})).toHaveValue(String(threeR));
+  await page.getByRole("button",{name:"Select all chart drawings"}).click();
+  await expect(page.locator(".position-target-handle")).toHaveCount(1);
+});
