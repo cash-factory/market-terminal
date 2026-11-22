@@ -1,4 +1,4 @@
-import type { SymbolId } from "../market";
+import type { SymbolId, Frame } from "../market";
 import { TOOL_BY_ID } from "./toolDefinitions";
 
 export type DrawingTool =
@@ -26,9 +26,14 @@ export type Drawing = {
   strokeWidth?: number;
   dash?: "solid" | "dashed" | "dotted";
   opacity?: number;
+  fillOpacity?: number;
+  showMidline?: boolean;
+  showLabels?: boolean;
+  visibleOnFrames?: Frame[];
 };
 
 const validSymbols = new Set<SymbolId>(["EURUSD", "BTCUSDT", "AAPL", "US100"]);
+const validFrames = new Set<Frame>(["1m", "5m", "15m", "1h", "4h", "1d"]);
 export function isDrawing(input: unknown): input is Drawing {
   if (!input || typeof input !== "object" || Array.isArray(input)) return false;
   const d = input as Partial<Drawing>;
@@ -52,7 +57,14 @@ export function isDrawing(input: unknown): input is Drawing {
     (d.groupId === undefined || (typeof d.groupId === "string" && d.groupId.length > 0 && d.groupId.length <= 128)) &&
     (d.strokeWidth === undefined || (typeof d.strokeWidth === "number" && Number.isFinite(d.strokeWidth) && d.strokeWidth >= 1 && d.strokeWidth <= 8)) &&
     (d.dash === undefined || d.dash === "solid" || d.dash === "dashed" || d.dash === "dotted") &&
-    (d.opacity === undefined || (typeof d.opacity === "number" && Number.isFinite(d.opacity) && d.opacity >= .1 && d.opacity <= 1));
+    (d.opacity === undefined || (typeof d.opacity === "number" && Number.isFinite(d.opacity) && d.opacity >= .1 && d.opacity <= 1)) &&
+    (d.fillOpacity === undefined || (typeof d.fillOpacity === "number" && Number.isFinite(d.fillOpacity) && d.fillOpacity >= 0 && d.fillOpacity <= .8)) &&
+    (d.showMidline === undefined || typeof d.showMidline === "boolean") &&
+    (d.showLabels === undefined || typeof d.showLabels === "boolean") &&
+    (d.visibleOnFrames === undefined ||
+      (Array.isArray(d.visibleOnFrames) && d.visibleOnFrames.length <= 6 &&
+       new Set(d.visibleOnFrames).size === d.visibleOnFrames.length &&
+       d.visibleOnFrames.every(frame=>validFrames.has(frame))));
 }
 
 export function translateDrawing(
