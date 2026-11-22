@@ -28,7 +28,7 @@ describe("standalone drawing controls",()=>{
     const m={...d,tool:"measure" as const,
       showMeasurements:{price:true,percent:false,bars:true,elapsed:false}};
     expect(measurementSegments(m,7,"5m",2)).toEqual([
-      {kind:"price",label:"+20.00"},{kind:"bars",label:"6 observed intervals"}]);
+      {kind:"price",label:"+20.00"},{kind:"bars",label:"7 observed bars"}]);
     expect(isDrawing(m)).toBe(true);
     expect(isDrawing({...m,showMeasurements:{...m.showMeasurements,price:"yes"}})).toBe(false);
   });
