@@ -38,3 +38,21 @@ test("Tool Atlas opens Chart Context Lens and it remains accessible on a narrow 
   await expect(page.getByRole("tabpanel",{name:"Chart Context Lens"})).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)).toBeLessThanOrEqual(2);
 });
+
+test("Inspector tabs support keyboard arrows and visible focus feedback",async({page})=>{
+  await page.goto("/market-terminal/?classic");
+  const markets=page.getByRole("tab",{name:"Markets"});
+  const objects=page.getByRole("tab",{name:/Objects/});
+  const context=page.getByRole("tab",{name:"Context"});
+  await markets.focus();
+  await expect(markets).toHaveAttribute("aria-selected","true");
+  await page.keyboard.press("ArrowRight");
+  await expect(objects).toBeFocused();
+  await expect(objects).toHaveAttribute("aria-selected","true");
+  await page.keyboard.press("ArrowRight");
+  await expect(context).toBeFocused();
+  await expect(page.getByRole("tabpanel",{name:"Chart Context Lens"})).toBeVisible();
+  await page.keyboard.press("Home");
+  await expect(markets).toBeFocused();
+  await expect(markets).toHaveAttribute("aria-selected","true");
+});
