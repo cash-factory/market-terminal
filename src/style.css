@@ -701,3 +701,73 @@
 .workspace-rail-content>.panel-head:first-child{padding-top:3px}
 .workspace-rail-content .drawing-bulk-toolbar{margin-top:2px}
 @media(prefers-reduced-motion:reduce){.workspace-rail-tabs button{transition:none}}
+
+/* Review treatment is enabled by ?studio. Shared controls call the same commands. */
+.configuration-inline,.studio-header-slot,.studio-chart-column,
+.app:not(.studio) .studio-body.terminal-toolbar {display:contents}
+.studio .studio-body.terminal-toolbar {display:grid;grid-template-columns:76px minmax(0,1fr);border:0}
+.studio .studio-chart-column {display:block;min-width:0}
+.studio .page-topline,.studio .avatar,.studio .header-actions .demo-tag {display:none}
+.studio .topbar {min-height:56px}
+.studio .branding strong {font-size:14px;letter-spacing:.025em}
+.studio .terminal-toolbar-market {padding:8px 14px;min-height:54px;gap:7px}
+.studio .terminal-toolbar-market .tool-divider {display:none}
+.studio .studio-configuration {order:10;width:100%;display:flex;flex-wrap:wrap;gap:8px;align-items:center;border-top:1px solid var(--border);padding:12px 0 4px}
+.studio .studio-configuration[hidden] {display:none}
+.studio .terminal-toolbar-drawing {display:flex;flex-flow:column nowrap;align-items:center;justify-content:flex-start;padding:12px 4px;gap:3px;border:0;border-right:1px solid var(--border)}
+.studio .terminal-toolbar-drawing .compact-action {display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;height:42px;width:66px;padding:4px 0;border-color:transparent;background:transparent;color:var(--soft);font-size:10px;font-weight:600}
+.studio .terminal-toolbar-drawing .compact-action:is(:hover,:focus-visible,.active) {background:var(--accent-dim);color:var(--accent);border-color:var(--accent-border)}
+.studio .terminal-toolbar-drawing .tool-divider {display:block;height:1px;width:36px;margin:4px 0;background:var(--border)}
+.studio .terminal-toolbar-drawing .toolbar-group-label {font-size:9px;letter-spacing:.13em;border:0;padding:0;margin:0 0 7px}
+.studio .advanced-tool-menu {left:100%;right:auto;top:0}
+.studio .chart-heading {padding:15px 20px;gap:8px}
+.studio .chart-heading h1 {font-size:clamp(24px,2.4vw,35px);letter-spacing:-.055em;margin:0;display:flex;gap:9px;align-items:center}
+.studio .chart-heading .eyebrow,.studio .chart-heading p {display:none}
+.studio .chart-heading .quote strong {font-size:clamp(20px,2vw,28px);font-variant-numeric:tabular-nums}
+.studio .market-session-reference {margin:0;border-radius:0;border-inline:0}
+.studio .studio-tool-state {min-height:34px;display:flex;gap:9px;align-items:center;padding:4px 14px;background:var(--panel);border-top:1px solid var(--border);color:var(--muted);font-size:12px}
+.studio-tool-state strong {color:var(--text);text-transform:capitalize}
+.studio-tool-state button {margin-left:auto;background:var(--raised);color:var(--text);border:1px solid var(--border);border-radius:4px}
+.studio .chart-grid-single .chart-surface {height:clamp(335px,calc(100dvh - 310px),1000px);min-height:0}
+.studio .watchlist b {font-size:14px}
+.studio .watchlist small {font-size:10px}
+.studio .watchlist button {min-height:57px;border-radius:4px}
+.studio .right-panel {padding:14px 12px}
+.studio .drawing-style-toolbar {background:var(--raised)}
+.studio .drawing-object-row:has(:checked) {border-color:var(--accent)}
+@media(min-width:961px){
+ .studio:not(.focus-mode) .app-body {grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr}
+ .studio:not(.focus-mode) .primary-sidebar {position:static;display:flex;align-items:center;justify-content:space-between;flex-direction:row;height:auto;padding:0 14px;border-right:0;border-bottom:1px solid var(--border)}
+ .studio .sidebar-upper,.studio .sidebar-lower {display:flex;align-items:center;flex-direction:row;gap:6px;padding:0;margin:0;border:0}
+ .studio .sidebar-caption,.studio .collapse {display:none}
+ .studio .nav-item {display:flex;width:auto;min-height:39px;padding:6px 10px;margin:0;border-radius:0;gap:6px;font-size:12px}
+ .studio .nav-item.active::before {inset:auto 7px 0;height:2px;width:auto}
+}
+@media(max-width:700px){
+ .studio .studio-body.terminal-toolbar {display:flex;flex-direction:column}
+ .studio .terminal-toolbar-drawing {display:flex;flex-flow:row wrap;gap:3px;padding:5px;border:0;border-bottom:1px solid var(--border)}
+ .studio .terminal-toolbar-drawing .compact-action {width:43px;height:35px;font-size:8px;gap:2px}
+ .studio .terminal-toolbar-drawing .tool-divider,.studio .toolbar-group-label {display:none}
+ .studio .advanced-tool-menu {position:fixed;inset:auto 8px 8px;max-height:60dvh;overflow:auto;width:auto}
+ .studio .chart-heading {padding:10px}
+ .studio .chart-grid-single .chart-surface {height:clamp(280px,calc(100dvh - 405px),580px)}
+ .studio .terminal-toolbar-market {padding:6px}
+ .studio .terminal-toolbar-market .symbol-button {min-width:105px}
+}
+.studio .studio-chart-column {display:flex;flex-direction:column}
+.studio .market-session-reference {order:2}
+.studio .chart-footer {order:3}
+.studio .chart-heading {min-height:68px;padding-block:10px}
+.studio .studio-tool-state {height:38px;min-height:38px}
+.studio .studio-tool-state label {display:flex;align-items:center;gap:6px}
+.studio .studio-tool-state select {background:var(--raised);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:2px}
+.studio .chart-heading h1 button {display:inline-flex;align-items:center;gap:6px;font:inherit;letter-spacing:inherit;background:none;border:0;padding:0;color:var(--text)}
+.studio .terminal-toolbar-market .symbol-button {display:none}
+.studio .chart-heading h1 button:hover {color:var(--accent)}
+.studio .terminal-toolbar-market {min-height:48px}
+.studio .studio-chart-column .chart-grid-single .chart-surface {height:clamp(300px,calc(100dvh - 285px),1200px)}
+@media(min-width:961px){.studio .primary-sidebar .collapse {display:none}}
+@media(max-width:700px){
+ .studio .terminal-toolbar-drawing .compact-action {width:48px;height:42px;font-size:10px}
+ .studio .studio-chart-column .chart-grid-single .chart-surface {height:clamp(260px,calc(100dvh - 425px),700px)}
+}

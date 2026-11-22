@@ -46,7 +46,10 @@ const titles: Record<Page, string> = {
   home: "Market overview", terminal: "Trading terminal", risk: "Risk planner", alerts:"Price alerts", library: "My workspace", settings: "Preferences"
 };
 
+const studio = new URLSearchParams(window.location.search).has("studio");
+
 export default function App() {
+  const [setupOpen, setSetupOpen] = useState(false);
   const [prefs, setPrefs] = useState<Workspace>(loadWorkspace);
   const [marketClock,setMarketClock]=useState(()=>Date.now());
   useEffect(()=>{
@@ -132,6 +135,9 @@ export default function App() {
     loading: "LOADING BINANCE", connecting: "CONNECTING", historical: "HISTORICAL",
     live: "LIVE · BINANCE SPOT", stale: "STALE FEED", error: "FEED UNAVAILABLE", synthetic: "SYNTHETIC DATA"
   })[feed.status];
+  const selectedObject = selectedDrawingIds.length === 1
+    ? prefs.drawings.find(drawing => drawing.id === selectedDrawingIds[0])
+    : undefined;
   const activeStudyCount=studyKeys.filter(key=>prefs.studies[key]).length+(prefs.showSma?1:0)+prefs.customStudies.filter(s=>s.enabled).length;
   const activeAlertCount=prefs.alerts.filter(a=>a.triggeredAtMs===null).length;
   const quoteText = viewedLast > 0 ? viewedLast.toLocaleString(undefined, {
@@ -204,6 +210,7 @@ export default function App() {
   const addDrawingFor = (drawing: Drawing, source: "demo"|"binance") => {
     commitDrawings([...prefs.drawings, { ...drawing, source }], "Drawing saved locally.");
     setPanelTab("objects");
+    if (studio) setSelectedDrawingIds([drawing.id]);
     if (!prefs.keepDrawingToolActive) setDrawingTool(null);
   };
   const addDrawing = (drawing: Drawing) => addDrawingFor(drawing,prefs.priceSource);
@@ -514,15 +521,15 @@ export default function App() {
     const timer = window.setTimeout(() => setNotice(current => current?.id === notice.id ? null : current), 4200);
     return () => window.clearTimeout(timer);
   }, [notice]);
-  return <div className={"app " + (prefs.dark ? "dark" : "light") + " accent-" + prefs.accent + (focusMode && page === "terminal" ? " focus-mode" : "")}>
+  return <div className={"app " + (studio && page === "terminal" ? "studio " : "") + (prefs.dark ? "dark" : "light") + " accent-" + prefs.accent + (focusMode && page === "terminal" ? " focus-mode" : "")}>
     <header className="topbar">
       <div className="branding">
         <span className="logo"><ChartCandlestick size={20}/></span>
-        <span><strong>MARKET<span className="brand-suffix">/TERMINAL</span></strong><small>Independent trading workspace</small></span>
+        <span><strong>MARKET<span className="brand-suffix">/TERMINAL</span></strong><small>{studio ? "Analysis workstation" : "Independent trading workspace"}</small></span>
       </div>
       <div className="header-center">
         <button className="search-trigger" onClick={() => setSearchOpen(true)}>
-          <Search size={16}/><span>Search markets or commands</span><kbd>Ctrl K</kbd>
+          <Search size={16}/><span>{studio ? "Search instruments" : "Search markets or commands"}</span><kbd>Ctrl K</kbd>
         </button>
       </div>
       <div className="header-actions">
@@ -573,9 +580,22 @@ export default function App() {
         {page === "terminal" && <div className={"terminal-layout " + (prefs.rightPanelOpen ? "" : "panel-closed")}
           style={{"--right-panel-width": prefs.rightPanelWidth + "px"} as CSSProperties}>
           <section className="terminal-center">
+            <div className="studio-header-slot">
             <div className="terminal-toolbar" aria-label="Chart workstation controls">
               <div className="terminal-toolbar-market" role="group" aria-label="Market and chart setup">
               <button className="symbol-button" onClick={() => setSearchOpen(true)}><span>{symbols[prefs.symbol].label}</span><Search size={15}/></button>
+              <div className="timeframes">{frames.map(frame => <button key={frame} className={frame === prefs.frame ? "active" : ""} onClick={() => update({ frame })}>{frame}</button>)}</div>
+              <span className="tool-divider"/>
+              <button className={"compact-action "+(replay?"active":"")} aria-label={replay?"Exit replay":"Start replay"}
+                disabled={!replay&&currentCandles.length<40}
+                title={replay?"Exit historical candle replay":"Study historical candles one bar at a time"}
+                onClick={replay?exitReplay:startReplay}><Film size={15}/>{replay?"Exit replay":"Replay"}</button>
+              <span className="tool-divider"/>
+              {studio && <button className="compact-action studio-setup" aria-expanded={setupOpen}
+                aria-controls="chart-configuration" onClick={()=>setSetupOpen(value=>!value)}>
+                <Settings2 size={16}/> Chart setup
+              </button>}
+              <div id="chart-configuration" className={studio ? "studio-configuration" : "configuration-inline"} hidden={studio && !setupOpen}>
               <div className="source-switch" role="group" aria-label="Chart price source">
                 <button className={prefs.priceSource === "demo" ? "active" : ""}
                   aria-pressed={prefs.priceSource === "demo"}
@@ -586,13 +606,6 @@ export default function App() {
                   aria-pressed={prefs.priceSource === "binance"}
                   onClick={() => { update({priceSource:"binance"}); setDrawingTool(null); setDrawMode(false); notify("Connecting to Binance Spot BTC/USDT…", "info"); }}>Binance Spot</button>
               </div>
-              <div className="timeframes">{frames.map(frame => <button key={frame} className={frame === prefs.frame ? "active" : ""} onClick={() => update({ frame })}>{frame}</button>)}</div>
-              <span className="tool-divider"/>
-              <button className={"compact-action "+(replay?"active":"")} aria-label={replay?"Exit replay":"Start replay"}
-                disabled={!replay&&currentCandles.length<40}
-                title={replay?"Exit historical candle replay":"Study historical candles one bar at a time"}
-                onClick={replay?exitReplay:startReplay}><Film size={15}/>{replay?"Exit replay":"Replay"}</button>
-              <span className="tool-divider"/>
               <button className={"compact-action chart-layout-toggle "+(prefs.chartLayout==="dual"?"active":"")}
                 aria-label="Toggle dual-chart layout" aria-pressed={prefs.chartLayout==="dual"}
                 title="Switch single and dual views (also from four-chart view)"
@@ -655,6 +668,7 @@ export default function App() {
                   onClick={()=>{update({linkTimeRanges:!prefs.linkTimeRanges});notify(prefs.linkTimeRanges?"Independent zoom enabled.":"Linked time-range navigation enabled.");}}>
                   <Link2 size={14}/> Time range
                 </button>
+              </div>
               </div>
               <span className="tool-divider"/>
               <button className="compact-action panel-toggle" title={prefs.rightPanelOpen ? "Hide watchlist" : "Show watchlist"}
@@ -762,6 +776,9 @@ export default function App() {
                 </div>}
               </div>
               </div>
+              </div>
+            </div>
+            <div className="studio-body terminal-toolbar">
               <div className="terminal-toolbar-drawing" role="group" aria-label="Drawing and editing tools">
               <span className="toolbar-group-label">DRAW</span>
               <button disabled={!currentCandles.length} className={"compact-action draw-toggle " + (drawMode ? "active" : "")} onClick={() => { setDrawingTool(null); setDrawMode(!drawMode); notify(!drawMode ? "Drawing armed: click the chart to place a horizontal level." : "Drawing cancelled.", "info"); }}><Plus size={15}/> Price level</button>
@@ -810,10 +827,10 @@ export default function App() {
               <button title="Undo drawing" aria-label="Undo drawing" disabled={historyVersion < 0 || !drawingHistory.current.past.length} className="compact-action" onClick={undoDrawing}><Undo2 size={16}/></button>
               <button title="Redo drawing" aria-label="Redo drawing" disabled={!drawingHistory.current.future.length} className="compact-action" onClick={redoDrawing}><Redo2 size={16}/></button>
               </div>
-            </div>
+            <div className="studio-chart-column">
             <div className="chart-heading"><div>
               <div className="eyebrow">{replay?"HISTORICAL REPLAY · "+feed.sourceLabel:feed.sourceLabel} <span>•</span> {prefs.frame.toUpperCase()}</div>
-              <h1>{symbols[prefs.symbol].label} <span className={"demo-pill feed-pill " + (replay?"historical":feed.status)}>{displaySourceLabel}</span></h1>
+              <h1>{studio ? <button aria-label="Choose chart instrument" onClick={()=>setSearchOpen(true)}>{symbols[prefs.symbol].label}<Search size={17}/></button> : symbols[prefs.symbol].label} <span className={"demo-pill feed-pill " + (replay?"historical":feed.status)}>{displaySourceLabel}</span></h1>
               <p>{replay?"Paused historical snapshot · Future candles hidden until you advance":prefs.priceSource === "demo" ? "Illustrative candles, not executable quotes" : "Direct Binance public Spot data · BTC/USDT, not broker CFD prices"}</p>
             </div><div className="quote"><small>{replay?"REPLAY BAR CLOSE":prefs.priceSource === "demo" ? "SIMULATED LAST" : "BINANCE SPOT LAST"}</small><strong>{quoteText}</strong></div></div>
             <details className="market-session-reference">
@@ -844,8 +861,20 @@ export default function App() {
               onSpeed={(speed:ReplaySpeed)=>setReplay(s=>s?setReplaySpeed(s,speed):s)}
               onExit={exitReplay}
             />}
-            {drawMode && <div className="draw-banner"><MousePointer2 size={16}/> Click on the chart to place a level <button onClick={() => setDrawMode(false)}>Cancel <X size={14}/></button></div>}
-            {drawingTool && <div className="draw-banner"><MousePointer2 size={16}/> Click two points or drag to draw a {drawingTool}. After drawing, click the shape to move it or drag its handles. <button onClick={() => setDrawingTool(null)}>Cancel <X size={14}/></button></div>}
+            {studio && <div className="studio-tool-state" role="status">
+              {selectedObject && !drawingTool && !drawMode ? <>
+                <Pencil size={14}/><strong>{selectedObject.tool}</strong>
+                <label>Weight <select aria-label="Quick stroke weight" value={selectedObject.strokeWidth ?? 2}
+                  onChange={event=>setDrawingStyle({strokeWidth:Number(event.target.value)})}>
+                  {[1,2,3,4,5,6,7,8].map(width=><option key={width} value={width}>{width} px</option>)}
+                </select></label>
+                <button onClick={()=>setSelectedDrawingIds([])}>Done</button>
+              </> : <><MousePointer2 size={14}/><strong>{drawMode ? "Price level" : drawingTool ?? "Navigate"}</strong>
+              <span>{drawMode ? "Click a price on the chart" : drawingTool === "channel" ? "Place the baseline, then the parallel edge" : drawingTool === "text" ? "Click to place a note" : drawingTool === "brush" ? "Drag to sketch" : drawingTool ? "Drag or place two anchors" : "Drag to pan · Scroll to zoom"}</span>
+              {(drawingTool || drawMode) && <button onClick={()=>{setDrawingTool(null);setDrawMode(false);}}>Cancel</button>}</>}
+            </div>}
+            {!studio && drawMode && <div className="draw-banner"><MousePointer2 size={16}/> Click on the chart to place a level <button onClick={() => setDrawMode(false)}>Cancel <X size={14}/></button></div>}
+            {!studio && drawingTool && <div className="draw-banner"><MousePointer2 size={16}/> Click two points or drag to draw a {drawingTool}. After drawing, click the shape to move it or drag its handles. <button onClick={() => setDrawingTool(null)}>Cancel <X size={14}/></button></div>}
             <div className={"chart-grid chart-grid-"+(replay?"single":prefs.chartLayout)}>
               <section className="chart-grid-cell" aria-label="Primary chart">
                 {!replay&&prefs.chartLayout!=="single"&&<div className="chart-cell-label"><span>01 / PRIMARY</span>
@@ -930,6 +959,8 @@ export default function App() {
                 </section>)}
             </div>
             <div className="chart-footer"><span><span className="sync-point">●</span> Locally saved</span><span>Source: {feed.sourceLabel} · {frameSeconds[prefs.frame] / 60}m candle interval · {replay?"historical replay":feed.status}{feed.lastUpdatedMs ? " · Updated " + new Date(feed.lastUpdatedMs).toLocaleTimeString() : ""}</span></div>
+            </div>
+            </div>
           </section>
           {prefs.rightPanelOpen && <aside className="right-panel">
             <div className="panel-resizer" role="separator" tabIndex={0} aria-label="Resize watchlist panel"
