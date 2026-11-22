@@ -2,17 +2,18 @@ import {test,expect} from "@playwright/test";
 
 test("transient chart fault can be retried without losing workspace state",async({page})=>{
   await page.addInitScript(()=>{
-    const Native=window.ResizeObserver;
+    // Force a synchronous chart initialization failure inside React's effect.
+    // A ResizeObserver callback can be handled internally by the chart library
+    // and therefore is not a reliable test of React error boundaries.
+    const nativeCreateElement=document.createElement.bind(document);
     let shouldFail=true;
-    window.ResizeObserver=class extends Native{
-      observe(target:Element,options?:ResizeObserverOptions){
-        if(shouldFail){
-          shouldFail=false;
-          throw new Error("Synthetic one-shot chart resize fault");
-        }
-        return super.observe(target,options);
+    document.createElement=((tagName:string,options?:ElementCreationOptions)=>{
+      if(shouldFail&&tagName.toLowerCase()==="canvas"){
+        shouldFail=false;
+        throw new Error("Synthetic one-shot chart canvas creation fault");
       }
-    };
+      return nativeCreateElement(tagName,options);
+    }) as typeof document.createElement;
   });
   await page.goto("/market-terminal/");
   await expect(page.getByRole("alert").filter({hasText:"Primary chart could not render"}))
