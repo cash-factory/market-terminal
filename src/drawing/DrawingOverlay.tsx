@@ -203,6 +203,20 @@ export function DrawingOverlay({
     const anchor = anchorAt(point);
     if (!anchor) return;
     event.preventDefault();
+    if(pendingMultiRef.current&&pendingMultiRef.current.tool===tool){
+      const pending=pendingMultiRef.current;
+      const stage=addMultiPointAnchor(pending.points,anchor,pending.required);
+      if(stage.complete){
+        pendingMultiRef.current=null;pendingRef.current=null;setDraft(null);
+        onAdd({...makeDrawing(stage.points[0],stage.points[1],tool),
+          points:stage.points,id:crypto.randomUUID()});
+      }else{
+        pendingMultiRef.current={...pending,points:stage.points};
+        setDraft({...makeDrawing(stage.points[0],stage.points[1],tool),
+          points:[...stage.points,stage.points[stage.points.length-1]]});
+      }
+      return;
+    }
     if(tool==="channel"&&pendingChannelRef.current){
       const {first,second}=pendingChannelRef.current;
       pendingChannelRef.current=null;
@@ -227,6 +241,12 @@ export function DrawingOverlay({
     const point = pointFromEvent(event);
     const active = gestureRef.current;
     if (!active) {
+      if(pendingMultiRef.current&&pendingMultiRef.current.tool===tool){
+        const next=anchorAt(point),pending=pendingMultiRef.current;
+        if(next)setDraft({...makeDrawing(pending.points[0],pending.points[1],tool),
+          points:[...pending.points,next]});
+        return;
+      }
       if(tool==="channel"&&pendingChannelRef.current){
         const next=anchorAt(point);
         if(next){
@@ -262,6 +282,22 @@ export function DrawingOverlay({
     if (!originalProjected) return;
     const dx = point.x - active.origin.x;
     const dy = point.y - active.origin.y;
+    if(active.kind==="vertex"&&active.original.points&&active.vertexIndex!==undefined){
+      const index=active.vertexIndex,vertex=active.original.points[index];
+      if(vertex){
+        const projected=project({...active.original,start:vertex,end:vertex});
+        if(projected){
+          const next=anchorAt({x:projected.a.x+dx,y:projected.a.y+dy});
+          if(next){
+            const points=active.original.points.map((p,i)=>i===index?next:p);
+            setDraft({...active.original,points,
+              start:index===0?next:active.original.start,
+              end:index===1?next:active.original.end});
+          }
+        }
+      }
+      return;
+    }
     if(active.kind==="target"){
       const prior=active.original.target??
         (active.original.tool==="long-position"||active.original.tool==="short-position"?
@@ -288,10 +324,12 @@ export function DrawingOverlay({
     const end = active.kind === "start" ? active.original.end :
       anchorAt({ x: originalProjected.b.x + dx, y: originalProjected.b.y + dy });
     if (start && end) {
-      const changed=translateDrawing(active.original,start,end);
-      const adjusted=active.kind==="move"?changed:{...changed,control:active.original.control};
+      const changed=active.kind==="move"?translateDrawing(active.original,start,end):
+        {...active.original,start,end,
+          ...(active.original.points?{points:active.original.points.map((p,i)=>
+            active.kind==="start"&&i===0?start:active.kind==="end"&&i===1?end:p)}:{})};
       setDraft(ONE_ANCHOR_TOOLS.has(active.original.tool)
-        ? {...adjusted,end:adjusted.start} : adjusted);
+        ? {...changed,end:changed.start} : changed);
     }
   };
   const onPointerUp = (event: ReactPointerEvent<SVGSVGElement>) => {
@@ -328,6 +366,9 @@ export function DrawingOverlay({
           if(tool==="channel"){
             pendingChannelRef.current={first:completed.start,second:completed.end};
             setDraft({...completed,control:completed.start});
+          }else if(requiresMultiPoint(tool)){
+            pendingMultiRef.current={tool,points:[completed.start,completed.end],required:multiPointCount(tool)};
+            setDraft({...completed,points:[completed.start,completed.end,completed.end]});
           }else{
             setDraft(null);
             const positionTarget=(tool==="long-position"||tool==="short-position")?
