@@ -106,3 +106,43 @@
  .tool-shelf-select{padding-block:7px}
  .tool-shelf-foot{padding:8px 12px}
 }
+
+/* Layered drawing library: fixed family navigation, scrollable tool detail column. */
+.tool-shelf-main{display:grid;grid-template-columns:125px minmax(0,1fr);flex:1;min-height:100px;overflow:hidden}
+.tool-shelf-main .tool-shelf-groups{display:flex;flex-direction:column;gap:3px;align-items:stretch;
+  padding:10px 7px;background:var(--bg);border-right:1px solid var(--border);
+  overflow-x:hidden;overflow-y:auto;scrollbar-width:thin}
+.tool-shelf-main .tool-shelf-groups button{width:100%;min-height:35px;text-align:left;
+  white-space:normal;border-radius:5px;padding:8px 9px;line-height:1.35;font-size:10px}
+.tool-shelf-main .tool-shelf-groups button.active{color:var(--accent);background:var(--accent-dim);border-color:var(--accent-border)}
+.tool-shelf-body{min-height:0;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+.tool-shelf-body .tool-shelf-scroll{flex:1;min-height:0;overflow-y:auto}
+.tool-shelf-main .tool-shelf-pinned{flex-shrink:0}
+.tool-shelf-body .tool-shelf-section h3{letter-spacing:.06em}
+.tool-shelf-backlog{margin:16px 4px 4px;border-top:1px solid var(--border);padding:12px 4px 4px}
+.tool-shelf-backlog summary{cursor:pointer;display:flex;align-items:center;justify-content:space-between;
+  gap:7px;font-size:10px;font-weight:650;color:var(--muted);line-height:1.4}
+.tool-shelf-backlog summary span{border-radius:4px;padding:3px 6px;background:var(--raised);color:var(--accent)}
+.tool-shelf-backlog p{font-size:10px;color:var(--muted);line-height:1.5;padding:6px 0}
+.tool-shelf-backlog>div{display:flex;gap:7px;flex-wrap:wrap}
+.tool-shelf-backlog>div span{font-size:9px;color:var(--muted);background:var(--raised);
+  padding:7px 8px;border-radius:4px;border:1px solid var(--border)}
+/* More than two anchors are an explicit workflow, not an invisible extra click. */
+.tool-shelf-tool-mark{font-size:11px}
+.studio .terminal-toolbar-drawing .studio-rail-root .tool-shelf{
+  left:clamp(74px,8vw,137px)!important;right:auto!important;
+  top:clamp(138px,18vh,195px)!important;bottom:12px!important;
+  width:min(610px,calc(100vw - 170px))!important;max-height:none!important}
+@media(max-width:700px){
+ .tool-shelf-main{display:flex;flex-direction:column;min-height:0}
+ .tool-shelf-main .tool-shelf-groups{flex-direction:row;flex-shrink:0;align-items:center;
+   padding:7px 8px;border:0;border-bottom:1px solid var(--border);
+   overflow-x:auto;overflow-y:hidden;gap:4px;scrollbar-width:thin}
+ .tool-shelf-main .tool-shelf-groups button{white-space:nowrap;width:auto;min-height:31px;
+   padding:7px 9px;font-size:9px}
+ .tool-shelf-body{flex:1}
+ .tool-shelf-backlog{margin-top:10px}
+ .studio .terminal-toolbar-drawing .studio-rail-root .tool-shelf{
+   position:fixed!important;inset:auto 7px 7px 7px!important;
+   width:auto!important;max-height:76dvh!important}
+}
