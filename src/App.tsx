@@ -3,9 +3,10 @@ import {
   Activity, ArrowDownToLine, Bell, BookOpen, ChartCandlestick, Check,
   ChevronLeft, ChevronRight, Command, Compass, Download, Home, Layers,
   Menu, Moon, MousePointer2, Plus, RotateCcw, Search, Settings2, Sun,
-  Trash2, Upload, X
+  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2
 } from "lucide-react";
 import { ChartCanvas } from "./ChartCanvas";
+import type { Drawing, DrawingTool } from "./drawing/types";
 import { demoCandles, frameSeconds, symbols, type Frame, type SymbolId } from "./market";
 import { defaultWorkspace, loadWorkspace, parseWorkspace, serializeWorkspace, type Workspace } from "./workspace";
 
@@ -28,6 +29,9 @@ export default function App() {
   const [page, setPage] = useState<Page>("terminal");
   const [draft, setDraft] = useState("");
   const [drawMode, setDrawMode] = useState(false);
+  const [drawingTool, setDrawingTool] = useState<DrawingTool | null>(null);
+  const drawingHistory = useRef<{ past: Drawing[][]; future: Drawing[][] }>({ past: [], future: [] });
+  const [historyVersion, setHistoryVersion] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -45,6 +49,7 @@ export default function App() {
     setPage("terminal");
     setSearchOpen(false);
     setDrawMode(false);
+    setDrawingTool(null);
     notify(symbols[symbol].label + " opened in the terminal.");
   };
   const addLevel = (price: number) => {
@@ -58,6 +63,45 @@ export default function App() {
     setDraft("");
     setDrawMode(false);
     notify("Price level added and saved locally.");
+  };
+  const commitDrawings = (next: Drawing[], message: string) => {
+    drawingHistory.current.past.push(prefs.drawings);
+    drawingHistory.current.future = [];
+    setPrefs(old => ({ ...old, drawings: next }));
+    setHistoryVersion(v => v + 1);
+    notify(message);
+  };
+  const addDrawing = (drawing: Drawing) => {
+    commitDrawings([...prefs.drawings, drawing], "Drawing saved locally.");
+    setDrawingTool(null);
+  };
+  const updateDrawing = (drawing: Drawing) => {
+    commitDrawings(prefs.drawings.map(d => d.id === drawing.id ? drawing : d), "Drawing updated.");
+  };
+  const removeDrawing = (id: string) => {
+    commitDrawings(prefs.drawings.filter(d => d.id !== id), "Drawing removed. Use Undo to restore.");
+  };
+  const undoDrawing = () => {
+    const prev = drawingHistory.current.past.pop();
+    if (!prev) return;
+    drawingHistory.current.future.push(prefs.drawings);
+    setPrefs(old => ({ ...old, drawings: prev }));
+    setHistoryVersion(v => v + 1);
+    notify("Drawing change undone.");
+  };
+  const redoDrawing = () => {
+    const next = drawingHistory.current.future.pop();
+    if (!next) return;
+    drawingHistory.current.past.push(prefs.drawings);
+    setPrefs(old => ({ ...old, drawings: next }));
+    setHistoryVersion(v => v + 1);
+    notify("Drawing change restored.");
+  };
+  const chooseDrawingTool = (selected: DrawingTool) => {
+    setDrawMode(false);
+    const next = drawingTool === selected ? null : selected;
+    setDrawingTool(next);
+    notify(next ? "Drag on the chart to create a " + next + "." : "Drawing tool dismissed.", "info");
   };
   const removeLevel = (id: string) => {
     setPrefs(old => ({ ...old, levels: old.levels.filter(level => level.id !== id) }));
@@ -82,11 +126,14 @@ export default function App() {
       const json: unknown = JSON.parse(await file.text());
       if (!json || typeof json !== "object" || Array.isArray(json) ||
         !("format" in json) || json.format !== "market-terminal-workspace" ||
-        !("version" in json) || (json.version !== 1 && json.version !== 2) ||
+        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3) ||
         !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
       const workspace = parseWorkspace(json);
       setPrefs(workspace);
+      drawingHistory.current = { past: [], future: [] };
+      setHistoryVersion(v => v + 1);
       setDrawMode(false);
+      setDrawingTool(null);
       notify("Workspace imported successfully.");
     } catch (error) {
       notify(error instanceof Error ? error.message : "Could not import workspace.", "error");
@@ -113,6 +160,18 @@ export default function App() {
     window.addEventListener("keydown", shortcut);
     return () => window.removeEventListener("keydown", shortcut);
   }, []);
+  useEffect(() => {
+    const drawingShortcuts = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "z") return;
+      const target = event.target;
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return;
+      event.preventDefault();
+      if (event.shiftKey) redoDrawing();
+      else undoDrawing();
+    };
+    window.addEventListener("keydown", drawingShortcuts);
+    return () => window.removeEventListener("keydown", drawingShortcuts);
+  }, [prefs.drawings]);
   useEffect(() => { if (searchOpen) inputSearch.current?.focus(); }, [searchOpen]);
   return <div className={"app " + (prefs.dark ? "dark" : "light") + " accent-" + prefs.accent}>
     <header className="topbar">
@@ -139,7 +198,7 @@ export default function App() {
           {menu.map(({ id, label, Icon }) => <button key={id}
             className={"nav-item " + (page === id ? "active" : "")}
             title={label} aria-label={label} aria-current={page === id ? "page" : undefined}
-            onClick={() => { setPage(id); setDrawMode(false); }}>
+            onClick={() => { setPage(id); setDrawMode(false); setDrawingTool(null); }}>
             <Icon size={18}/>{prefs.sidebarOpen && <span>{label}</span>}
           </button>)}
         </div>
@@ -169,11 +228,23 @@ export default function App() {
               <div className="timeframes">{frames.map(frame => <button key={frame} className={frame === prefs.frame ? "active" : ""} onClick={() => update({ frame })}>{frame}</button>)}</div>
               <span className="tool-divider"/>
               <button className={"compact-action " + (prefs.showSma ? "active" : "")} onClick={() => { update({ showSma: !prefs.showSma }); notify(!prefs.showSma ? "SMA 20 enabled." : "SMA 20 hidden."); }}>SMA 20</button>
-              <button className={"compact-action draw-toggle " + (drawMode ? "active" : "")} onClick={() => { setDrawMode(!drawMode); notify(!drawMode ? "Drawing armed: click the chart to place a horizontal level." : "Drawing cancelled.", "info"); }}><Plus size={15}/> Price level</button>
+              <button className={"compact-action draw-toggle " + (drawMode ? "active" : "")} onClick={() => { setDrawingTool(null); setDrawMode(!drawMode); notify(!drawMode ? "Drawing armed: click the chart to place a horizontal level." : "Drawing cancelled.", "info"); }}><Plus size={15}/> Price level</button>
+              <span className="tool-divider"/>
+              <button title="Drag on the chart to draw a trendline" className={"compact-action " + (drawingTool === "trendline" ? "active" : "")} onClick={() => chooseDrawingTool("trendline")}><TrendingUp size={15}/> Trendline</button>
+              <button title="Drag on the chart to draw a rectangle" className={"compact-action " + (drawingTool === "rectangle" ? "active" : "")} onClick={() => chooseDrawingTool("rectangle")}><Square size={15}/> Rectangle</button>
+              <button title="Drag on the chart to draw Fibonacci levels" className={"compact-action " + (drawingTool === "fibonacci" ? "active" : "")} onClick={() => chooseDrawingTool("fibonacci")}><Ruler size={15}/> Fibonacci</button>
+              <span className="tool-divider"/>
+              <button title="Undo drawing" aria-label="Undo drawing" disabled={historyVersion < 0 || !drawingHistory.current.past.length} className="compact-action" onClick={undoDrawing}><Undo2 size={16}/></button>
+              <button title="Redo drawing" aria-label="Redo drawing" disabled={!drawingHistory.current.future.length} className="compact-action" onClick={redoDrawing}><Redo2 size={16}/></button>
+
             </div>
             <div className="chart-heading"><div><div className="eyebrow">{symbols[prefs.symbol].market} <span>•</span> {prefs.frame.toUpperCase()}</div><h1>{symbols[prefs.symbol].label} <span className="demo-pill">DEMO</span></h1><p>Illustrative candles, not executable quotes</p></div><div className="quote"><small>SIMULATED LAST</small><strong>{last.toLocaleString(undefined, { minimumFractionDigits: symbols[prefs.symbol].precision, maximumFractionDigits: symbols[prefs.symbol].precision })}</strong></div></div>
             {drawMode && <div className="draw-banner"><MousePointer2 size={16}/> Click on the chart to place a level <button onClick={() => setDrawMode(false)}>Cancel <X size={14}/></button></div>}
-            <ChartCanvas symbol={prefs.symbol} frame={prefs.frame} dark={prefs.dark} showSma={prefs.showSma} levels={prefs.levels} drawMode={drawMode} onPlaceLevel={addLevel}/>
+            {drawingTool && <div className="draw-banner"><MousePointer2 size={16}/> Drag on the chart to create a {drawingTool}. Select an existing shape to reposition or resize it. <button onClick={() => setDrawingTool(null)}>Cancel <X size={14}/></button></div>}
+            <ChartCanvas symbol={prefs.symbol} frame={prefs.frame} dark={prefs.dark} showSma={prefs.showSma} levels={prefs.levels} drawMode={drawMode} onPlaceLevel={addLevel}
+              drawingTool={drawingTool} drawings={prefs.drawings}
+              drawingColor={prefs.accent === "amber" ? "#e9b368" : prefs.accent === "teal" ? "#32c7aa" : "#9295ff"}
+              onAddDrawing={addDrawing} onUpdateDrawing={updateDrawing} onDeleteDrawing={removeDrawing}/>
             <div className="chart-footer"><span><span className="sync-point">●</span> Locally saved</span><span>Source: Synthetic fixture · {frameSeconds[prefs.frame] / 60}m candle interval</span></div>
           </section>
           <aside className="right-panel">
@@ -182,12 +253,16 @@ export default function App() {
             <div className="panel-head separated"><strong>Price levels</strong><span className="count">{currentLevels.length}</span></div>
             <div className="price-form"><input type="number" min="0" step="any" aria-label="Level price" placeholder={last.toFixed(symbols[prefs.symbol].precision)} value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === "Enter") addLevel(draft.trim() ? Number(draft) : last); }}/><button aria-label="Add price level" title="Add price level" onClick={() => addLevel(draft.trim() ? Number(draft) : last)}><Plus size={17}/></button></div>
             <div className="level-list">{currentLevels.map(level => <div key={level.id}><span className="level-swatch" style={{ background: level.color }}/><span>{level.price.toFixed(symbols[prefs.symbol].precision)}</span><button aria-label={"Remove price level " + level.price} title="Remove level" onClick={() => removeLevel(level.id)}><Trash2 size={15}/></button></div>)}</div>
-            <p className="panel-note">Use the Price level tool to place levels directly on the chart. More drawing tools are next.</p>
+            <div className="panel-head separated"><strong>Chart drawings</strong><span className="count">{prefs.drawings.filter(d => d.symbol === prefs.symbol).length}</span></div>
+            <div className="level-list">{prefs.drawings.filter(d => d.symbol === prefs.symbol).map(drawing =>
+              <div key={drawing.id}><span className="level-swatch" style={{background:drawing.color}}/><span>{drawing.tool}</span><button aria-label={"Delete " + drawing.tool} title="Delete drawing" onClick={() => removeDrawing(drawing.id)}><Trash2 size={15}/></button></div>
+            )}</div>
+            <p className="panel-note">Drag to place drawings. Click a shape to select it, drag to move, drag endpoints to resize, or press Delete. Ctrl+Z / Ctrl+Shift+Z undo and redo.</p>
           </aside>
         </div>}
         {page === "library" && <div className="content-page">
           <div className="section-head first"><div><small>LOCAL-FIRST</small><h1>My workspace</h1><p>Save, restore and manage your trading setup without a subscription.</p></div></div>
-          <div className="workspace-card"><div className="workspace-icon"><Layers size={26}/></div><div className="workspace-info"><span className="eyebrow">CURRENT WORKSPACE</span><h2>Personal terminal</h2><p>{symbols[prefs.symbol].label} · {prefs.frame.toUpperCase()} · {prefs.levels.length} saved levels</p></div><button className="primary-button" onClick={() => setPage("terminal")}>Open <ChevronRight size={16}/></button></div>
+          <div className="workspace-card"><div className="workspace-icon"><Layers size={26}/></div><div className="workspace-info"><span className="eyebrow">CURRENT WORKSPACE</span><h2>Personal terminal</h2><p>{symbols[prefs.symbol].label} · {prefs.frame.toUpperCase()} · {prefs.levels.length} levels · {prefs.drawings.length} drawings</p></div><button className="primary-button" onClick={() => setPage("terminal")}>Open <ChevronRight size={16}/></button></div>
           <div className="section-head"><div><small>PORTABILITY</small><h2>Back up your work</h2></div></div>
           <div className="action-grid"><button onClick={exportWorkspace}><Download size={23}/><strong>Export workspace</strong><span>Download all current preferences and drawing levels as JSON.</span></button><button onClick={() => inputFile.current?.click()}><Upload size={23}/><strong>Import workspace</strong><span>Restore a compatible exported workspace from your device.</span></button></div>
           <input ref={inputFile} type="file" accept=".json,application/json" className="visually-hidden" onChange={importWorkspace}/>
@@ -196,13 +271,13 @@ export default function App() {
           <div className="section-head first"><div><small>PERSONALIZE</small><h1>Workspace preferences</h1><p>Make the experience yours. Changes are saved automatically in this browser.</p></div></div>
           <div className="setting-section"><h2>Appearance</h2><p>Choose how Market Terminal looks and feels.</p><div className="choice-row"><button className={prefs.dark ? "chosen" : ""} onClick={() => { update({ dark: true }); notify("Dark appearance selected."); }}><Moon size={18}/> Dark {prefs.dark && <Check size={15}/>}</button><button className={!prefs.dark ? "chosen" : ""} onClick={() => { update({ dark: false }); notify("Light appearance selected."); }}><Sun size={18}/> Light {!prefs.dark && <Check size={15}/>}</button></div></div>
           <div className="setting-section"><h2>Accent color</h2><p>Three carefully balanced palettes for the workstation.</p><div className="choice-row">{(["violet","teal","amber"] as const).map(accent => <button key={accent} className={prefs.accent === accent ? "chosen" : ""} onClick={() => { update({ accent }); notify("Accent color set to " + accent + "."); }}><span className={"accent-dot " + accent}/>{accent[0].toUpperCase() + accent.slice(1)} {prefs.accent === accent && <Check size={15}/>}</button>)}</div></div>
-          <div className="setting-section"><h2>Workspace data</h2><p>Clear your current local layout and drawing levels. Export first if you want a backup.</p><button className="danger-button" onClick={() => { if (window.confirm("Reset your local workspace and remove all saved levels?")) { setPrefs(defaultWorkspace); setDrawMode(false); notify("Local workspace reset."); } }}><RotateCcw size={16}/> Reset local workspace</button></div>
+          <div className="setting-section"><h2>Workspace data</h2><p>Clear your current local layout and drawing levels. Export first if you want a backup.</p><button className="danger-button" onClick={() => { if (window.confirm("Reset your local workspace and remove all saved levels?")) { setPrefs(defaultWorkspace); drawingHistory.current = { past: [], future: [] }; setHistoryVersion(v => v + 1); setDrawMode(false); setDrawingTool(null); notify("Local workspace reset."); } }}><RotateCcw size={16}/> Reset local workspace</button></div>
         </div>}
       </div>
     </div>
     <footer className="statusbar"><span><span className="sync-point">●</span> MARKET TERMINAL / LOCAL-FIRST PREVIEW</span><span>No artificial analysis limits · Data is synthetic</span></footer>
     {notice && <div role="status" className={"toast " + notice.kind} key={notice.id}><span>{notice.kind === "success" ? <Check size={17}/> : <Activity size={17}/>}</span><p>{notice.message}</p><button aria-label="Dismiss notification" onClick={() => setNotice(null)}><X size={16}/></button></div>}
     {searchOpen && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setSearchOpen(false); }}><div className="command-dialog" role="dialog" aria-modal="true" aria-label="Search instruments"><div className="command-input"><Search size={19}/><input ref={inputSearch} placeholder="Search a symbol, market or instrument…" value={query} onChange={e => setQuery(e.target.value)}/><button onClick={() => setSearchOpen(false)} aria-label="Close search"><X size={17}/></button></div><div className="command-results"><small>INSTRUMENTS · DEMONSTRATION DATA</small>{filtered.length ? filtered.map(symbol => <button key={symbol} onClick={() => openInstrument(symbol)}><Compass size={18}/><span><strong>{symbols[symbol].label}</strong><small>{symbols[symbol].market}</small></span><ChevronRight size={16}/></button>) : <p className="empty-search">No matching demonstration instruments.</p>}</div><div className="command-hint"><Command size={14}/> Ctrl K to open · Esc to close</div></div></div>}
-    {helpOpen && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setHelpOpen(false); }}><div className="help-dialog" role="dialog" aria-modal="true" aria-label="Help and shortcuts"><button className="dialog-close" aria-label="Close help" onClick={() => setHelpOpen(false)}><X size={18}/></button><Menu size={24}/><h2>Your terminal, your rules.</h2><p>Use the left navigation to switch between overview, charting, saved workspace and preferences. Click <strong>Price level</strong> to place a horizontal level directly on the chart.</p><div className="shortcut"><span>Open market search</span><kbd>Ctrl / ⌘ + K</kbd></div><div className="shortcut"><span>Exit drawing or dismiss dialog</span><kbd>Esc</kbd></div><div className="shortcut"><span>Save workspace</span><strong>Automatic</strong></div><p className="help-warning">Market prices in this preview are entirely simulated. Live trading and YoungMoney3 linking are not available yet.</p><button className="primary-button" onClick={() => setHelpOpen(false)}>Start exploring <ChevronRight size={16}/></button></div></div>}
+    {helpOpen && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setHelpOpen(false); }}><div className="help-dialog" role="dialog" aria-modal="true" aria-label="Help and shortcuts"><button className="dialog-close" aria-label="Close help" onClick={() => setHelpOpen(false)}><X size={18}/></button><Menu size={24}/><h2>Your terminal, your rules.</h2><p>Use the left navigation to switch between overview, charting, saved workspace and preferences. Click <strong>Price level</strong> to place a horizontal level, or drag using the Trendline, Rectangle or Fibonacci tools.</p><div className="shortcut"><span>Open market search</span><kbd>Ctrl / ⌘ + K</kbd></div><div className="shortcut"><span>Exit drawing or dismiss dialog</span><kbd>Esc</kbd></div><div className="shortcut"><span>Undo / redo drawings</span><kbd>Ctrl / ⌘ + Z · Shift + Z</kbd></div><div className="shortcut"><span>Save workspace</span><strong>Automatic</strong></div><p className="help-warning">Market prices in this preview are entirely simulated. Live trading and YoungMoney3 linking are not available yet.</p><button className="primary-button" onClick={() => setHelpOpen(false)}>Start exploring <ChevronRight size={16}/></button></div></div>}
   </div>;
 }
