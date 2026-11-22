@@ -1,6 +1,6 @@
 # Chart Studio review
 
-Run the existing Vite development server and open /market-terminal/?studio. Omit the query to compare with the regular terminal. This is a branch prototype using the existing chart renderer, drawings and workspace format.
+Open /market-terminal/ for Chart Studio. Use /market-terminal/?classic to compare the previous layout. Both layouts use the same chart renderer, drawings and workspace format.
 
 ## Decision under test
 

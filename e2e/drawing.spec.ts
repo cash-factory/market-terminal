@@ -17,7 +17,7 @@ async function drawDrag(page: Page, tool: string, start: [number, number], end: 
 }
 
 test("draw, select, resize and persist a trendline in a real Chromium chart", async ({ page }) => {
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await expect(page.locator("svg.drawing-overlay")).toBeVisible();
   await expect(page.locator(".chart-canvas canvas").first()).toBeVisible();
 
@@ -48,7 +48,7 @@ test("draw, select, resize and persist a trendline in a real Chromium chart", as
 });
 
 test("two clicks create rectangles; dragging creates Fibonacci; delete and undo restore", async ({ page }) => {
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await expect(page.locator("svg.drawing-overlay")).toBeVisible();
 
   await page.getByRole("button", { name: "Rectangle", exact: true }).click();
@@ -74,7 +74,7 @@ test("two clicks create rectangles; dragging creates Fibonacci; delete and undo 
 });
 
 test("Escape cancels a pending drawing and restores chart navigation", async ({ page }) => {
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("button", { name: "Trendline", exact: true }).click();
   const p1 = await chartPoint(page, 0.34, 0.40);
   await page.mouse.click(p1.x, p1.y);
@@ -86,7 +86,7 @@ test("Escape cancels a pending drawing and restores chart navigation", async ({ 
 
 
 test("drawing mode captures the actual chart surface, not the underlying candle canvas", async ({ page }) => {
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("button", { name: "Trendline", exact: true }).click();
   const a = await chartPoint(page, 0.31, 0.38);
   const hit = await page.evaluate(({x,y}) => {
@@ -108,7 +108,7 @@ test("drawing mode captures the actual chart surface, not the underlying candle 
 });
 
 test("all synthetic market charts allow creating and retaining drawings across timeframes", async ({ page }) => {
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   for (const market of ["EUR / USD", "BTC / USDT", "AAPL", "US100"]) {
     await page.locator(".symbol-button").click();
     await page.getByRole("listbox").getByRole("option", { name: new RegExp(market.replace("/", "\\/")) }).click();
@@ -127,7 +127,7 @@ test("all synthetic market charts allow creating and retaining drawings across t
 
 
 test("object manager can hide, show, lock, unlock and duplicate drawings", async ({ page }) => {
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await drawDrag(page, "Trendline", [0.32, 0.38], [0.58, 0.60]);
   await expect(page.locator(".drawing-shape")).toHaveCount(1);
   await page.getByRole("button", { name: "Hide trendline 1" }).click();
@@ -149,7 +149,7 @@ test("object manager can hide, show, lock, unlock and duplicate drawings", async
 });
 
 test("repeat-mode draws multiple shapes without selecting the tool again", async ({ page }) => {
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("button", { name: "Keep drawing tool active" }).click();
   await drawDrag(page, "Rectangle", [0.25, 0.30], [0.45, 0.50]);
   await expect(page.locator(".drawing-overlay.armed")).toHaveCount(1);

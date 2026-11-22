@@ -1,7 +1,7 @@
 import {test,expect} from "@playwright/test";
 
 test("safe formula studies add, render on every chart, persist, toggle and delete",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("button",{name:"Technical indicators"}).click();
   await page.getByRole("textbox",{name:"Custom study name"}).fill("EMA Spread");
   await page.getByRole("textbox",{name:"Custom study expression"}).fill("EMA(close,13)-SMA(close,34)");
@@ -26,7 +26,7 @@ test("safe formula studies add, render on every chart, persist, toggle and delet
 });
 
 test("unsafe expressions are rejected without storing or evaluating scripts",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("button",{name:"Technical indicators"}).click();
   await page.getByRole("textbox",{name:"Custom study name"}).fill("Unsafe script");
   await page.getByRole("textbox",{name:"Custom study expression"}).fill("window.location");

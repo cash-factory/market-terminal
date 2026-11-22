@@ -1,7 +1,7 @@
 import {test,expect} from "@playwright/test";
 
 test("replay reveals historical candles one by one and returns to active chart",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await expect(page.locator(".technical-chart-stack")).toHaveAttribute("data-visible-candles","360");
   await page.getByRole("button",{name:"Start replay"}).click();
   await expect(page.getByRole("region",{name:"Historical candle replay"})).toBeVisible();
@@ -16,7 +16,7 @@ test("replay reveals historical candles one by one and returns to active chart",
 });
 
 test("replay changes charts without interfering with indicator panes or other tools",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("button",{name:"Technical indicators"}).click();
   await page.getByRole("checkbox",{name:"RSI 14"}).check();
   await page.getByRole("button",{name:"Close indicator menu"}).click();

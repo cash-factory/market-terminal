@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test("the drawing context stays in place through a stroke edit", async ({page}) => {
   await page.setViewportSize({width:1363, height:936});
-  await page.goto("/market-terminal/?studio");
+  await page.goto("/market-terminal/");
   const overlay = page.locator("svg.drawing-overlay").first();
   await expect(overlay).toBeVisible();
   const chart = await overlay.boundingBox();

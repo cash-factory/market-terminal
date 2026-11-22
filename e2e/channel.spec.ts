@@ -1,7 +1,7 @@
 import {test,expect} from "@playwright/test";
 
 test("a parallel channel requires a base drag and a third control point, then persists",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("button",{name:"More drawing tools"}).click();
   await page.getByRole("button",{name:/^Parallel channel/}).click();
   const surface=page.locator("svg.drawing-overlay");
@@ -28,7 +28,7 @@ test("a parallel channel requires a base drag and a third control point, then pe
 });
 
 test("channel rail width has its own draggable control without moving base anchors",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("button",{name:"More drawing tools"}).click();
   await page.getByRole("button",{name:/^Parallel channel/}).click();
   const box=await page.locator("svg.drawing-overlay").boundingBox();

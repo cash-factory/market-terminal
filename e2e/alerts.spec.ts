@@ -1,7 +1,7 @@
 import {test,expect} from "@playwright/test";
 
 test("local price alerts can be created, persisted and managed",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("button",{name:"Price Alerts",exact:true}).click();
   await expect(page.getByRole("heading",{name:"Price alerts, your way."})).toBeVisible();
   await expect(page.getByText("No price alerts yet")).toBeVisible();
@@ -24,7 +24,7 @@ test("local price alerts can be created, persisted and managed",async({page})=>{
 });
 
 test("alerts reject invalid thresholds and keep instrument/source attribution",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("button",{name:"Open price alerts"}).click();
   await page.getByRole("spinbutton",{name:"Threshold price"}).fill("-1");
   await page.getByRole("button",{name:"Create local alert"}).click();

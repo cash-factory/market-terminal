@@ -1,7 +1,7 @@
 import {test,expect} from "@playwright/test";
 
 test("market setup and drawing tools have separate workstation control bands",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   const market=page.getByRole("group",{name:"Market and chart setup"});
   const drawings=page.getByRole("group",{name:"Drawing and editing tools"});
   await expect(market).toBeVisible();
@@ -19,7 +19,7 @@ test("market setup and drawing tools have separate workstation control bands",as
 
 test("responsive workstation does not overflow viewport",async({page})=>{
   await page.setViewportSize({width:390,height:844});
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await expect(page.getByRole("group",{name:"Drawing and editing tools"})).toBeVisible();
   await expect(page.locator("svg.drawing-overlay")).toBeVisible();
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);

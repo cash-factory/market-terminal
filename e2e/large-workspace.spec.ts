@@ -8,7 +8,7 @@ test("restore 1,000 independently persisted objects in a four-chart workstation"
   test.setTimeout(120_000);
   const pageErrors:string[]=[];
   page.on("pageerror",error=>pageErrors.push(error.message));
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   const startingBars=await page.locator(".technical-chart-stack").first()
     .getAttribute("data-visible-candles");
   expect(Number(startingBars)).toBeGreaterThan(100);

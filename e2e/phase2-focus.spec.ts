@@ -1,7 +1,7 @@
 import {test,expect} from "@playwright/test";
 
 test("phase 2 focus mode preserves all chart workspace controls and drawings",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await expect(page.getByRole("button",{name:"Enter chart focus mode"})).toBeVisible();
   await page.getByRole("button",{name:"Enter chart focus mode"}).click();
   await expect(page.locator(".app.focus-mode")).toBeVisible();
@@ -15,7 +15,7 @@ test("phase 2 focus mode preserves all chart workspace controls and drawings",as
 });
 
 test("focus mode re-enters terminal from another page without discarding local state",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("button",{name:"Overview",exact:true}).click();
   await expect(page.getByText("A clear view of your markets.")).toBeVisible();
   await page.getByRole("button",{name:"Enter chart focus mode"}).click();
@@ -24,7 +24,7 @@ test("focus mode re-enters terminal from another page without discarding local s
 });
 
 test("Shift+F toggles focus except while entering text",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.keyboard.press("Shift+F");
   await expect(page.locator(".app.focus-mode")).toBeVisible();
   await page.keyboard.press("Shift+F");

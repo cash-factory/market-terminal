@@ -1,7 +1,7 @@
 import {test,expect} from "@playwright/test";
 
 test("save and restore complete multi-chart workspace without deleting drawings or alerts",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("button",{name:"Toggle four-chart layout"}).click();
   await page.getByRole("combobox",{name:"Secondary chart symbol"}).selectOption("AAPL");
   await page.getByRole("combobox",{name:"Chart 2 timeframe"}).selectOption("5m");

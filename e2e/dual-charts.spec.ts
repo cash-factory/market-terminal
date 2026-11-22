@@ -11,7 +11,7 @@ async function drawOn(page:Page,index:number){
   await page.mouse.move(b.x,b.y,{steps:10});await page.mouse.up();
 }
 test("dual chart layout draws independently and survives browser reload",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await expect(page.locator(".chart-grid-cell")).toHaveCount(1);
   await page.getByRole("button",{name:"Toggle dual-chart layout"}).click();
   await expect(page.locator(".chart-grid-cell")).toHaveCount(2);
@@ -36,7 +36,7 @@ test("dual chart layout draws independently and survives browser reload",async({
   await expect(page.locator(".drawing-shape")).toHaveCount(1);
 });
 test("comparison chart can become the primary instrument without pretending to be a live feed",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("button",{name:"Toggle dual-chart layout"}).click();
   await page.getByRole("combobox",{name:"Secondary chart symbol"}).selectOption("US100");
   await page.getByRole("button",{name:"Make comparison chart primary"}).click();

@@ -1,7 +1,7 @@
 import {test,expect} from "@playwright/test";
 
 test("built-in and saved chart setups apply and persist without affecting drawings",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("button",{name:"Technical indicators"}).click();
   await page.getByRole("combobox",{name:"Apply chart template"}).selectOption("builtin:momentum");
   await expect(page.getByRole("checkbox",{name:"RSI 14"})).toBeChecked();

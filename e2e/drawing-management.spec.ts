@@ -11,7 +11,7 @@ async function drawLine(page:Page,from:[number,number],to:[number,number]){
 }
 
 test("select, group, style and layer drawings; save and restore the editor state",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await drawLine(page,[.24,.31],[.44,.40]);
   await drawLine(page,[.57,.53],[.76,.64]);
   await drawLine(page,[.26,.67],[.45,.79]);
@@ -42,7 +42,7 @@ test("select, group, style and layer drawings; save and restore the editor state
 });
 
 test("Shift-select in the chart and keyboard Delete remove selected editable shapes",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await drawLine(page,[.24,.32],[.43,.41]);
   await drawLine(page,[.55,.54],[.76,.63]);
   const hitBoxes=await Promise.all(

@@ -1,6 +1,6 @@
 import {test,expect} from "@playwright/test";
 test("long position target is editable through object inspector and restores with R multiple",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("button",{name:"More drawing tools"}).click();
   await page.getByRole("button",{name:/^Long position/}).click();
   const box=await page.locator("svg.drawing-overlay").boundingBox();

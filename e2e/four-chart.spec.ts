@@ -12,7 +12,7 @@ async function drawOnChart(page:Page,chartIndex:number){
   await page.mouse.move(b.x,b.y,{steps:10});await page.mouse.up();
 }
 test("four-chart workspace keeps every demo source and symbol drawing separate",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("button",{name:"Toggle four-chart layout"}).click();
   await expect(page.locator(".chart-grid-cell")).toHaveCount(4);
   await expect(page.locator("svg.drawing-overlay")).toHaveCount(4);
@@ -34,7 +34,7 @@ test("four-chart workspace keeps every demo source and symbol drawing separate",
   await expect(page.locator(".symbol-button")).toContainText("US100");
 });
 test("replay temporarily focuses one chart then restores four-pane layout",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("button",{name:"Toggle four-chart layout"}).click();
   await page.getByRole("button",{name:"Start replay"}).click();
   await expect(page.locator(".chart-grid-cell")).toHaveCount(1);

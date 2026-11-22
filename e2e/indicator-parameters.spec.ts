@@ -1,7 +1,7 @@
 import {test,expect} from "@playwright/test";
 
 test("custom indicator periods update charts and persist through saved templates",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("button",{name:"Technical indicators"}).click();
   await page.getByRole("checkbox",{name:"RSI 14"}).check();
   await page.getByRole("checkbox",{name:"EMA 20"}).check();

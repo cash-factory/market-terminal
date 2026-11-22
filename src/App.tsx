@@ -48,7 +48,7 @@ const titles: Record<Page, string> = {
   home: "Market overview", terminal: "Trading terminal", risk: "Risk planner", alerts:"Price alerts", library: "My workspace", settings: "Preferences"
 };
 
-const studio = new URLSearchParams(window.location.search).has("studio");
+const studio = !new URLSearchParams(window.location.search).has("classic");
 
 export default function App() {
   const candleInspector=useRef<CandleInspector>(null);

@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test("risk planner calculates, validates and persists a theoretical trade plan", async ({page}) => {
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("button", {name:"Risk Planner"}).click();
   await expect(page.getByRole("heading", {name:"Plan risk before entry."})).toBeVisible();
   const field = (title:string) => page.locator(".risk-field").filter({hasText:title}).locator("input");

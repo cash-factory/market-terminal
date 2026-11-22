@@ -10,7 +10,7 @@ async function drawRectangle(page:Page){
   await page.mouse.move(to.x,to.y,{steps:12});await page.mouse.up();
 }
 test("five chart display styles retain working drawing tools and local persistence",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   const select=page.getByRole("combobox",{name:"Chart display style"});
   for(const style of ["ohlc-bars","line","area","heikin-ashi","candles"]){
     await select.selectOption(style);
@@ -29,7 +29,7 @@ test("five chart display styles retain working drawing tools and local persisten
   await expect(page.getByRole("combobox",{name:"Chart display style"})).toHaveValue("candles");
 });
 test("Heikin-Ashi view remains labelled after refresh and preserves raw alert/quote source",async({page})=>{
-  await page.goto("/market-terminal/");
+  await page.goto("/market-terminal/?classic");
   await page.getByRole("combobox",{name:"Chart display style"}).selectOption("heikin-ashi");
   await page.reload();
   await expect(page.getByRole("combobox",{name:"Chart display style"})).toHaveValue("heikin-ashi");
