@@ -96,7 +96,7 @@ function IndicatorPane({kind,candles,priceChart,dark,parameters}:PaneProps){
     "MACD · "+parameters.macdFast+" / "+parameters.macdSlow+" / "+parameters.macdSignal;
   return <section className="indicator-pane" aria-label={displayTitle}>
     <div className="indicator-pane-label"><span className="indicator-pane-dot" style={{background:definitions[kind].color}}/>{displayTitle}</div>
-    <div ref={host} className="indicator-pane-canvas" role="img" aria-label={definitions[kind].title+" chart"}/>
+    <div ref={host} className="indicator-pane-canvas" role="img" aria-label={displayTitle+" chart"}/>
   </section>;
 }
 
