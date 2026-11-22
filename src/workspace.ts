@@ -6,6 +6,7 @@ import { defaultStudies, parseStudies, type StudySettings } from "./indicators/s
 import { parseChartTemplates,type ChartTemplate } from "./indicators/templates";
 import { defaultStudyParameters,parseStudyParameters,type StudyParameters } from "./indicators/parameters";
 import { isPriceAlert, type PriceAlert } from "./alerts/engine";
+import {parseChartDisplayStyle,type ChartDisplayStyle} from "./charts/display";
 
 export type Level = { id: string; symbol: SymbolId; price: number; color: string; source?: "demo" | "binance" };
 export type Workspace = {
@@ -13,6 +14,7 @@ export type Workspace = {
   frame: Frame;
   priceSource: "demo" | "binance";
   chartLayout: "single" | "dual" | "quad";
+  chartDisplayStyle: ChartDisplayStyle;
   secondarySymbol: SymbolId;
   tertiarySymbol: SymbolId;
   quaternarySymbol: SymbolId;
@@ -45,6 +47,7 @@ export const defaultWorkspace: Workspace = {
   frame: "1h",
   priceSource: "demo",
   chartLayout: "single",
+  chartDisplayStyle: "candles",
   secondarySymbol: "BTCUSDT",
   tertiarySymbol: "AAPL",
   quaternarySymbol: "US100",
@@ -99,6 +102,7 @@ export function parseWorkspace(value: unknown): Workspace {
     symbol, frame, accent, levels,
     priceSource: symbol === "BTCUSDT" && raw.priceSource === "binance" ? "binance" : "demo",
     chartLayout: raw.chartLayout === "quad" ? "quad" : raw.chartLayout === "dual" ? "dual" : "single",
+    chartDisplayStyle: parseChartDisplayStyle(raw.chartDisplayStyle),
     secondarySymbol: SYMBOLS.includes(raw.secondarySymbol as SymbolId) ? raw.secondarySymbol as SymbolId : "BTCUSDT",
     tertiarySymbol: SYMBOLS.includes(raw.tertiarySymbol as SymbolId) ? raw.tertiarySymbol as SymbolId : "AAPL",
     quaternarySymbol: SYMBOLS.includes(raw.quaternarySymbol as SymbolId) ? raw.quaternarySymbol as SymbolId : "US100",
@@ -134,5 +138,5 @@ export function loadWorkspace(): Workspace {
   }
 }
 export function serializeWorkspace(workspace: Workspace): string {
-  return JSON.stringify({ format: "market-terminal-workspace", version: 17, preferences: workspace }, null, 2);
+  return JSON.stringify({ format: "market-terminal-workspace", version: 18, preferences: workspace }, null, 2);
 }

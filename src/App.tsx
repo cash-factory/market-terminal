@@ -6,6 +6,7 @@ import {
   Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Target, Film, Magnet, MoveUpRight, ArrowUpRight, Columns2, Grid2X2, Shapes, Pencil, ArrowUp, ArrowDown, Link2, Unlink2
 } from "lucide-react";
 import { ChartCanvas,type ChartSurface,type ChartRange } from "./ChartCanvas";
+import {chartStyles,type ChartDisplayStyle} from "./charts/display";
 import { nearestCrosshairBar } from "./charts/sync";
 import type { Drawing, DrawingTool } from "./drawing/types";
 import {groupDrawings,ungroupDrawings,styleDrawings,moveDrawingLayers,updateDrawingAndGroup,type DrawingStylePatch} from "./drawing/manage";
@@ -327,7 +328,7 @@ export default function App() {
       const json: unknown = JSON.parse(await file.text());
       if (!json || typeof json !== "object" || Array.isArray(json) ||
         !("format" in json) || json.format !== "market-terminal-workspace" ||
-        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15 && json.version !== 16 && json.version !== 17) ||
+        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15 && json.version !== 16 && json.version !== 17 && json.version !== 18) ||
         !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
       const workspace = parseWorkspace(json);
       setPrefs(workspace);
@@ -515,6 +516,15 @@ export default function App() {
                   update({chartLayout:prefs.chartLayout==="quad"?"single":"quad"});
                   notify(prefs.chartLayout==="quad"?"Single chart enabled.":"Four-chart workspace enabled.");
                 }}><Grid2X2 size={15}/> Four charts</button>
+              <label className="chart-style-switch">Chart style
+                <select aria-label="Chart display style" value={prefs.chartDisplayStyle}
+                  onChange={e=>{
+                    update({chartDisplayStyle:e.target.value as ChartDisplayStyle});
+                    notify("Chart view switched to "+chartStyles.find(c=>c.id===e.target.value)?.label+".");
+                  }}>
+                  {chartStyles.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}
+                </select>
+              </label>
               <div className="chart-link-tools">
                 <button className={"compact-action "+(prefs.linkCrosshairs?"active":"")}
                   aria-label="Link chart crosshairs" aria-pressed={prefs.linkCrosshairs}
@@ -665,6 +675,11 @@ export default function App() {
               <button onClick={feed.retry}><RefreshCw size={14}/> Retry</button>
               <button onClick={() => update({priceSource:"demo"})}>Use demo</button>
             </div>}
+            {prefs.chartDisplayStyle==="heikin-ashi"&&
+              <div className="chart-display-notice" role="status">
+                Heikin Ashi is a derived OHLC chart transformation, not broker-executable prices.
+                Risk planning and alerts still use underlying observed prices.
+              </div>}
             {replay && <ReplayControls replay={replay}
               onTogglePlay={()=>setReplay(s=>s?toggleReplayPlayback(s):s)}
               onStep={()=>setReplay(s=>s?stepReplay({...s,playing:false}):s)}
@@ -679,7 +694,7 @@ export default function App() {
                 {!replay&&prefs.chartLayout!=="single"&&<div className="chart-cell-label"><span>01 / PRIMARY</span>
                   <strong>{symbols[prefs.symbol].label}</strong><small>{feed.sourceLabel}</small>
                 </div>}
-                <ChartCanvas paneId="primary" onSurfaceReady={registerChartSurface}
+                <ChartCanvas chartStyle={prefs.chartDisplayStyle} paneId="primary" onSurfaceReady={registerChartSurface}
                   onRangeChanged={onChartRangeChanged} onCrosshairChanged={onChartCrosshairChanged}
                   key={replay?"historical-replay":"active-chart"} symbol={prefs.symbol} frame={prefs.frame} source={prefs.priceSource} candles={viewedCandles}
                   dark={prefs.dark} showSma={prefs.showSma} studies={prefs.studies} parameters={prefs.studyParameters} levels={replay?[]:currentLevels} drawMode={drawMode} onPlaceLevel={addLevel}
@@ -730,7 +745,7 @@ export default function App() {
                         notify("Chart moved to primary with its own quote source and timeframe.");
                       }}>Make primary</button>
                   </div>
-                  <ChartCanvas paneId={panel.slot} onSurfaceReady={registerChartSurface}
+                  <ChartCanvas chartStyle={prefs.chartDisplayStyle} paneId={panel.slot} onSurfaceReady={registerChartSurface}
                     onRangeChanged={onChartRangeChanged} onCrosshairChanged={onChartCrosshairChanged}
                     key={"comparison-"+panel.slot+"-"+panel.symbol+"-"+panel.frame+"-"+panel.source}
                     symbol={panel.symbol} frame={panel.frame}
