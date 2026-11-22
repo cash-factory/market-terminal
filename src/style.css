@@ -303,3 +303,15 @@
 .study-parameter-grid input{width:100%;min-width:0;border:1px solid var(--border);border-radius:6px;background:var(--raised);color:var(--text);padding:8px 9px;font-size:12px;font-variant-numeric:tabular-nums}
 .study-parameter-grid input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .study-parameter-section>small{color:var(--muted);font-size:9px;line-height:1.5}
+
+
+/* Four-panel workstation: 2x2 grid with explicit source and object isolation. */
+.chart-grid-quad{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:1px;background:var(--border)}
+.chart-grid-quad .chart-surface{height:clamp(325px,42vh,550px);min-height:325px}
+.chart-grid-quad .indicator-pane{height:118px}
+@media(max-width:1280px){
+  .chart-grid-quad{grid-template-columns:minmax(0,1fr)}
+  .chart-grid-quad .chart-surface{height:395px}
+  .chart-grid-quad .indicator-pane{height:145px}
+}
+@media(max-width:600px){.chart-grid-quad .chart-surface{height:355px;min-height:325px}}
