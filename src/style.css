@@ -15,3 +15,26 @@
 .drawing-overlay.armed .drawing-line,.drawing-overlay.armed .drawing-rectangle,.drawing-overlay.armed .drawing-handle{pointer-events:none}
 @media(max-width:960px){.chart-surface{height:490px;min-height:400px}}
 @media(max-width:620px){.chart-surface{height:380px;min-height:380px}}
+
+
+/* Price-source controls: never confuse synthetic candles with exchange data. */
+.source-switch{display:inline-flex;border:1px solid var(--border);border-radius:8px;background:var(--panel);padding:3px;gap:3px}
+.source-switch button{border:0;background:transparent;color:var(--muted);padding:8px 10px;border-radius:5px;font-size:11px;white-space:nowrap}
+.source-switch button.active{background:var(--accent-dim);color:var(--accent);font-weight:700;box-shadow:inset 0 0 0 1px var(--accent-border)}
+.source-switch button:disabled{opacity:.38;cursor:not-allowed}
+.feed-pill.live{background:rgba(44,199,154,.14);border-color:rgba(44,199,154,.4);color:var(--positive)}
+.feed-pill.stale,.feed-pill.error{background:rgba(233,119,131,.12);border-color:rgba(233,119,131,.4);color:var(--negative)}
+.feed-pill.connecting,.feed-pill.loading,.feed-pill.historical{background:rgba(233,179,104,.12);border-color:rgba(233,179,104,.32);color:#e9b368}
+.demo-tag.source-live{color:var(--positive)}
+.demo-tag.source-live .pulse-dot{background:var(--positive);box-shadow:0 0 0 3px rgba(44,199,154,.1)}
+.demo-tag.source-error,.demo-tag.source-stale{color:var(--negative)}
+.demo-tag.source-error .pulse-dot,.demo-tag.source-stale .pulse-dot{background:var(--negative)}
+.feed-message{margin:0 24px 10px;padding:12px 14px;display:flex;align-items:center;gap:11px;border:1px solid var(--border);border-radius:8px;background:var(--raised);color:var(--soft);font-size:12px;line-height:1.5}
+.feed-message.error,.feed-message.stale{border-color:rgba(233,119,131,.35)}
+.feed-message>span{flex:1}
+.feed-message svg{flex-shrink:0;color:#e9b368}
+.feed-message.error>svg,.feed-message.stale>svg{color:var(--negative)}
+.feed-message button{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);border-radius:6px;padding:7px 10px;background:var(--panel);color:var(--text);font-size:11px}
+.feed-message button:hover{border-color:var(--accent-border)}
+@media(max-width:760px){.feed-message{margin:0 10px 10px;flex-wrap:wrap}.source-switch{order:1}.terminal-toolbar .timeframes{order:2}}
+@media(max-width:520px){.feed-message span{flex-basis:calc(100% - 38px)}.feed-message button{flex:1;justify-content:center}}

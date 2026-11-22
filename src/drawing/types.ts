@@ -5,6 +5,7 @@ export type ChartAnchor = { time: number; price: number };
 export type Drawing = {
   id: string;
   symbol: SymbolId;
+  source?: "demo" | "binance";
   tool: DrawingTool;
   start: ChartAnchor;
   end: ChartAnchor;
@@ -24,7 +25,8 @@ export function isDrawing(input: unknown): input is Drawing {
   };
   return typeof d.id === "string" && d.id.length > 0 &&
     validSymbols.has(d.symbol as SymbolId) && validTools.has(d.tool as DrawingTool) &&
-    anchor(d.start) && anchor(d.end) && typeof d.color === "string" &&
+    anchor(d.start) && anchor(d.end) &&
+    (d.source === undefined || d.source === "demo" || d.source === "binance") && typeof d.color === "string" &&
     /^#[a-f0-9]{6}$/i.test(d.color) && typeof d.locked === "boolean";
 }
 

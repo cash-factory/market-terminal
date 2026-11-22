@@ -1,13 +1,14 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import {
   Activity, ArrowDownToLine, Bell, BookOpen, ChartCandlestick, Check,
   ChevronLeft, ChevronRight, Command, Compass, Download, Home, Layers,
   Menu, Moon, MousePointer2, Plus, RotateCcw, Search, Settings2, Sun,
-  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2
+  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff
 } from "lucide-react";
 import { ChartCanvas } from "./ChartCanvas";
 import type { Drawing, DrawingTool } from "./drawing/types";
-import { demoCandles, frameSeconds, symbols, type Frame, type SymbolId } from "./market";
+import { frameSeconds, symbols, type Frame, type SymbolId } from "./market";
+import { usePriceFeed } from "./data/usePriceFeed";
 import { defaultWorkspace, loadWorkspace, parseWorkspace, serializeWorkspace, type Workspace } from "./workspace";
 
 type Page = "home" | "terminal" | "library" | "settings";
@@ -38,14 +39,24 @@ export default function App() {
   const [helpOpen, setHelpOpen] = useState(false);
   const inputFile = useRef<HTMLInputElement>(null);
   const inputSearch = useRef<HTMLInputElement>(null);
-  const currentCandles = useMemo(() => demoCandles(prefs.symbol, prefs.frame), [prefs.symbol, prefs.frame]);
-  const last = currentCandles[currentCandles.length - 1].close;
-  const currentLevels = prefs.levels.filter(level => level.symbol === prefs.symbol);
+  const feed = usePriceFeed(prefs.symbol, prefs.frame, prefs.priceSource);
+  const currentCandles = feed.candles;
+  const last = currentCandles.length ? currentCandles[currentCandles.length - 1].close : 0;
+  const currentLevels = prefs.levels.filter(level => level.symbol === prefs.symbol && (level.source ?? "demo") === prefs.priceSource);
+  const currentDrawings = prefs.drawings.filter(drawing => drawing.symbol === prefs.symbol && (drawing.source ?? "demo") === prefs.priceSource);
+  const sourceStateLabel = prefs.priceSource === "demo" ? "SYNTHETIC DATA" : ({
+    loading: "LOADING BINANCE", connecting: "CONNECTING", historical: "HISTORICAL",
+    live: "LIVE · BINANCE SPOT", stale: "STALE FEED", error: "FEED UNAVAILABLE", synthetic: "SYNTHETIC DATA"
+  })[feed.status];
+  const quoteText = last > 0 ? last.toLocaleString(undefined, {
+    minimumFractionDigits: symbols[prefs.symbol].precision,
+    maximumFractionDigits: symbols[prefs.symbol].precision
+  }) : "—";
   const update = (patch: Partial<Workspace>) => setPrefs(old => ({ ...old, ...patch }));
   const notify = (message: string, kind: Notice["kind"] = "success") =>
     setNotice({ id: Date.now(), message, kind });
   const openInstrument = (symbol: SymbolId) => {
-    update({ symbol });
+    update({ symbol, priceSource: symbol === "BTCUSDT" ? prefs.priceSource : "demo" });
     setPage("terminal");
     setSearchOpen(false);
     setDrawMode(false);
@@ -57,7 +68,8 @@ export default function App() {
     setPrefs(old => ({
       ...old, levels: [...old.levels, {
         id: crypto.randomUUID(), symbol: old.symbol, price,
-        color: old.accent === "amber" ? "#e7b05f" : old.accent === "teal" ? "#24bfa0" : "#9495fa"
+        color: old.accent === "amber" ? "#e7b05f" : old.accent === "teal" ? "#24bfa0" : "#9495fa",
+        source: old.priceSource
       }]
     }));
     setDraft("");
@@ -72,7 +84,7 @@ export default function App() {
     notify(message);
   };
   const addDrawing = (drawing: Drawing) => {
-    commitDrawings([...prefs.drawings, drawing], "Drawing saved locally.");
+    commitDrawings([...prefs.drawings, { ...drawing, source: prefs.priceSource }], "Drawing saved locally.");
     setDrawingTool(null);
   };
   const updateDrawing = (drawing: Drawing) => {
@@ -126,7 +138,7 @@ export default function App() {
       const json: unknown = JSON.parse(await file.text());
       if (!json || typeof json !== "object" || Array.isArray(json) ||
         !("format" in json) || json.format !== "market-terminal-workspace" ||
-        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3) ||
+        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4) ||
         !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
       const workspace = parseWorkspace(json);
       setPrefs(workspace);
@@ -185,7 +197,7 @@ export default function App() {
         </button>
       </div>
       <div className="header-actions">
-        <span className="demo-tag"><span className="pulse-dot"/> SYNTHETIC DATA</span>
+        <span className={"demo-tag source-" + feed.status}><span className="pulse-dot"/> {sourceStateLabel}</span>
         <button className="icon-button" title="Open notifications" aria-label="Notifications" onClick={() => notify("Notifications are ready. Live market alerts will come in a later release.", "info")}><Bell size={18}/></button>
         <button className="icon-button" title="Switch appearance" aria-label="Switch appearance" onClick={() => {update({ dark: !prefs.dark }); notify("Appearance updated.");}}>{prefs.dark ? <Sun size={18}/> : <Moon size={18}/>}</button>
         <span className="avatar" title="Local workspace">MT</span>
@@ -219,33 +231,53 @@ export default function App() {
           <div className="market-grid">{marketList.map(symbol => <button className="market-tile" key={symbol} onClick={() => openInstrument(symbol)}><span className="market-kind">{symbols[symbol].market}</span><strong>{symbols[symbol].label}</strong><span className="market-tile-bottom">Open chart <ChevronRight size={16}/></span></button>)}</div>
           <div className="section-head"><div><small>WORKSPACE HEALTH</small><h2>Your local setup</h2></div></div>
           <div className="summary-grid"><div><span>Current timeframe</span><strong>{prefs.frame.toUpperCase()}</strong></div><div><span>Saved price levels</span><strong>{prefs.levels.length}</strong></div><div><span>Core drawing quota</span><strong>None</strong></div></div>
-          <p className="data-caveat"><Activity size={16}/> All current prices are generated demonstration data. No live market feeds are connected.</p>
+          <p className="data-caveat"><Activity size={16}/> Demo instruments use synthetic prices. Opt-in Binance Spot BTC/USDT is available in the terminal; forex, equities and indices are not connected to live feeds.</p>
         </div>}
         {page === "terminal" && <div className="terminal-layout">
           <section className="terminal-center">
             <div className="terminal-toolbar">
               <button className="symbol-button" onClick={() => setSearchOpen(true)}><span>{symbols[prefs.symbol].label}</span><Search size={15}/></button>
+              <div className="source-switch" role="group" aria-label="Chart price source">
+                <button className={prefs.priceSource === "demo" ? "active" : ""}
+                  aria-pressed={prefs.priceSource === "demo"}
+                  onClick={() => { update({priceSource:"demo"}); setDrawingTool(null); setDrawMode(false); notify("Switched to synthetic demonstration prices.", "info"); }}>Demo</button>
+                <button className={prefs.priceSource === "binance" ? "active" : ""}
+                  disabled={prefs.symbol !== "BTCUSDT"}
+                  title={prefs.symbol === "BTCUSDT" ? "Load public BTC/USDT Spot candles directly from Binance" : "Binance Spot is currently available only for BTC/USDT"}
+                  aria-pressed={prefs.priceSource === "binance"}
+                  onClick={() => { update({priceSource:"binance"}); setDrawingTool(null); setDrawMode(false); notify("Connecting to Binance Spot BTC/USDT…", "info"); }}>Binance Spot</button>
+              </div>
               <div className="timeframes">{frames.map(frame => <button key={frame} className={frame === prefs.frame ? "active" : ""} onClick={() => update({ frame })}>{frame}</button>)}</div>
               <span className="tool-divider"/>
               <button className={"compact-action " + (prefs.showSma ? "active" : "")} onClick={() => { update({ showSma: !prefs.showSma }); notify(!prefs.showSma ? "SMA 20 enabled." : "SMA 20 hidden."); }}>SMA 20</button>
-              <button className={"compact-action draw-toggle " + (drawMode ? "active" : "")} onClick={() => { setDrawingTool(null); setDrawMode(!drawMode); notify(!drawMode ? "Drawing armed: click the chart to place a horizontal level." : "Drawing cancelled.", "info"); }}><Plus size={15}/> Price level</button>
+              <button disabled={!currentCandles.length} className={"compact-action draw-toggle " + (drawMode ? "active" : "")} onClick={() => { setDrawingTool(null); setDrawMode(!drawMode); notify(!drawMode ? "Drawing armed: click the chart to place a horizontal level." : "Drawing cancelled.", "info"); }}><Plus size={15}/> Price level</button>
               <span className="tool-divider"/>
-              <button title="Drag on the chart to draw a trendline" className={"compact-action " + (drawingTool === "trendline" ? "active" : "")} onClick={() => chooseDrawingTool("trendline")}><TrendingUp size={15}/> Trendline</button>
-              <button title="Drag on the chart to draw a rectangle" className={"compact-action " + (drawingTool === "rectangle" ? "active" : "")} onClick={() => chooseDrawingTool("rectangle")}><Square size={15}/> Rectangle</button>
-              <button title="Drag on the chart to draw Fibonacci levels" className={"compact-action " + (drawingTool === "fibonacci" ? "active" : "")} onClick={() => chooseDrawingTool("fibonacci")}><Ruler size={15}/> Fibonacci</button>
+              <button disabled={!currentCandles.length} title="Drag on the chart to draw a trendline" className={"compact-action " + (drawingTool === "trendline" ? "active" : "")} onClick={() => chooseDrawingTool("trendline")}><TrendingUp size={15}/> Trendline</button>
+              <button disabled={!currentCandles.length} title="Drag on the chart to draw a rectangle" className={"compact-action " + (drawingTool === "rectangle" ? "active" : "")} onClick={() => chooseDrawingTool("rectangle")}><Square size={15}/> Rectangle</button>
+              <button disabled={!currentCandles.length} title="Drag on the chart to draw Fibonacci levels" className={"compact-action " + (drawingTool === "fibonacci" ? "active" : "")} onClick={() => chooseDrawingTool("fibonacci")}><Ruler size={15}/> Fibonacci</button>
               <span className="tool-divider"/>
               <button title="Undo drawing" aria-label="Undo drawing" disabled={historyVersion < 0 || !drawingHistory.current.past.length} className="compact-action" onClick={undoDrawing}><Undo2 size={16}/></button>
               <button title="Redo drawing" aria-label="Redo drawing" disabled={!drawingHistory.current.future.length} className="compact-action" onClick={redoDrawing}><Redo2 size={16}/></button>
 
             </div>
-            <div className="chart-heading"><div><div className="eyebrow">{symbols[prefs.symbol].market} <span>•</span> {prefs.frame.toUpperCase()}</div><h1>{symbols[prefs.symbol].label} <span className="demo-pill">DEMO</span></h1><p>Illustrative candles, not executable quotes</p></div><div className="quote"><small>SIMULATED LAST</small><strong>{last.toLocaleString(undefined, { minimumFractionDigits: symbols[prefs.symbol].precision, maximumFractionDigits: symbols[prefs.symbol].precision })}</strong></div></div>
+            <div className="chart-heading"><div>
+              <div className="eyebrow">{feed.sourceLabel} <span>•</span> {prefs.frame.toUpperCase()}</div>
+              <h1>{symbols[prefs.symbol].label} <span className={"demo-pill feed-pill " + feed.status}>{sourceStateLabel}</span></h1>
+              <p>{prefs.priceSource === "demo" ? "Illustrative candles, not executable quotes" : "Direct Binance public Spot data · BTC/USDT, not broker CFD prices"}</p>
+            </div><div className="quote"><small>{prefs.priceSource === "demo" ? "SIMULATED LAST" : "BINANCE SPOT LAST"}</small><strong>{quoteText}</strong></div></div>
+            {prefs.priceSource === "binance" && feed.status !== "live" && <div className={"feed-message " + feed.status} role="status">
+              <WifiOff size={16}/><span>{feed.message ?? "Connecting to the exchange…"}</span>
+              <button onClick={feed.retry}><RefreshCw size={14}/> Retry</button>
+              <button onClick={() => update({priceSource:"demo"})}>Use demo</button>
+            </div>}
             {drawMode && <div className="draw-banner"><MousePointer2 size={16}/> Click on the chart to place a level <button onClick={() => setDrawMode(false)}>Cancel <X size={14}/></button></div>}
             {drawingTool && <div className="draw-banner"><MousePointer2 size={16}/> Drag on the chart to create a {drawingTool}. Select an existing shape to reposition or resize it. <button onClick={() => setDrawingTool(null)}>Cancel <X size={14}/></button></div>}
-            <ChartCanvas symbol={prefs.symbol} frame={prefs.frame} dark={prefs.dark} showSma={prefs.showSma} levels={prefs.levels} drawMode={drawMode} onPlaceLevel={addLevel}
-              drawingTool={drawingTool} drawings={prefs.drawings}
+            <ChartCanvas symbol={prefs.symbol} frame={prefs.frame} source={prefs.priceSource} candles={currentCandles}
+              dark={prefs.dark} showSma={prefs.showSma} levels={currentLevels} drawMode={drawMode} onPlaceLevel={addLevel}
+              drawingTool={drawingTool} drawings={currentDrawings}
               drawingColor={prefs.accent === "amber" ? "#e9b368" : prefs.accent === "teal" ? "#32c7aa" : "#9295ff"}
               onAddDrawing={addDrawing} onUpdateDrawing={updateDrawing} onDeleteDrawing={removeDrawing}/>
-            <div className="chart-footer"><span><span className="sync-point">●</span> Locally saved</span><span>Source: Synthetic fixture · {frameSeconds[prefs.frame] / 60}m candle interval</span></div>
+            <div className="chart-footer"><span><span className="sync-point">●</span> Locally saved</span><span>Source: {feed.sourceLabel} · {frameSeconds[prefs.frame] / 60}m candle interval · {feed.status}{feed.lastUpdatedMs ? " · Updated " + new Date(feed.lastUpdatedMs).toLocaleTimeString() : ""}</span></div>
           </section>
           <aside className="right-panel">
             <div className="panel-head"><strong>Watchlist</strong><button aria-label="Search instruments" title="Search instruments" className="mini-button" onClick={() => setSearchOpen(true)}><Search size={16}/></button></div>
@@ -253,8 +285,8 @@ export default function App() {
             <div className="panel-head separated"><strong>Price levels</strong><span className="count">{currentLevels.length}</span></div>
             <div className="price-form"><input type="number" min="0" step="any" aria-label="Level price" placeholder={last.toFixed(symbols[prefs.symbol].precision)} value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === "Enter") addLevel(draft.trim() ? Number(draft) : last); }}/><button aria-label="Add price level" title="Add price level" onClick={() => addLevel(draft.trim() ? Number(draft) : last)}><Plus size={17}/></button></div>
             <div className="level-list">{currentLevels.map(level => <div key={level.id}><span className="level-swatch" style={{ background: level.color }}/><span>{level.price.toFixed(symbols[prefs.symbol].precision)}</span><button aria-label={"Remove price level " + level.price} title="Remove level" onClick={() => removeLevel(level.id)}><Trash2 size={15}/></button></div>)}</div>
-            <div className="panel-head separated"><strong>Chart drawings</strong><span className="count">{prefs.drawings.filter(d => d.symbol === prefs.symbol).length}</span></div>
-            <div className="level-list">{prefs.drawings.filter(d => d.symbol === prefs.symbol).map(drawing =>
+            <div className="panel-head separated"><strong>Chart drawings</strong><span className="count">{currentDrawings.length}</span></div>
+            <div className="level-list">{currentDrawings.map(drawing =>
               <div key={drawing.id}><span className="level-swatch" style={{background:drawing.color}}/><span>{drawing.tool}</span><button aria-label={"Delete " + drawing.tool} title="Delete drawing" onClick={() => removeDrawing(drawing.id)}><Trash2 size={15}/></button></div>
             )}</div>
             <p className="panel-note">Drag to place drawings. Click a shape to select it, drag to move, drag endpoints to resize, or press Delete. Ctrl+Z / Ctrl+Shift+Z undo and redo.</p>
