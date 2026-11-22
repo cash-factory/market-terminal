@@ -32,6 +32,7 @@ export type Drawing = {
   opacity?: number;
   fillOpacity?: number;
   showMidline?: boolean;
+  evidenceSide?: "supports" | "challenges" | "unclassified";
   showLabels?: boolean;
   visibleOnFrames?: Frame[];
 };
@@ -65,6 +66,8 @@ export function isDrawing(input: unknown): input is Drawing {
     (d.opacity === undefined || (typeof d.opacity === "number" && Number.isFinite(d.opacity) && d.opacity >= .1 && d.opacity <= 1)) &&
     (d.fillOpacity === undefined || (typeof d.fillOpacity === "number" && Number.isFinite(d.fillOpacity) && d.fillOpacity >= 0 && d.fillOpacity <= .8)) &&
     (d.showMidline === undefined || typeof d.showMidline === "boolean") &&
+    (d.evidenceSide===undefined || (d.tool==="callout"&&
+      (d.evidenceSide==="supports"||d.evidenceSide==="challenges"||d.evidenceSide==="unclassified"))) &&
     (d.showLabels === undefined || typeof d.showLabels === "boolean") &&
     (d.visibleOnFrames === undefined ||
       (Array.isArray(d.visibleOnFrames) && d.visibleOnFrames.length <= 6 &&
