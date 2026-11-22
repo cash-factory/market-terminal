@@ -11,6 +11,8 @@ import { InstrumentHeader, type CandleInspector } from "./charts/InstrumentHeade
 import {ChartErrorBoundary} from "./charts/ChartErrorBoundary";
 import {chartStyles,type ChartDisplayStyle} from "./charts/display";
 import {TimeframePicker} from "./charts/TimeframePicker";
+import {PriceLevelPropertiesDialog} from "./levels/PriceLevelPropertiesDialog";
+import {isValidLevel,levelVisibleAtFrame} from "./levels/model";
 import {ChartProfileMenu} from "./charts/ChartProfileMenu";
 import {applyChartProfile,createChartProfile} from "./charts/profiles";
 import { nearestCrosshairBar } from "./charts/sync";
@@ -107,6 +109,7 @@ export default function App() {
   const [recentDrawingTools,setRecentDrawingTools]=useState<DrawingTool[]>([]);
   const [noteEditingId,setNoteEditingId]=useState<string|null>(null);
   const [drawingSettingsId,setDrawingSettingsId]=useState<string|null>(null);
+  const [levelSettingsId,setLevelSettingsId]=useState<string|null>(null);
   const [noteDraft,setNoteDraft]=useState("");
   const [templateName,setTemplateName]=useState("");
   const [formulaName,setFormulaName]=useState("");
@@ -554,7 +557,17 @@ export default function App() {
     setPrefs(old=>({...old,alerts:old.alerts.filter(a=>a.triggeredAtMs===null)}));
     notify("Triggered alerts cleared.");
   };
+  const saveLevelSettings=(next:Level)=>{
+    const original=prefs.levels.find(item=>item.id===next.id);
+    if(!original||!isValidLevel(next)||next.symbol!==original.symbol||
+       (next.source??"demo")!==(original.source??"demo")){
+      notify("Invalid price level or changed source identity.","error");return;
+    }
+    setPrefs(old=>({...old,levels:old.levels.map(level=>level.id===next.id?next:level)}));
+    notify("Price level settings saved.","success");
+  };
   const removeLevel = (id: string) => {
+    if(levelSettingsId===id)setLevelSettingsId(null);
     setPrefs(old => ({ ...old, levels: old.levels.filter(level => level.id !== id) }));
     notify("Price level removed.");
   };
@@ -1200,7 +1213,18 @@ export default function App() {
             </>}
             <div className="panel-head separated"><strong>Price levels</strong><span className="count">{currentLevels.length}</span></div>
             <div className="price-form"><input type="number" min="0" step="any" aria-label="Level price" placeholder={last.toFixed(symbols[prefs.symbol].precision)} value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === "Enter") addLevel(draft.trim() ? Number(draft) : last); }}/><button aria-label="Add price level" title="Add price level" onClick={() => addLevel(draft.trim() ? Number(draft) : last)}><Plus size={17}/></button></div>
-            <div className="level-list">{currentLevels.map(level => <div key={level.id}><span className="level-swatch" style={{ background: level.color }}/><span>{level.price.toFixed(symbols[prefs.symbol].precision)}</span><button aria-label={"Remove price level " + level.price} title="Remove level" onClick={() => removeLevel(level.id)}><Trash2 size={15}/></button></div>)}</div>
+            <div className="level-list">{currentLevels.map(level =>
+              <div key={level.id} className={levelVisibleAtFrame(level,prefs.frame)?"":"price-level-unshown"}>
+                <span className="level-swatch" style={{ background: level.color }}/>
+                <span className="price-level-row-label">
+                  <strong>{level.price.toFixed(symbols[prefs.symbol].precision)}</strong>
+                  {level.title&&level.title!=="LEVEL"&&<small>{level.title}</small>}
+                  {!levelVisibleAtFrame(level,prefs.frame)&&<small>Hidden on {prefs.frame}</small>}
+                </span>
+                <button aria-label={"Edit price level "+level.price} title="Level properties"
+                  onClick={()=>setLevelSettingsId(level.id)}><Settings2 size={15}/></button>
+                <button aria-label={"Remove price level " + level.price} title="Remove level" onClick={() => removeLevel(level.id)}><Trash2 size={15}/></button>
+              </div>)}</div>
             </div>}
             {panelTab==="objects"&&<div className="workspace-rail-content" id="rail-panel-objects" role="tabpanel" aria-labelledby="rail-tab-objects">
             <div className="panel-head"><strong>Chart drawings</strong>{studio ? <button className="manage-objects" aria-expanded={manageObjects} onClick={()=>setManageObjects(value=>!value)}>Manage</button> : <span className="count">{currentDrawings.length}</span>}</div>
@@ -1338,6 +1362,10 @@ export default function App() {
     </div>
     <footer className="statusbar"><span><span className="sync-point">●</span> MARKET TERMINAL / LOCAL-FIRST PREVIEW</span><span>Feed: {sourceStateLabel} · {saveFailed?"Local save failed":"Workspace saved locally"}</span></footer>
     {notice && <div role="status" className={"toast " + notice.kind} key={notice.id}><span>{notice.kind === "success" ? <Check size={17}/> : <Activity size={17}/>}</span><p>{notice.message}</p><button aria-label="Dismiss notification" onClick={() => setNotice(null)}><X size={16}/></button></div>}
+    {levelSettingsId&&prefs.levels.some(level=>level.id===levelSettingsId)&&
+      <PriceLevelPropertiesDialog
+        level={prefs.levels.find(level=>level.id===levelSettingsId)!}
+        onSave={saveLevelSettings} onClose={()=>setLevelSettingsId(null)}/>}
     {settingsObject&&<DrawingSettingsDialog key={settingsObject.id}
        drawing={settingsObject} onSave={saveDrawingSettings}
        onSaveAsDefault={saveToolAsDefault} onResetDefault={resetToolDefault}
