@@ -32,7 +32,7 @@ interface Props {
   color: string;
   magnetEnabled: boolean;
   onAdd: (drawing: Drawing) => void;
-  onUpdate: (drawing: Drawing) => void;
+  onUpdate: (drawing: Drawing,editKind?:"move"|"start"|"end") => void;
   onDelete: (id: string) => void;
   onDeleteMany: (ids: string[]) => void;
   selectedIds: string[];
@@ -270,7 +270,7 @@ export function DrawingOverlay({
       const committed = draftRef.current;
       setDraft(null);
       if (distance >= 2 && committed && active.original) {
-        onUpdate(committed);
+        onUpdate(committed,active.kind);
       }
     }
   };
