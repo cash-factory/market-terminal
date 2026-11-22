@@ -44,7 +44,7 @@ export function parseWorkspace(value: unknown): Workspace {
           typeof level.id !== "string" || !SYMBOLS.includes(level.symbol as SymbolId)) continue;
       levels.push({ id: level.id, symbol: level.symbol as SymbolId, price: level.price,
         color: typeof level.color === "string" && /^#[0-9a-fA-F]{6}$/.test(level.color) ? level.color : "#8d94fa",
-        source: level.source === "binance" ? "binance" : "demo" });
+        ...(level.source === "binance" || level.source === "demo" ? { source: level.source } : {}) });
     }
   }
   return {
