@@ -17,7 +17,7 @@ test("four-chart workspace keeps every demo source and symbol drawing separate",
   await expect(page.locator(".chart-grid-cell")).toHaveCount(4);
   await expect(page.locator("svg.drawing-overlay")).toHaveCount(4);
   await expect(page.locator(".chart-cell-label small")).toContainText([
-    "Synthetic demonstration candles","SIMULATED · DEMO","SIMULATED · DEMO","SIMULATED · DEMO"
+    "Synthetic demonstration candles","Synthetic demonstration candles","Synthetic demonstration candles","Synthetic demonstration candles"
   ]);
   await drawOnChart(page,2);
   await expect(page.locator(".chart-grid-cell").nth(2).locator(".drawing-shape")).toHaveCount(1);

@@ -16,6 +16,14 @@ export type Workspace = {
   secondarySymbol: SymbolId;
   tertiarySymbol: SymbolId;
   quaternarySymbol: SymbolId;
+  secondaryFrame: Frame;
+  tertiaryFrame: Frame;
+  quaternaryFrame: Frame;
+  secondarySource: "demo" | "binance";
+  tertiarySource: "demo" | "binance";
+  quaternarySource: "demo" | "binance";
+  linkCrosshairs: boolean;
+  linkTimeRanges: boolean;
   dark: boolean;
   showSma: boolean;
   levels: Level[];
@@ -40,6 +48,14 @@ export const defaultWorkspace: Workspace = {
   secondarySymbol: "BTCUSDT",
   tertiarySymbol: "AAPL",
   quaternarySymbol: "US100",
+  secondaryFrame: "1h",
+  tertiaryFrame: "1h",
+  quaternaryFrame: "1h",
+  secondarySource: "demo",
+  tertiarySource: "demo",
+  quaternarySource: "demo",
+  linkCrosshairs: false,
+  linkTimeRanges: false,
   dark: true,
   showSma: true,
   levels: [],
@@ -86,6 +102,14 @@ export function parseWorkspace(value: unknown): Workspace {
     secondarySymbol: SYMBOLS.includes(raw.secondarySymbol as SymbolId) ? raw.secondarySymbol as SymbolId : "BTCUSDT",
     tertiarySymbol: SYMBOLS.includes(raw.tertiarySymbol as SymbolId) ? raw.tertiarySymbol as SymbolId : "AAPL",
     quaternarySymbol: SYMBOLS.includes(raw.quaternarySymbol as SymbolId) ? raw.quaternarySymbol as SymbolId : "US100",
+    secondaryFrame: FRAMES.includes(raw.secondaryFrame as Frame) ? raw.secondaryFrame as Frame : frame,
+    tertiaryFrame: FRAMES.includes(raw.tertiaryFrame as Frame) ? raw.tertiaryFrame as Frame : frame,
+    quaternaryFrame: FRAMES.includes(raw.quaternaryFrame as Frame) ? raw.quaternaryFrame as Frame : frame,
+    secondarySource: raw.secondarySymbol === "BTCUSDT" && raw.secondarySource === "binance" ? "binance" : "demo",
+    tertiarySource: raw.tertiarySymbol === "BTCUSDT" && raw.tertiarySource === "binance" ? "binance" : "demo",
+    quaternarySource: raw.quaternarySymbol === "BTCUSDT" && raw.quaternarySource === "binance" ? "binance" : "demo",
+    linkCrosshairs: typeof raw.linkCrosshairs === "boolean" ? raw.linkCrosshairs : false,
+    linkTimeRanges: typeof raw.linkTimeRanges === "boolean" ? raw.linkTimeRanges : false,
     drawings: Array.isArray(raw.drawings) ? raw.drawings.filter(isDrawing) : [],
     dark: typeof raw.dark === "boolean" ? raw.dark : true,
     showSma: typeof raw.showSma === "boolean" ? raw.showSma : true,
@@ -110,5 +134,5 @@ export function loadWorkspace(): Workspace {
   }
 }
 export function serializeWorkspace(workspace: Workspace): string {
-  return JSON.stringify({ format: "market-terminal-workspace", version: 16, preferences: workspace }, null, 2);
+  return JSON.stringify({ format: "market-terminal-workspace", version: 17, preferences: workspace }, null, 2);
 }

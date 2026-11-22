@@ -372,3 +372,18 @@
 .drawing-layer-actions button{display:flex;gap:5px;align-items:center;justify-content:center;flex:1}
 .drawing-select-checkbox{accent-color:var(--accent);height:15px;width:15px;flex:0 0 15px;cursor:pointer}
 .drawing-object-row:has(.drawing-select-checkbox:checked){border-color:var(--accent-border);background:var(--accent-dim)}
+
+
+/* Source-aware independent chart panes; optional market-time linking. */
+.chart-link-tools{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.chart-link-tools .compact-action.active{border-color:var(--accent-border);
+  background:var(--accent-dim);color:var(--accent)}
+.chart-cell-label{row-gap:6px}
+.chart-cell-label .secondary-symbol-select{white-space:nowrap}
+.chart-cell-label .secondary-symbol-select select{max-width:155px}
+.chart-cell-label>small{max-width:200px;line-height:1.4;font-size:9px}
+@media(max-width:800px){
+  .chart-cell-label{align-items:center;gap:7px}
+  .chart-cell-label .secondary-symbol-select select{max-width:125px}
+  .chart-cell-label>small{flex:1 0 100%;max-width:none}
+}
