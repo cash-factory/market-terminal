@@ -585,6 +585,17 @@ export default function App() {
       notify(error instanceof Error ? error.message : "Could not import workspace.", "error");
     }
   };
+  const onRailTabKey=(event:ReactKeyboardEvent<HTMLDivElement>)=>{
+    if(!["ArrowLeft","ArrowRight","Home","End"].includes(event.key))return;
+    const tabs=Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+    const active=tabs.indexOf(document.activeElement as HTMLButtonElement);
+    if(active<0||tabs.length!==3)return;
+    event.preventDefault();
+    const next=event.key==="Home"?0:event.key==="End"?2:
+      (active+(event.key==="ArrowRight"?1:tabs.length-1))%tabs.length;
+    setPanelTab((["markets","objects","context"] as const)[next]);
+    tabs[next]?.focus();
+  };
   const onResizeStart = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
     event.preventDefault();
@@ -1151,15 +1162,15 @@ export default function App() {
               onPointerDown={onResizeStart} onPointerMove={onResizeMove}
               onPointerUp={onResizeStop} onPointerCancel={onResizeStop}
               onKeyDown={onResizeKey}/>
-            <div className="workspace-rail-tabs context-tabs" role="tablist" aria-label="Workspace side panel">
+            <div className="workspace-rail-tabs context-tabs" role="tablist" aria-label="Workspace side panel" onKeyDown={onRailTabKey}>
               <button type="button" role="tab" id="rail-tab-markets" aria-controls="rail-panel-markets"
-                aria-selected={panelTab==="markets"} className={panelTab==="markets"?"active":""}
+                aria-selected={panelTab==="markets"} tabIndex={panelTab==="markets"?0:-1} className={panelTab==="markets"?"active":""}
                 onClick={()=>setPanelTab("markets")}><Compass size={15}/> Markets</button>
               <button type="button" role="tab" id="rail-tab-objects" aria-controls="rail-panel-objects"
-                aria-selected={panelTab==="objects"} className={panelTab==="objects"?"active":""}
+                aria-selected={panelTab==="objects"} tabIndex={panelTab==="objects"?0:-1} className={panelTab==="objects"?"active":""}
                 onClick={()=>setPanelTab("objects")}><Layers size={15}/> Objects <span className="rail-count">{currentDrawings.length}</span></button>
               <button type="button" role="tab" id="rail-tab-context" aria-controls="rail-panel-context"
-                aria-selected={panelTab==="context"} className={panelTab==="context"?"active":""}
+                aria-selected={panelTab==="context"} tabIndex={panelTab==="context"?0:-1} className={panelTab==="context"?"active":""}
                 onClick={()=>setPanelTab("context")}><Activity size={15}/> Context</button>
             </div>
             {panelTab==="markets"&&<div className="workspace-rail-content" id="rail-panel-markets" role="tabpanel" aria-labelledby="rail-tab-markets">
