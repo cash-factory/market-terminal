@@ -59,18 +59,6 @@ test("study selection and chart visualization changes render with correct access
   await page.getByRole("button",{name:"Technical indicators"}).click({timeout:10000});
   console.log("Indicator menu open");
   const checkbox=page.getByRole("checkbox",{name:"RSI 14"});
-  if(isMobile){
-    console.log("Mobile indicator geometry",JSON.stringify(await checkbox.evaluate(el=>{
-      const popover=el.closest(".study-list") as HTMLElement|null;
-      const rect=el.getBoundingClientRect(),outer=popover?.getBoundingClientRect();
-      return {
-        checkbox:{x:rect.x,y:rect.y,width:rect.width,height:rect.height},
-        popover:outer?{x:outer.x,y:outer.y,width:outer.width,height:outer.height}:null,
-        position:popover?getComputedStyle(popover).position:null,
-        popoverScroll:popover?.scrollTop,viewport:{width:innerWidth,height:innerHeight}
-      };
-    })));
-  }
   await checkbox.check({timeout:10000});
   console.log("RSI enabled");
   await expect(page.locator(".indicator-pane")).toHaveCount(1);
