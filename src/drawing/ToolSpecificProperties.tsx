@@ -115,7 +115,7 @@ export function ToolSpecificProperties({drawing,onChange}:Props){
           checkbox(({price:"Absolute price",percent:"Percentage movement",bars:"Observed intervals",elapsed:"Elapsed UTC time"} as const)[key],
             (drawing.showMeasurements??MEASUREMENT_DEFAULTS)[key],
             checked=>update({showMeasurements:{...(drawing.showMeasurements??MEASUREMENT_DEFAULTS),[key]:checked}}),
-            key==="bars"?"Only candle intervals present in the current feed":"")}
+            key==="bars"?"Only candle intervals present in the current feed":""))}
       </div>
     </>}
     {drawing.tool==="arrow-marker"&&<label className="tool-special-field">Marker direction
