@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Clock3, Eye, EyeOff, LayoutGrid, Lock, Paintbrush, RotateCcw, SlidersHorizontal, X } from "lucide-react";
 import { symbols } from "../market";
-import { TOOL_BY_ID } from "./toolDefinitions";
+import { TOOL_BY_ID, ONE_ANCHOR_TOOLS } from "./toolDefinitions";
 import { type ChartAnchor, type Drawing } from "./types";
 import { AVAILABLE_FRAMES, editDrawingAnchor, formatAnchorUtc, parseAnchorUtc,
   validateDrawingSettings } from "./drawingSettings";
@@ -17,7 +17,7 @@ type CoordinateInput={time:string;price:string};
 
 function fieldsFrom(drawing:Drawing):Record<string,CoordinateInput>{
   const fields:Record<string,CoordinateInput>={};
-  const entries:[string,ChartAnchor][]=[["start",drawing.start],["end",drawing.end]];
+  const entries:[string,ChartAnchor][]=ONE_ANCHOR_TOOLS.has(drawing.tool)?[["start",drawing.start]]:[["start",drawing.start],["end",drawing.end]];
   if(drawing.control)entries.push(["control",drawing.control]);
   if(drawing.target)entries.push(["target",drawing.target]);
   for(const [kind,point] of entries)fields[kind]={
@@ -58,11 +58,15 @@ export function DrawingSettingsDialog({drawing,onSave,onClose}:Props){
     try{
       let candidate={...draft};
       for(const [key,input] of Object.entries(fields)){
-        const time=parseAnchorUtc(input.time),price=Number(input.price);
-        if(time===null||input.price.trim()===""||!Number.isFinite(price)||price<=0)
+        const original=(drawing as unknown as Record<string,unknown>)[key] as ChartAnchor|undefined;
+        const time=original&&input.time===formatAnchorUtc(original.time)?
+          original.time:parseAnchorUtc(input.time);
+        const price=Number(input.price);
+        if(time===null||time===undefined||input.price.trim()===""||!Number.isFinite(price)||price<=0)
           throw new Error("Enter valid UTC dates and positive prices for every coordinate.");
         candidate=editDrawingAnchor(candidate,key as "start"|"end"|"control"|"target",{time,price});
       }
+      if(ONE_ANCHOR_TOOLS.has(drawing.tool))candidate.end={...candidate.start};
       onSave(validateDrawingSettings(drawing,candidate));
       onClose();
     }catch(reason){setError(reason instanceof Error?reason.message:"Settings could not be saved.");}
