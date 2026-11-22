@@ -1,4 +1,4 @@
-import type { SymbolId, Frame } from "../market";
+import { ALL_FRAMES, type SymbolId, type Frame } from "../market";
 import { TOOL_BY_ID } from "./toolDefinitions";
 import { isCompleteMultiPointDrawing } from "./multiAnchor";
 
@@ -38,7 +38,7 @@ export type Drawing = {
 };
 
 const validSymbols = new Set<SymbolId>(["EURUSD", "BTCUSDT", "AAPL", "US100"]);
-const validFrames = new Set<Frame>(["1m", "5m", "15m", "1h", "4h", "1d"]);
+const validFrames = new Set<Frame>(ALL_FRAMES);
 export function isDrawing(input: unknown): input is Drawing {
   if (!input || typeof input !== "object" || Array.isArray(input)) return false;
   const d = input as Partial<Drawing>;
@@ -70,7 +70,7 @@ export function isDrawing(input: unknown): input is Drawing {
       (d.evidenceSide==="supports"||d.evidenceSide==="challenges"||d.evidenceSide==="unclassified"))) &&
     (d.showLabels === undefined || typeof d.showLabels === "boolean") &&
     (d.visibleOnFrames === undefined ||
-      (Array.isArray(d.visibleOnFrames) && d.visibleOnFrames.length <= 6 &&
+      (Array.isArray(d.visibleOnFrames) && d.visibleOnFrames.length <= ALL_FRAMES.length &&
        new Set(d.visibleOnFrames).size === d.visibleOnFrames.length &&
        d.visibleOnFrames.every(frame=>validFrames.has(frame))));
 }
