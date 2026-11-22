@@ -15,6 +15,7 @@ export type Drawing = {
   text?: string;
   points?: ChartAnchor[];
   control?: ChartAnchor;
+  target?: ChartAnchor;
   groupId?: string;
   strokeWidth?: number;
   dash?: "solid" | "dashed" | "dotted";
@@ -39,6 +40,7 @@ export function isDrawing(input: unknown): input is Drawing {
     (d.hidden === undefined || typeof d.hidden === "boolean") &&
     (d.text === undefined || (typeof d.text === "string" && d.text.length <= 2000)) &&
     (d.control === undefined || anchor(d.control)) &&
+    (d.target === undefined || anchor(d.target)) &&
     (d.tool !== "channel" || anchor(d.control)) &&
     (d.points === undefined || (Array.isArray(d.points) &&
       d.points.length <= 100000 && d.points.every(anchor))) &&
@@ -57,7 +59,8 @@ export function translateDrawing(
   const dp=start.price-drawing.start.price;
   return { ...drawing, start, end,
     ...(drawing.points ? {points:drawing.points.map(p=>({time:p.time+dt,price:p.price+dp}))} : {}),
-    ...(drawing.control ? {control:{time:drawing.control.time+dt,price:drawing.control.price+dp}} : {})
+    ...(drawing.control ? {control:{time:drawing.control.time+dt,price:drawing.control.price+dp}} : {}),
+    ...(drawing.target ? {target:{time:drawing.target.time+dt,price:drawing.target.price+dp}} : {})
   };
 }
 
