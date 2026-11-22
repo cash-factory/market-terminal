@@ -5,10 +5,10 @@ A **local-first market analysis and decision research workstation**, built with 
 ## Available workflows
 
 - **Chart Studio:** one-, two- and four-pane charts, independent frames/sources, chart types, indicators, saved profiles, drawing and direct manipulation.
-- **Drawing tools:** trendline, ray, Fibonacci, parallel channel, rectangle, ellipse, arrow, freehand, notes, price measurements, levels and illustrative long/short position graphics.
-- **Research:** historical replay, browser-local price alerts, risk planner, searchable Tool Atlas (`Ctrl/⌘ + K`) and **Decision Desk** for time-stamped observations with an append-only review history.
+- **Drawing tools:** 19 implemented chart objects, including precision references (horizontal/vertical/cross lines and rays), extended lines, Fibonacci, channels, ranges, shapes, annotation and illustrative position graphics. Search the categorized **Tool Library**, pin favorite tools, and return to recent tools.
+- **Research:** historical replay, browser-local price alerts, risk planner, searchable Tool Atlas (`Ctrl/⌘ + K`), **Decision Desk** for time-stamped observations, and **Chart Context Lens** for distance to user-marked price levels, source status and quick in-browser alerts.
 - **Local-first:** automatic browser workspace persistence and import/export with schema validation. No account is required for local analysis.
-- **Experience:** source-status labels, desktop/mobile layouts, dark/light appearance, curated accents, contextual drawing inspector and keyboard interactions.
+- **Experience:** source-status labels, desktop/mobile layouts, dark/light appearance, curated accents, contextual drawing and context inspectors, saved tool favorites and keyboard interactions.
 
 ## Market-data provenance
 
