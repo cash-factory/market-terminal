@@ -71,3 +71,18 @@
 .drawing-overlay.armed .drawing-handle,
 .drawing-overlay.armed .drawing-line{pointer-events:none}
 .drawing-overlay .drawing-handle{cursor:move}
+
+
+/* Drawing objects: compact, fully operable controls rather than dense prose. */
+.drawing-object-list{max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;padding-top:6px}
+.drawing-object-row{display:flex;align-items:center;gap:7px;border:1px solid transparent;border-radius:7px;padding:6px;color:var(--text);min-height:37px}
+.drawing-object-row:hover,.drawing-object-row:focus-within{border-color:var(--border);background:var(--raised)}
+.drawing-object-row.object-hidden>.drawing-object-name{opacity:.46;text-decoration:line-through}
+.drawing-object-name{min-width:0;flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:11px;text-transform:capitalize}
+.drawing-object-actions{display:flex;gap:1px;flex-shrink:0}
+.drawing-object-actions button{width:25px;height:28px;display:grid;place-items:center;background:transparent;border:1px solid transparent;border-radius:5px;color:var(--muted);padding:0}
+.drawing-object-actions button:hover{background:var(--accent-dim);border-color:var(--accent-border);color:var(--accent)}
+.drawing-object-actions button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.drawing-object-empty{margin:10px 2px 8px;color:var(--muted);font-size:11px;line-height:1.6}
+.compact-action.repeat-toggle.active{color:var(--accent);background:var(--accent-dim);border-color:var(--accent-border)}
+@media(max-width:1220px){.drawing-object-actions button{width:24px}}
