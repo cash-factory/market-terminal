@@ -1,0 +1,219 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Check, Clock3, Eye, EyeOff, LayoutGrid, Lock, Paintbrush, RotateCcw, SlidersHorizontal, X } from "lucide-react";
+import { symbols } from "../market";
+import { TOOL_BY_ID } from "./toolDefinitions";
+import { type ChartAnchor, type Drawing } from "./types";
+import { AVAILABLE_FRAMES, editDrawingAnchor, formatAnchorUtc, parseAnchorUtc,
+  validateDrawingSettings } from "./drawingSettings";
+import "./drawingSettings.css";
+
+type Tab="style"|"coordinates"|"visibility";
+type Props={
+  drawing:Drawing;
+  onSave:(drawing:Drawing)=>void;
+  onClose:()=>void;
+};
+type CoordinateInput={time:string;price:string};
+
+function fieldsFrom(drawing:Drawing):Record<string,CoordinateInput>{
+  const fields:Record<string,CoordinateInput>={};
+  const entries:[string,ChartAnchor][]=[["start",drawing.start],["end",drawing.end]];
+  if(drawing.control)entries.push(["control",drawing.control]);
+  if(drawing.target)entries.push(["target",drawing.target]);
+  for(const [kind,point] of entries)fields[kind]={
+    time:formatAnchorUtc(point.time),price:String(point.price)
+  };
+  return fields;
+}
+
+export function DrawingSettingsDialog({drawing,onSave,onClose}:Props){
+  const [tab,setTab]=useState<Tab>("style");
+  const [draft,setDraft]=useState<Drawing>(drawing);
+  const [fields,setFields]=useState(()=>fieldsFrom(drawing));
+  const [error,setError]=useState("");
+  const closeRef=useRef<HTMLButtonElement>(null);
+  const originalFocus=useRef<HTMLElement|null>(null);
+  useEffect(()=>{
+    originalFocus.current=document.activeElement instanceof HTMLElement?document.activeElement:null;
+    closeRef.current?.focus();
+    const onEscape=(event:KeyboardEvent)=>{if(event.key==="Escape"){event.stopImmediatePropagation();onClose();}};
+    window.addEventListener("keydown",onEscape,true);
+    return ()=>{
+      window.removeEventListener("keydown",onEscape,true);
+      if(originalFocus.current?.isConnected)originalFocus.current.focus();
+    };
+  },[onClose]);
+  useEffect(()=>{
+    setDraft(drawing);setFields(fieldsFrom(drawing));setError("");setTab("style");
+  },[drawing.id]);
+  const name=TOOL_BY_ID.get(drawing.tool)?.label??drawing.tool;
+  const preview=useMemo(()=>({
+    stroke:draft.color,strokeWidth:draft.strokeWidth??2,strokeDasharray:draft.dash==="dotted"?"2 6":
+      draft.dash==="dashed"?"9 6":undefined,opacity:draft.opacity??1
+  }),[draft.color,draft.strokeWidth,draft.dash,draft.opacity]);
+  const setCoordinate=(key:string,field:"time"|"price",value:string)=>{
+    setFields(old=>({...old,[key]:{...old[key],[field]:value}}));setError("");
+  };
+  const apply=()=>{
+    try{
+      let candidate={...draft};
+      for(const [key,input] of Object.entries(fields)){
+        const time=parseAnchorUtc(input.time),price=Number(input.price);
+        if(time===null||input.price.trim()===""||!Number.isFinite(price)||price<=0)
+          throw new Error("Enter valid UTC dates and positive prices for every coordinate.");
+        candidate=editDrawingAnchor(candidate,key as "start"|"end"|"control"|"target",{time,price});
+      }
+      onSave(validateDrawingSettings(drawing,candidate));
+      onClose();
+    }catch(reason){setError(reason instanceof Error?reason.message:"Settings could not be saved.");}
+  };
+  return <div className="drawing-dialog-backdrop" onMouseDown={event=>{
+    if(event.target===event.currentTarget)onClose();
+  }}><div className="drawing-dialog" role="dialog" aria-modal="true"
+      aria-label={"Drawing settings — "+name}>
+    <div className="drawing-dialog-header">
+      <div className="drawing-dialog-mark"><SlidersHorizontal size={18}/></div>
+      <div className="drawing-dialog-heading">
+        <span>CHART OBJECT / PROPERTIES</span>
+        <h2>{name}<small> · {symbols[drawing.symbol].label}</small></h2>
+      </div>
+      <button type="button" ref={closeRef} aria-label="Close drawing settings"
+        onClick={onClose}><X size={18}/></button>
+    </div>
+    <div className="drawing-dialog-tabs" role="tablist" aria-label="Drawing properties">
+      {([["style","Style",Paintbrush],["coordinates","Coordinates",Clock3],
+        ["visibility","Visibility",Eye]] as const).map(([id,title,Icon])=>
+        <button key={id} type="button" role="tab" aria-selected={tab===id}
+          className={tab===id?"active":""} onClick={()=>{setTab(id);setError("");}}>
+          <Icon size={15}/>{title}
+        </button>)}
+    </div>
+    <div className="drawing-dialog-content">
+      {tab==="style"&&<div role="tabpanel" className="drawing-settings-style">
+        <div className="drawing-settings-intro"><strong>Appearance</strong>
+          <p>Adjust one object without changing other drawings or your saved tool favorites.</p></div>
+        <div className="drawing-settings-preview" aria-label="Drawing style preview">
+          <span>LIVE STYLE PREVIEW</span>
+          <svg viewBox="0 0 320 54" role="img" aria-label="Preview line">
+            <path d="M 16 38 L 304 14" fill="none" {...preview} strokeLinecap="round"/>
+            <circle cx="16" cy="38" r="4" fill={draft.color}/>
+            <circle cx="304" cy="14" r="4" fill={draft.color}/>
+          </svg>
+        </div>
+        <div className="drawing-settings-fields">
+          <label className="drawing-settings-color">Line / border color
+            <span><input type="color" aria-label="Drawing line color"
+              value={draft.color} onChange={e=>setDraft(old=>({...old,color:e.target.value}))}/>
+              <code>{draft.color.toUpperCase()}</code></span>
+          </label>
+          <label>Line weight
+            <select aria-label="Drawing line weight" value={draft.strokeWidth??2}
+              onChange={e=>setDraft(old=>({...old,strokeWidth:Number(e.target.value)}))}>
+              {[1,2,3,4,5,6,7,8].map(value=><option key={value} value={value}>{value} px</option>)}
+            </select>
+          </label>
+          <label>Line pattern
+            <select aria-label="Drawing line pattern" value={draft.dash??"solid"}
+              onChange={e=>setDraft(old=>({...old,dash:e.target.value as Drawing["dash"]}))}>
+              <option value="solid">Solid</option><option value="dashed">Dashed</option>
+              <option value="dotted">Dotted</option>
+            </select>
+          </label>
+          <label>Opacity <strong>{Math.round((draft.opacity??1)*100)}%</strong>
+            <input type="range" min=".1" max="1" step=".1" aria-label="Drawing opacity"
+              value={draft.opacity??1}
+              onChange={e=>setDraft(old=>({...old,opacity:Number(e.target.value)}))}/>
+          </label>
+          {(["rectangle","ellipse","channel","measure","price-range","date-range"].includes(drawing.tool))&&
+            <label>Region fill <strong>{Math.round((draft.fillOpacity??.09)*100)}%</strong>
+              <input type="range" min="0" max=".8" step=".05" aria-label="Drawing region fill"
+                value={draft.fillOpacity??.09}
+                onChange={e=>setDraft(old=>({...old,fillOpacity:Number(e.target.value)}))}/>
+            </label>}
+        </div>
+        {drawing.tool==="rectangle"&&<label className="drawing-settings-toggle">
+          <input type="checkbox" checked={draft.showMidline??false}
+            onChange={e=>setDraft(old=>({...old,showMidline:e.target.checked}))}/>
+          <span><strong>Show midpoint</strong><small>Draw a 50% reference through the highlighted zone.</small></span>
+        </label>}
+        {["fibonacci","measure","price-range","date-range"].includes(drawing.tool)&&
+          <label className="drawing-settings-toggle">
+            <input type="checkbox" checked={draft.showLabels!==false}
+              onChange={e=>setDraft(old=>({...old,showLabels:e.target.checked}))}/>
+            <span><strong>Show labels</strong><small>Keep calculations visible next to your drawing.</small></span>
+          </label>}
+        {drawing.tool==="text"&&<label className="drawing-settings-note">Annotation text
+          <textarea aria-label="Drawing annotation text" rows={3} maxLength={2000}
+            value={draft.text??""} onChange={e=>setDraft(old=>({...old,text:e.target.value}))}/>
+        </label>}
+      </div>}
+      {tab==="coordinates"&&<div role="tabpanel" className="drawing-settings-coordinates">
+        <div className="drawing-settings-intro"><strong>Precise placement</strong>
+          <p>Enter UTC timestamps and valid positive prices. This updates the actual chart anchors; other market sources are unchanged.</p>
+        </div>
+        {Object.entries(fields).map(([name,field])=><fieldset key={name}>
+          <legend>{name==="start"?"Anchor 1":name==="end"?"Anchor 2":
+            name==="control"?"Control anchor":"Target anchor"}</legend>
+          <label>Time (UTC)
+            <input type="datetime-local" aria-label={name+" UTC time"} value={field.time}
+              onChange={e=>setCoordinate(name,"time",e.target.value)}/>
+          </label>
+          <label>Price
+            <input type="number" min="0.000000000001" step="any"
+              aria-label={name+" anchor price"} value={field.price}
+              onChange={e=>setCoordinate(name,"price",e.target.value)}/>
+          </label>
+        </fieldset>)}
+        <div className="drawing-settings-note-box"><LayoutGrid size={16}/>
+          A coordinate adjustment moves this object only. Historical prices are not modified.</div>
+      </div>}
+      {tab==="visibility"&&<div role="tabpanel" className="drawing-settings-visibility">
+        <div className="drawing-settings-intro"><strong>Where this drawing appears</strong>
+          <p>Choose relevant chart intervals. Market source and symbol remain fixed to prevent accidental misattribution.</p>
+        </div>
+        <div className="drawing-settings-toggles">
+          <label className="drawing-settings-toggle">
+            <input type="checkbox" checked={!draft.hidden}
+              onChange={e=>setDraft(old=>({...old,hidden:!e.target.checked}))}/>
+            <span><strong>Visible on chart</strong><small>Temporarily hide without deleting the object.</small></span>
+            {draft.hidden?<EyeOff size={18}/>:<Eye size={18}/>}
+          </label>
+          <label className="drawing-settings-toggle">
+            <input type="checkbox" checked={draft.locked}
+              onChange={e=>setDraft(old=>({...old,locked:e.target.checked}))}/>
+            <span><strong>Lock position</strong><small>Prevent accidental dragging while retaining settings access.</small></span>
+            <Lock size={18}/>
+          </label>
+        </div>
+        <h3>Timeframe visibility</h3>
+        <div className="drawing-settings-frame-grid">
+          {AVAILABLE_FRAMES.map(frame=>{
+            const visible=draft.visibleOnFrames===undefined||
+              draft.visibleOnFrames.includes(frame);
+            return <label key={frame}>
+              <input type="checkbox" aria-label={"Visible on "+frame}
+                checked={visible} onChange={e=>{
+                  const current=draft.visibleOnFrames??[...AVAILABLE_FRAMES];
+                  const next=e.target.checked?[...new Set([...current,frame])]:
+                    current.filter(item=>item!==frame);
+                  setDraft(old=>({...old,visibleOnFrames:next}));
+                }}/>
+              <span>{frame}</span>
+            </label>;
+          })}
+        </div>
+        <p className="drawing-settings-visibility-help">Your drawing remains saved even when hidden at the active timeframe. The object list always shows it.</p>
+      </div>}
+    </div>
+    {error&&<div className="drawing-dialog-error" role="alert">{error}</div>}
+    <footer className="drawing-dialog-footer">
+      <button type="button" className="drawing-reset" onClick={()=>{
+        setDraft({...drawing});setFields(fieldsFrom(drawing));setError("");
+      }}><RotateCcw size={15}/> Restore</button>
+      <span/>
+      <button type="button" className="drawing-cancel" onClick={onClose}>Cancel</button>
+      <button type="button" className="drawing-save" onClick={apply}>
+        <Check size={16}/> Apply changes</button>
+    </footer>
+  </div></div>;
+}
