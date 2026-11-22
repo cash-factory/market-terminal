@@ -11,6 +11,9 @@ import {
   inChartPlot, logicalFromTime, pointerDistance, timeFromLogical, type ChartPoint
 } from "./geometry";
 import { snapAnchorToOhlc, rayEndpoint, measurement } from "./snap";
+import { clippedExtendedLine, horizontalReference, verticalReference,
+  observedBarCount, formatElapsedDuration } from "./precision";
+import { ONE_ANCHOR_TOOLS } from "./toolDefinitions";
 import {calculatePosition,defaultPositionTarget,positionTargetAnchor} from "../analysis/positionDrawing";
 
 type Projected = { a: ChartPoint; b: ChartPoint };
@@ -276,7 +279,9 @@ export function DrawingOverlay({
       anchorAt({ x: originalProjected.b.x + dx, y: originalProjected.b.y + dy });
     if (start && end) {
       const changed=translateDrawing(active.original,start,end);
-      setDraft(active.kind==="move"?changed:{...changed,control:active.original.control});
+      const adjusted=active.kind==="move"?changed:{...changed,control:active.original.control};
+      setDraft(ONE_ANCHOR_TOOLS.has(active.original.tool)
+        ? {...adjusted,end:adjusted.start} : adjusted);
     }
   };
   const onPointerUp = (event: ReactPointerEvent<SVGSVGElement>) => {
@@ -296,6 +301,10 @@ export function DrawingOverlay({
         pendingRef.current=null;
         setDraft(null);
         onAdd({...makeDrawing(active.first,active.first,tool),text:"Note",id:crypto.randomUUID()});
+      }else if(ONE_ANCHOR_TOOLS.has(tool)){
+        pendingRef.current=null;
+        setDraft(null);
+        onAdd({...makeDrawing(active.first,active.first,tool),id:crypto.randomUUID()});
       }else if(tool==="brush"){
         const points=draftRef.current?.points??[];
         pendingRef.current=null;
@@ -341,6 +350,10 @@ export function DrawingOverlay({
     const position = project(drawing);
     if (!position) return null;
     const { a, b } = position;
+    const plot={
+      width:chart.timeScale().width(),
+      height:Math.max(0,(svgRef.current?.clientHeight??0)-chart.timeScale().height())
+    };
     const isPreview = drawing.id === "preview";
     const selected = selectedIds.includes(drawing.id) && !tool;
     const common = {
@@ -511,7 +524,8 @@ export function DrawingOverlay({
         </g>;
       })}
       {isPreview && <circle cx={a.x} cy={a.y} r={4} fill={drawing.color} pointerEvents="none" />}
-      {selected && !drawing.locked && drawing.tool!=="brush" && drawing.tool!=="text" && [a,b].map((p,i) =>
+      {selected && !drawing.locked && drawing.tool!=="brush" && drawing.tool!=="text" &&
+        (ONE_ANCHOR_TOOLS.has(drawing.tool)?[a]:[a,b]).map((p,i) =>
         <circle key={i} cx={p.x} cy={p.y} r={7} fill="var(--panel)"
           stroke={drawing.color} strokeWidth={2} className="drawing-handle"
           onPointerDown={event => beginEdit(event, drawing, i === 0 ? "start" : "end")}/>
