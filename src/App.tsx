@@ -15,6 +15,8 @@ import {applyChartProfile,createChartProfile} from "./charts/profiles";
 import { nearestCrosshairBar } from "./charts/sync";
 import type { Drawing, DrawingTool } from "./drawing/types";
 import { ToolShelf } from "./drawing/ToolShelf";
+import { DrawingSettingsDialog } from "./drawing/DrawingSettingsDialog";
+import { validateDrawingSettings } from "./drawing/drawingSettings";
 import { TOOL_BY_ID } from "./drawing/toolDefinitions";
 import {groupDrawings,ungroupDrawings,styleDrawings,moveDrawingLayers,updateDrawingAndGroup,type DrawingStylePatch} from "./drawing/manage";
 import { frameSeconds, symbols, type Frame, type SymbolId } from "./market";
@@ -105,6 +107,7 @@ export default function App() {
   const toolPickerRef=useRef<HTMLDivElement>(null);
   const [recentDrawingTools,setRecentDrawingTools]=useState<DrawingTool[]>([]);
   const [noteEditingId,setNoteEditingId]=useState<string|null>(null);
+  const [drawingSettingsId,setDrawingSettingsId]=useState<string|null>(null);
   const [noteDraft,setNoteDraft]=useState("");
   const [templateName,setTemplateName]=useState("");
   const [formulaName,setFormulaName]=useState("");
@@ -147,6 +150,7 @@ export default function App() {
     loading: "LOADING BINANCE", connecting: "CONNECTING", historical: "HISTORICAL",
     live: "LIVE · BINANCE SPOT", stale: "STALE FEED", error: "FEED UNAVAILABLE", synthetic: "SYNTHETIC DATA"
   })[feed.status];
+  const settingsObject=drawingSettingsId?prefs.drawings.find(d=>d.id===drawingSettingsId):undefined;
   const selectedObject = selectedDrawingIds.length === 1
     ? prefs.drawings.find(drawing => drawing.id === selectedDrawingIds[0])
     : undefined;
@@ -285,6 +289,7 @@ export default function App() {
     commitDrawings(updateDrawingAndGroup(prefs.drawings,drawing,editKind),"Drawing updated.");
   };
   const removeDrawing = (id: string) => {
+    if(drawingSettingsId===id)setDrawingSettingsId(null);
     commitDrawings(prefs.drawings.filter(d => d.id !== id), "Drawing removed. Use Undo to restore.");
     setSelectedDrawingIds(ids=>ids.filter(item=>item!==id));
   };
@@ -305,6 +310,21 @@ export default function App() {
     const groupIds=new Set(prefs.drawings.filter(d=>chosen.has(d.id)).map(d=>d.groupId).filter((id):id is string=>!!id));
     const affected=prefs.drawings.filter(d=>chosen.has(d.id)||(d.groupId&&groupIds.has(d.groupId))).map(d=>d.id);
     commitDrawings(ungroupDrawings(prefs.drawings,affected),"Drawing group dissolved.");
+  };
+  const saveDrawingSettings=(next:Drawing)=>{
+    const original=prefs.drawings.find(item=>item.id===next.id);
+    if(!original)throw new Error("This drawing has been deleted. Refresh the selection.");
+    const checked=validateDrawingSettings(original,next);
+    commitDrawings(prefs.drawings.map(item=>item.id===checked.id?checked:item),
+      "Drawing properties saved. Undo is available.");
+  };
+  const openDrawingSettings=(id:string)=>{
+    const active=prefs.drawings.find(d=>d.id===id);
+    if(!active){notify("Drawing not found.","error");return;}
+    setSelectedDrawingIds([id]);
+    setDrawingTool(null);
+    setDrawMode(false);
+    setDrawingSettingsId(id);
   };
   const setDrawingStyle=(patch:Partial<DrawingStylePatch>)=>{
     if(!selectedDrawingIds.length)return;
@@ -1087,7 +1107,7 @@ export default function App() {
                   drawingTool={drawingTool} drawings={replayDrawings} magnetEnabled={prefs.magnetEnabled}
                   drawingColor={prefs.accent === "amber" ? "#e9b368" : prefs.accent === "teal" ? "#32c7aa" : "#9295ff"}
                   onAddDrawing={addDrawing} onUpdateDrawing={updateDrawing} onDeleteDrawing={removeDrawing} onDeleteDrawings={removeDrawings}
-                  selectedDrawingIds={selectedDrawingIds} onDrawingSelectionChange={setSelectedDrawingIds}/>
+                  selectedDrawingIds={selectedDrawingIds} onDrawingSelectionChange={setSelectedDrawingIds} onOpenDrawingSettings={openDrawingSettings}/>
                 </ChartErrorBoundary>
               </section>
               {!replay&&comparisonPanels.slice(0,prefs.chartLayout==="quad"?3:prefs.chartLayout==="dual"?1:0)
@@ -1147,7 +1167,7 @@ export default function App() {
                     magnetEnabled={prefs.magnetEnabled}
                     drawingColor={prefs.accent==="amber"?"#e9b368":prefs.accent==="teal"?"#32c7aa":"#9295ff"}
                     onAddDrawing={drawing=>addDrawingFor(drawing,panel.source)} onUpdateDrawing={updateDrawing} onDeleteDrawing={removeDrawing} onDeleteDrawings={removeDrawings}
-                    selectedDrawingIds={selectedDrawingIds} onDrawingSelectionChange={setSelectedDrawingIds}/>
+                    selectedDrawingIds={selectedDrawingIds} onDrawingSelectionChange={setSelectedDrawingIds} onOpenDrawingSettings={openDrawingSettings}/>
                   </ChartErrorBoundary>
                 </section>)}
             </div>
@@ -1236,6 +1256,9 @@ export default function App() {
                     title="Edit annotation text" onClick={()=>{
                       setNoteEditingId(drawing.id);setNoteDraft(drawing.text||"Note");
                     }}><Pencil size={14}/></button>}
+                  <button aria-label={"Settings for drawing "+(index+1)}
+                    title="Open drawing style, coordinates and visibility"
+                    onClick={()=>openDrawingSettings(drawing.id)}><Settings2 size={15}/></button>
                   <button aria-label={(drawing.hidden ? "Show " : "Hide ") + drawing.tool + " " + (index+1)}
                     title={drawing.hidden ? "Show drawing" : "Hide drawing"}
                     onClick={() => toggleDrawingProperty(drawing.id,"hidden")}>
@@ -1332,6 +1355,9 @@ export default function App() {
     </div>
     <footer className="statusbar"><span><span className="sync-point">●</span> MARKET TERMINAL / LOCAL-FIRST PREVIEW</span><span>Feed: {sourceStateLabel} · {saveFailed?"Local save failed":"Workspace saved locally"}</span></footer>
     {notice && <div role="status" className={"toast " + notice.kind} key={notice.id}><span>{notice.kind === "success" ? <Check size={17}/> : <Activity size={17}/>}</span><p>{notice.message}</p><button aria-label="Dismiss notification" onClick={() => setNotice(null)}><X size={16}/></button></div>}
+    {settingsObject&&<DrawingSettingsDialog key={settingsObject.id}
+       drawing={settingsObject} onSave={saveDrawingSettings}
+       onClose={()=>setDrawingSettingsId(null)}/>}
     {searchOpen && <CommandPalette onClose={()=>setSearchOpen(false)}
        onOpenInstrument={openInstrument} onExecuteCommand={runTerminalCommand}/>}
      {helpOpen && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setHelpOpen(false); }}><div className="help-dialog" role="dialog" aria-modal="true" aria-label="Help and shortcuts"><button className="dialog-close" aria-label="Close help" onClick={() => setHelpOpen(false)}><X size={18}/></button><Menu size={24}/><h2>Your terminal, your rules.</h2><p>Use the left navigation to switch between overview, charting, saved workspace and preferences. Click <strong>Price level</strong> to place a horizontal level, or drag using the Trendline, Rectangle or Fibonacci tools.</p><div className="shortcut"><span>Open Tool Atlas</span><kbd>Ctrl / ⌘ + K</kbd></div><div className="shortcut"><span>Exit drawing or dismiss dialog</span><kbd>Esc</kbd></div><div className="shortcut"><span>Undo / redo drawings</span><kbd>Ctrl / ⌘ + Z · Shift + Z</kbd></div><div className="shortcut"><span>Save workspace</span><strong>Automatic</strong></div><div className="shortcut"><span>Capture a source-aware decision</span><strong>Decision Desk</strong></div><p className="help-warning">Most instruments use synthetic demo candles. BTC/USDT has an opt-in direct Binance Spot feed. This is not a broker, and YoungMoney3 linking is not available.</p><button className="primary-button" onClick={() => setHelpOpen(false)}>Start exploring <ChevronRight size={16}/></button></div></div>}
