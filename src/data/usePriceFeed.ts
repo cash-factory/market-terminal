@@ -122,7 +122,7 @@ export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSourc
         healthTimer = setInterval(() => {
           if (receivedAt && Date.now() - receivedAt > (isSecondsFrame(interval)?8_000:30_000)) {
             setSnapshot(old => old.key === key && old.status === "live"
-              ? {...old, status: "stale", message: "No live update received for over 30 seconds."} : old);
+              ? {...old, status: "stale", message: "No live update received for over "+(isSecondsFrame(interval)?"8":"30")+" seconds."} : old);
           }
         }, 5_000);
       } catch (error) {
