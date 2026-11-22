@@ -498,6 +498,13 @@ export default function App() {
                     </select>
                   </label>
                   <small>SIMULATED · DEMO</small>
+                  <button className="chart-make-primary" aria-label="Make comparison chart primary"
+                    title="Swap comparison symbol into the main chart for full watchlist management"
+                    onClick={()=>{
+                      setPrefs(old=>({...old,symbol:old.secondarySymbol,secondarySymbol:old.symbol,priceSource:"demo"}));
+                      setDrawingTool(null);setDrawMode(false);
+                      notify("Chart symbols swapped; primary quote source is now demonstration data.");
+                    }}>Make primary</button>
                 </div>
                 <ChartCanvas key={"secondary-"+prefs.secondarySymbol} symbol={prefs.secondarySymbol} frame={prefs.frame}
                   source="demo" candles={comparisonFeed.candles} dark={prefs.dark}
