@@ -47,13 +47,14 @@ interface Props {
   onDeleteDrawings: (ids:string[])=>void;
   selectedDrawingIds:string[];
   onDrawingSelectionChange:(ids:string[])=>void;
+  onOpenDrawingSettings:(id:string)=>void;
 }
 type Surface = ChartSurface;
 
 export function ChartCanvas({
   paneId,onSurfaceReady,onRangeChanged,onCrosshairChanged,
   symbol, frame, source, chartStyle, candles, dark, comparisonCandles, comparisonLabel, showSma, levels, drawMode, onPlaceLevel,
-  drawingTool, drawings, drawingColor, studies, customStudies, parameters, magnetEnabled, onAddDrawing, onUpdateDrawing, onDeleteDrawing, onDeleteDrawings, selectedDrawingIds, onDrawingSelectionChange
+  drawingTool, drawings, drawingColor, studies, customStudies, parameters, magnetEnabled, onAddDrawing, onUpdateDrawing, onDeleteDrawing, onDeleteDrawings, selectedDrawingIds, onDrawingSelectionChange, onOpenDrawingSettings
 }: Props) {
   const callbacks=useRef({onSurfaceReady,onRangeChanged,onCrosshairChanged});
   callbacks.current={onSurfaceReady,onRangeChanged,onCrosshairChanged};
@@ -259,6 +260,7 @@ export function ChartCanvas({
       onAdd={onAddDrawing} onUpdate={onUpdateDrawing} onDelete={onDeleteDrawing}
       onDeleteMany={onDeleteDrawings}
       selectedIds={selectedDrawingIds} onSelectionChange={onDrawingSelectionChange}
+      onOpenSettings={onOpenDrawingSettings}
     />}
   </div>
   {comparisonLabel&&<div className="chart-comparison-attribution" role="status">
