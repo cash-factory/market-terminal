@@ -22,3 +22,16 @@ test("focus mode re-enters terminal from another page without discarding local s
   await expect(page.locator(".app.focus-mode")).toBeVisible();
   await expect(page.locator("svg.drawing-overlay")).toBeVisible();
 });
+
+test("Shift+F toggles focus except while entering text",async({page})=>{
+  await page.goto("/market-terminal/");
+  await page.keyboard.press("Shift+F");
+  await expect(page.locator(".app.focus-mode")).toBeVisible();
+  await page.keyboard.press("Shift+F");
+  await expect(page.locator(".app.focus-mode")).toHaveCount(0);
+  await page.getByRole("button",{name:"Search markets or commands"}).click();
+  const search=page.getByRole("combobox");
+  await search.focus();
+  await page.keyboard.press("Shift+F");
+  await expect(page.locator(".app.focus-mode")).toHaveCount(0);
+});
