@@ -404,6 +404,13 @@ export default function App() {
     }
     if(!id.startsWith("chart:"))return;
     setPage("terminal");
+    if(id.startsWith("chart:frame-")){
+      const frame=id.slice("chart:frame-".length) as Frame;
+      if(frames.includes(frame)){
+        update({frame});notify("Switched to "+frame+" candles.","info");
+      }
+      return;
+    }
     switch(id.slice(6)){
       case "indicators":setStudyMenuOpen(true);notify("Technical indicators opened.","info");break;
       case "setup":setSetupOpen(true);notify("Chart configuration expanded.","info");break;
@@ -415,6 +422,14 @@ export default function App() {
       }
       case "magnet":update({magnetEnabled:!prefs.magnetEnabled});
         notify(prefs.magnetEnabled?"OHLC magnet disabled.":"OHLC magnet enabled.");break;
+      case "level":setDrawMode(true);setDrawingTool(null);
+        notify("Click the chart to place a horizontal level.","info");break;
+      case "watchlist":setPanelTab("markets");update({rightPanelOpen:true});
+        notify("Markets panel opened.","info");break;
+      case "crosshairs":update({linkCrosshairs:!prefs.linkCrosshairs});
+        notify(prefs.linkCrosshairs?"Independent chart cursors enabled.":"Chart crosshairs linked.");break;
+      case "timeranges":update({linkTimeRanges:!prefs.linkTimeRanges});
+        notify(prefs.linkTimeRanges?"Independent time windows enabled.":"Chart time windows linked.");break;
       case "objects":setPanelTab("objects");update({rightPanelOpen:true});
         notify("Drawing inspector opened.","info");break;
       case "undo":undoDrawing();break;
