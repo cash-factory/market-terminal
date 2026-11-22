@@ -144,12 +144,12 @@ export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSourc
     };
   }, [key, interval, active]);
 
+  const projected = useMemo(() => chartCandles(snapshot.candles), [snapshot.candles]);
   if (!active) return {
     candles: demo, status: "synthetic",
     sourceLabel: "Synthetic demonstration candles", message: null,
     lastUpdatedMs: null, retry: () => setRevision(value => value + 1),
   };
-  const projected = useMemo(() => chartCandles(snapshot.candles), [snapshot.candles]);
   const current = snapshot.key === key ? snapshot : {
     key, candles: [], status: "loading" as PriceStatus,
     message: "Loading Binance Spot candles…", asOfMs: null
