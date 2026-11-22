@@ -11,10 +11,12 @@ import { frameSeconds, symbols, type Frame, type SymbolId } from "./market";
 import { usePriceFeed } from "./data/usePriceFeed";
 import { panelWidthAfterDrag, panelWidthAfterKey } from "./layout";
 import { RiskPlanner } from "./analysis/RiskPlanner";
+import { AlertsCenter } from "./alerts/AlertsCenter";
+import { evaluatePriceAlerts, type PriceAlert } from "./alerts/engine";
 import { defaultStudies, studyLabels, type StudySettings } from "./indicators/studies";
 import { defaultWorkspace, loadWorkspace, parseWorkspace, serializeWorkspace, type Workspace } from "./workspace";
 
-type Page = "home" | "terminal" | "risk" | "library" | "settings";
+type Page = "home" | "terminal" | "risk" | "alerts" | "library" | "settings";
 type Notice = { id: number; message: string; kind: "success" | "info" | "error" };
 const frames: Frame[] = ["1m", "5m", "15m", "1h", "4h", "1d"];
 const studyKeys=Object.keys(defaultStudies) as (keyof StudySettings)[];
@@ -22,12 +24,13 @@ const menu: { id: Page; label: string; Icon: typeof Home }[] = [
   { id: "home", label: "Overview", Icon: Home },
   { id: "terminal", label: "Terminal", Icon: ChartCandlestick },
   { id: "risk", label: "Risk Planner", Icon: Target },
+  { id: "alerts", label: "Price Alerts", Icon: Bell },
   { id: "library", label: "Workspace", Icon: Layers },
   { id: "settings", label: "Preferences", Icon: Settings2 },
 ];
 const marketList = Object.keys(symbols) as SymbolId[];
 const titles: Record<Page, string> = {
-  home: "Market overview", terminal: "Trading terminal", risk: "Risk planner", library: "My workspace", settings: "Preferences"
+  home: "Market overview", terminal: "Trading terminal", risk: "Risk planner", alerts:"Price alerts", library: "My workspace", settings: "Preferences"
 };
 
 export default function App() {
@@ -42,6 +45,7 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [searchIndex, setSearchIndex] = useState(0);
   const resizeStart = useRef<{x:number; width:number} | null>(null);
+  const observedPriceRef = useRef<{key:string;price:number}|null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [studyMenuOpen, setStudyMenuOpen] = useState(false);
@@ -57,6 +61,7 @@ export default function App() {
     live: "LIVE · BINANCE SPOT", stale: "STALE FEED", error: "FEED UNAVAILABLE", synthetic: "SYNTHETIC DATA"
   })[feed.status];
   const activeStudyCount=studyKeys.filter(key=>prefs.studies[key]).length+(prefs.showSma?1:0);
+  const activeAlertCount=prefs.alerts.filter(a=>a.triggeredAtMs===null).length;
   const quoteText = last > 0 ? last.toLocaleString(undefined, {
     minimumFractionDigits: symbols[prefs.symbol].precision,
     maximumFractionDigits: symbols[prefs.symbol].precision
@@ -145,6 +150,18 @@ export default function App() {
     setDrawingTool(next);
     notify(next ? "Drag on the chart to create a " + next + "." : "Drawing tool dismissed.", "info");
   };
+  const addAlert = (alert:PriceAlert) => {
+    setPrefs(old=>({...old,alerts:[...old.alerts,alert]}));
+    notify("Price alert armed for "+symbols[alert.symbol].label+".");
+  };
+  const removeAlert = (id:string) => {
+    setPrefs(old=>({...old,alerts:old.alerts.filter(a=>a.id!==id)}));
+    notify("Price alert deleted.");
+  };
+  const clearTriggeredAlerts = () => {
+    setPrefs(old=>({...old,alerts:old.alerts.filter(a=>a.triggeredAtMs===null)}));
+    notify("Triggered alerts cleared.");
+  };
   const removeLevel = (id: string) => {
     setPrefs(old => ({ ...old, levels: old.levels.filter(level => level.id !== id) }));
     notify("Price level removed.");
@@ -168,7 +185,7 @@ export default function App() {
       const json: unknown = JSON.parse(await file.text());
       if (!json || typeof json !== "object" || Array.isArray(json) ||
         !("format" in json) || json.format !== "market-terminal-workspace" ||
-        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8) ||
+        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9) ||
         !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
       const workspace = parseWorkspace(json);
       setPrefs(workspace);
@@ -235,6 +252,24 @@ export default function App() {
     window.addEventListener("keydown", drawingShortcuts);
     return () => window.removeEventListener("keydown", drawingShortcuts);
   }, [prefs.drawings]);
+  useEffect(() => {
+    const key=prefs.symbol+":"+prefs.priceSource+":"+prefs.frame;
+    if((feed.status!=="live"&&feed.status!=="synthetic")||last<=0){
+      observedPriceRef.current=null;
+      return;
+    }
+    const prior=observedPriceRef.current;
+    observedPriceRef.current={key,price:last};
+    if(!prior||prior.key!==key||prior.price===last)return;
+    const result=evaluatePriceAlerts(prefs.alerts,prefs.symbol,prefs.priceSource,prior.price,last,Date.now());
+    if(!result.triggered.length)return;
+    // Re-check against latest workspace state in case another action changed alerts.
+    setPrefs(old=>{
+      const current=evaluatePriceAlerts(old.alerts,old.symbol,old.priceSource,prior.price,last,Date.now());
+      return current.triggered.length?{...old,alerts:current.updated}:old;
+    });
+    notify(result.triggered.length+" price alert"+(result.triggered.length===1?"":"s")+" triggered for "+symbols[prefs.symbol].label,"info");
+  },[prefs.symbol,prefs.priceSource,prefs.frame,prefs.alerts,last,feed.status]);
   useEffect(() => { if (searchOpen) inputSearch.current?.focus(); }, [searchOpen]);
   useEffect(() => { setSearchIndex(0); }, [query, searchOpen]);
   useEffect(() => {
@@ -255,7 +290,9 @@ export default function App() {
       </div>
       <div className="header-actions">
         <span className={"demo-tag source-" + feed.status}><span className="pulse-dot"/> {sourceStateLabel}</span>
-        <button className="icon-button" title="Open notifications" aria-label="Notifications" onClick={() => notify("Notifications are ready. Live market alerts will come in a later release.", "info")}><Bell size={18}/></button>
+        <button className="icon-button" title="Price alerts" aria-label="Open price alerts" onClick={() => setPage("alerts")}>
+          <Bell size={18}/>{activeAlertCount>0&&<span className="alert-bell-count">{Math.min(99,activeAlertCount)}</span>}
+        </button>
         <button className="icon-button" title="Switch appearance" aria-label="Switch appearance" onClick={() => {update({ dark: !prefs.dark }); notify("Appearance updated.");}}>{prefs.dark ? <Sun size={18}/> : <Moon size={18}/>}</button>
         <span className="avatar" title="Local workspace">MT</span>
       </div>
@@ -412,6 +449,12 @@ export default function App() {
             <p className="panel-note">Drag or click two points to draw. Lock, hide or duplicate objects here. Turn on Repeat to draw continuously. Ctrl+Z and Ctrl+Shift+Z undo and redo.</p>
           </aside>}
         </div>}
+        {page === "alerts" && <AlertsCenter
+          alerts={prefs.alerts} symbol={prefs.symbol} source={prefs.priceSource}
+          sourceLabel={feed.sourceLabel} status={feed.status} currentPrice={last}
+          onAdd={addAlert} onRemove={removeAlert} onClearTriggered={clearTriggeredAlerts}
+          onOpenTerminal={()=>setPage("terminal")}
+        />}
         {page === "risk" && <RiskPlanner
           value={prefs.riskPlanner}
           onChange={next => update({riskPlanner:next})}
