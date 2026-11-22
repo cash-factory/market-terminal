@@ -41,7 +41,7 @@ export function ChartContextLens({
     minimumFractionDigits:symbols[symbol].precision,
     maximumFractionDigits:symbols[symbol].precision
   });
-  return <section id="rail-panel-context" role="tabpanel" aria-labelledby="rail-tab-context"
+  return <section id="rail-panel-context" role="tabpanel"
     className="workspace-rail-content context-lens" aria-label="Chart Context Lens">
     <header className="context-lens-header">
       <div><span>ANALYTICAL CONTEXT</span><h3>Chart context</h3></div>
