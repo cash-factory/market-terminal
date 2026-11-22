@@ -459,3 +459,11 @@
 .chart-profile-note{padding-top:12px;margin:12px 0 0;border-top:1px solid var(--border);
   color:var(--muted);font-size:10px;line-height:1.6}
 @media(max-width:700px){.chart-profile-popover{left:auto;right:0}}
+
+
+/* Compare line uses primary scale via first common close, never an invented quote. */
+.chart-comparison-attribution{display:flex;align-items:center;gap:7px;flex-wrap:wrap;
+  padding:9px 14px;background:rgba(222,167,95,.09);color:var(--soft);
+  border-bottom:1px solid rgba(222,167,95,.3);font-size:10px;line-height:1.5}
+.chart-comparison-attribution strong{color:#dea75f}
+.chart-comparison-attribution span{font-weight:650;color:var(--text)}
