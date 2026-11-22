@@ -1,6 +1,6 @@
 import type { SymbolId } from "../market";
 
-export type DrawingTool = "trendline" | "rectangle" | "fibonacci";
+export type DrawingTool = "trendline" | "rectangle" | "fibonacci" | "ray" | "measure";
 export type ChartAnchor = { time: number; price: number };
 export type Drawing = {
   id: string;
@@ -15,7 +15,7 @@ export type Drawing = {
 };
 
 const validSymbols = new Set<SymbolId>(["EURUSD", "BTCUSDT", "AAPL", "US100"]);
-const validTools = new Set<DrawingTool>(["trendline", "rectangle", "fibonacci"]);
+const validTools = new Set<DrawingTool>(["trendline", "rectangle", "fibonacci", "ray", "measure"]);
 export function isDrawing(input: unknown): input is Drawing {
   if (!input || typeof input !== "object" || Array.isArray(input)) return false;
   const d = input as Partial<Drawing>;
