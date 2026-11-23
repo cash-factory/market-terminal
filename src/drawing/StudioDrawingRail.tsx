@@ -4,6 +4,7 @@ import type { RefObject } from "react";
 import type { DrawingTool } from "./types";
 import { type ToolGroup, TOOL_BY_ID } from "./toolDefinitions";
 import { ToolShelf } from "./ToolShelf";
+import {ToolGlyph} from "./ToolGlyph";
 import "./studioRail.css";
 
 const familyIcons={
@@ -89,7 +90,7 @@ export function StudioDrawingRail({
           className={"studio-rail-favorite"+(active===id?" active":"")}
           title={TOOL_BY_ID.get(id)?.description} onClick={()=>onSelect(id)}
           aria-label={TOOL_BY_ID.get(id)?.label??id}>
-          <span>{(TOOL_BY_ID.get(id)?.label??id).slice(0,3).toUpperCase()}</span>
+          <ToolGlyph tool={id} size={18}/>
         </button>)}
       </div>}
       <div className="studio-rail-utilities" role="group" aria-label="Drawing utilities">
