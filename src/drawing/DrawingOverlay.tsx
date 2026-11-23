@@ -4,13 +4,13 @@ import type {
 } from "lightweight-charts";
 import { frameSeconds, symbols, type Frame } from "../market";
 import {
-  translateDrawing,
   type ChartAnchor, type Drawing, type DrawingTool
 } from "./types";
 import {
   inChartPlot, logicalFromTime, pointerDistance, timeFromLogical, type ChartPoint
 } from "./geometry";
 import { snapAnchorToOhlc, measurement } from "./snap";
+import {translateDrawingOnChart} from "./interactions";
 import { horizontalReference, verticalReference,
   observedBarCount, formatElapsedDuration } from "./precision";
 import { ONE_ANCHOR_TOOLS,TOOL_BY_ID } from "./toolDefinitions";
@@ -76,7 +76,7 @@ export function DrawingOverlay({
     const rect = svgRef.current!.getBoundingClientRect();
     return { x: event.clientX - rect.left, y: event.clientY - rect.top };
   };
-  const anchorAt = (point: ChartPoint): ChartAnchor | null => {
+  const anchorAt = (point: ChartPoint, allowMagnet=magnetEnabled): ChartAnchor | null => {
     const scale = chart.timeScale();
     if (!inChartPlot(point, scale.width(), svgRef.current!.clientHeight - scale.height())) return null;
     const logical = scale.coordinateToLogical(point.x);
@@ -85,7 +85,7 @@ export function DrawingOverlay({
     const time = timeFromLogical(logical, candles, frameSeconds[frame]);
     if (time === null) return null;
     const anchor={time,price};
-    if(!magnetEnabled)return anchor;
+    if(!allowMagnet)return anchor;
     const snapped=snapAnchorToOhlc(anchor,point,candles,
       timestamp=>{
         const logical=logicalFromTime(timestamp,candles,frameSeconds[frame]);
@@ -125,12 +125,10 @@ export function DrawingOverlay({
     if (svgRef.current) observer.observe(svgRef.current);
     chart.timeScale().subscribeVisibleLogicalRangeChange(refresh);
     chart.subscribeCrosshairMove(refresh);
-    window.addEventListener("pointermove", refresh, { passive: true });
     return () => {
       observer.disconnect();
       chart.timeScale().unsubscribeVisibleLogicalRangeChange(refresh);
       chart.unsubscribeCrosshairMove(refresh);
-      window.removeEventListener("pointermove", refresh);
       if (animationFrame.current !== null) cancelAnimationFrame(animationFrame.current);
       animationFrame.current = null;
     };
@@ -148,32 +146,7 @@ export function DrawingOverlay({
     onSelectionChange([]);
   }, [symbol, frame]);
 
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        gestureRef.current = null;
-        pendingRef.current = null;
-        pendingChannelRef.current=null;
-    pendingMultiRef.current=null;
-        setDraft(null);
-        onSelectionChange([]);
-        return;
-      }
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement ||
-          event.target instanceof HTMLSelectElement) return;
-      if ((event.key === "Delete" || event.key === "Backspace") && selectedIds.length) {
-        const removable=selectedIds.filter(id=>drawings.some(d=>d.id===id&&!d.locked));
-        if(removable.length){
-          event.preventDefault();
-          if(removable.length===1)onDelete(removable[0]);
-          else onDeleteMany(removable);
-          onSelectionChange([]);
-        }
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [drawings, onDelete, onDeleteMany, selectedIds, onSelectionChange]);
+  // Workspace-level shortcuts prevent competing handlers in multi-pane layouts.
 
   const capture = (event: ReactPointerEvent<SVGElement>) => {
     try { svgRef.current?.setPointerCapture(event.pointerId); } catch { /* pointer was released */ }
@@ -294,6 +267,13 @@ export function DrawingOverlay({
     if (!originalProjected) return;
     const dx = point.x - active.origin.x;
     const dy = point.y - active.origin.y;
+    if(active.kind==="move"){
+      const moved=translateDrawingOnChart(active.original,{x:dx,y:dy},
+        anchor=>project({...active.original!,start:anchor,end:anchor})?.a??null,
+        position=>anchorAt(position,false));
+      if(moved)setDraft(moved);
+      return;
+    }
     if(active.kind==="vertex"&&active.original.points&&active.vertexIndex!==undefined){
       const index=active.vertexIndex,vertex=active.original.points[index];
       if(vertex){
@@ -336,8 +316,7 @@ export function DrawingOverlay({
     const end = active.kind === "start" ? active.original.end :
       anchorAt({ x: originalProjected.b.x + dx, y: originalProjected.b.y + dy });
     if (start && end) {
-      const changed=active.kind==="move"?translateDrawing(active.original,start,end):
-        {...active.original,start,end,
+      const changed={...active.original,start,end,
           ...(active.original.points?{points:active.original.points.map((p,i)=>
             active.kind==="start"&&i===0?start:active.kind==="end"&&i===1?end:p)}:{})};
       setDraft(ONE_ANCHOR_TOOLS.has(active.original.tool)
@@ -767,7 +746,9 @@ export function DrawingOverlay({
   return <svg ref={svgRef} className={"drawing-overlay " + (tool ? "armed" : "")}
     aria-label={tool ? "Draw " + tool + ": " + (requiresMultiPoint(tool)?multiPointCount(tool):ONE_ANCHOR_TOOLS.has(tool)?1:2) + " anchors required" : "Select chart drawings"}
     onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
-    onPointerCancel={cancel} onLostPointerCapture={() => { /* normal end handled by pointerup */ }}>
+    onPointerCancel={cancel} onLostPointerCapture={() => {
+      if(gestureRef.current)cancel();
+    }}>
     {/* A real transparent SVG rect is required: empty SVG pixels are not reliably
         pointer targets in every browser. Restrict interception to chart plotting area. */}
     <rect className="drawing-plot-surface" data-drawing-surface="true"
