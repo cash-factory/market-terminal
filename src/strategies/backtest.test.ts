@@ -47,5 +47,7 @@ describe("deterministic, next-open strategy simulation",()=>{
     expect(runSmaCrossover(fixture([10]),params).trades).toEqual([]);
     expect(runSmaCrossover([],params).equity).toBe(params.startingCapital);
     expect(()=>runSmaCrossover([fixture([10])[0],fixture([11])[0]],params)).toThrow(/time-ordered/);
+    expect(()=>runSmaCrossover([{...fixture([10])[0],high:9}],params)).toThrow(/OHLC/);
+    expect(()=>runSmaCrossover([{...fixture([10])[0],low:Number.NaN}],params)).toThrow(/OHLC/);
   });
 });

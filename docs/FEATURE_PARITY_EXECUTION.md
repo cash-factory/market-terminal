@@ -11,7 +11,7 @@ This project is an independently authored local-first financial charting worksta
 | Chart panes | One, two, four charts; independent symbols/intervals; crosshair and range links | Generic multi-pane groups, 6/8-pane layouts, explicit pane-specific scale profiles |
 | Chart rendering | Candles, OHLC bars, close line, area, Heikin-Ashi; new normal/log/percent/indexed scales and inversion | Nonstandard price-built forms require documented mathematics |
 | Drawing engine | 37 direct-manipulation tools; properties, anchors, templates, favorites, undo/redo, grouping | Nested groups, per-pane scene graph, broader family geometry, named drawing templates |
-| Research workflow | Browser-local notes, decision records, context, replay, price alerts | Durable server alerts, full deterministic Strategy Lab, paper execution |
+| Research workflow | Browser-local notes, decision records, context, replay, price alerts; deterministic SMA Strategy Lab with explicit costs and next-bar fills | Durable server alerts, configurable strategy engine, paper execution |
 | Watchlists | Multiple local lists, sections, notes, reordering, favorites, persistence | Provider-backed symbol catalog, commercial quote and fundamental permissions |
 | Screener | Search, categories, min/max change, sort, transfer to local lists | Only four synthetic sample instruments; no actual exchange screening |
 | Chart utilities | UTC observed-bar navigation, source-labelled OHLC CSV export | Image capture with drawing overlays, complete layout and indicator exports |

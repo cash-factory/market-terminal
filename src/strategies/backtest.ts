@@ -68,9 +68,16 @@ export function runSmaCrossover(
 ):BacktestResult {
   const error=validateBacktestConfig(config);
   if(error)throw new Error(error);
-  if(bars.some((bar,i)=>!Number.isFinite(bar.open)||!Number.isFinite(bar.close)||
-    bar.open<=0||bar.close<=0||(i>0&&Number(bar.time)<=Number(bars[i-1].time))))
-    throw new Error("Simulation requires finite positive, strictly time-ordered observed OHLC bars.");
+  if(bars.some((bar,i)=>{
+    const values=[bar.open,bar.high,bar.low,bar.close];
+    return !Number.isSafeInteger(Number(bar.time))||Number(bar.time)<0||
+      values.some(value=>!Number.isFinite(value)||value<=0)||
+      bar.high<Math.max(bar.open,bar.close)||
+      bar.low>Math.min(bar.open,bar.close)||
+      bar.low>bar.high||
+      (i>0&&Number(bar.time)<=Number(bars[i-1].time));
+  }))
+    throw new Error("Simulation requires finite, positive, valid and strictly time-ordered observed OHLC bars.");
   const n=bars.length;
   const prefix=new Float64Array(n+1);
   for(let i=0;i<n;i++)prefix[i+1]=prefix[i]+bars[i].close;
