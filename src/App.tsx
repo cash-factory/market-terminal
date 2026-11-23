@@ -806,7 +806,8 @@ export default function App() {
         </div>}
         {page === "sizing" && <RiskPlanner value={prefs.riskPlanner}
           onChange={riskPlanner=>update({riskPlanner})} symbol={prefs.symbol}
-          quotePrice={viewedLast} sourceLabel={displaySourceLabel}/>}
+          quotePrice={viewedLast} sourceLabel={displaySourceLabel}
+          selectedPosition={selectedObject&&currentDrawings.some(d=>d.id===selectedObject.id)?selectedObject:undefined}/>}
         {page === "terminal" && <div className={"terminal-layout " + (prefs.rightPanelOpen ? "" : "panel-closed")}
           style={{"--right-panel-width": prefs.rightPanelWidth + "px"} as CSSProperties}>
           <section className="terminal-center">
