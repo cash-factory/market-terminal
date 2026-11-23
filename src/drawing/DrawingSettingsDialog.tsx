@@ -3,6 +3,7 @@ import { Bookmark, Check, Clock3, Eye, EyeOff, LayoutGrid, Lock, Paintbrush, Rot
 import { symbols } from "../market";
 import { TOOL_BY_ID, ONE_ANCHOR_TOOLS } from "./toolDefinitions";
 import {ToolGlyph} from "./ToolGlyph";
+import {defaultPositionTarget} from "../analysis/positionDrawing";
 import {ToolSpecificProperties} from "./ToolSpecificProperties";
 import {PositionProperties} from "./PositionProperties";
 import "./toolSpecificProperties.css";
@@ -27,6 +28,10 @@ function fieldsFrom(drawing:Drawing):Record<string,CoordinateInput>{
   const entries:[string,ChartAnchor][]=ONE_ANCHOR_TOOLS.has(drawing.tool)?[["start",drawing.start]]:[["start",drawing.start],["end",drawing.end]];
   if(drawing.control)entries.push(["control",drawing.control]);
   if(drawing.target)entries.push(["target",drawing.target]);
+  else if(drawing.tool==="long-position"||drawing.tool==="short-position"){
+    const price=defaultPositionTarget(drawing.tool,drawing.start.price,drawing.end.price);
+    if(price!==null)entries.push(["target",{time:drawing.end.time,price}]);
+  }
   if(drawing.points&&drawing.points.length>=3){
     drawing.points.slice(2).forEach((point,i)=>entries.push(["vertex-"+(i+2),point]));
   }
@@ -64,6 +69,23 @@ export function DrawingSettingsDialog({drawing,onSave,onClose,onSaveAsDefault,on
   }),[draft.color,draft.strokeWidth,draft.dash,draft.opacity]);
   const setCoordinate=(key:string,field:"time"|"price",value:string)=>{
     setFields(old=>({...old,[key]:{...old[key],[field]:value}}));setError("");
+    // Keep the Position tab's live calculations in sync with valid coordinate edits.
+    setDraft(old=>{
+      const original=key.startsWith("vertex-")?old.points?.[Number(key.slice(7))]:
+        (old as unknown as Record<string,unknown>)[key] as ChartAnchor|undefined;
+      const anchor=original??(key==="target"?{
+        time:old.end.time,price:old.tool==="long-position"||old.tool==="short-position"?
+          defaultPositionTarget(old.tool,old.start.price,old.end.price)??old.start.price:old.start.price
+      }:undefined);
+      if(!anchor)return old;
+      const time=field==="time"?parseAnchorUtc(value):anchor.time;
+      const price=field==="price"?Number(value):anchor.price;
+      if(time===null||!Number.isFinite(price)||price<=0||value.trim()==="")return old;
+      try{return key.startsWith("vertex-")?
+        editPatternPoint(old,Number(key.slice(7)),{time,price}):
+        editDrawingAnchor(old,key as "start"|"end"|"control"|"target",{time,price});}
+      catch{return old;}
+    });
   };
   const apply=()=>{
     try{
@@ -126,6 +148,16 @@ export function DrawingSettingsDialog({drawing,onSave,onClose,onSaveAsDefault,on
     <div className="drawing-dialog-content">
       {tab==="position"&&<div role="tabpanel" className="drawing-settings-position">
         <PositionProperties drawing={draft} onChange={setDraft}/>
+        {onSaveAsDefault&&<div className="tool-default-actions">
+          <div><strong>Reuse these position assumptions</strong>
+            <small>Save sizing, fees, currency, leverage and label options for new {name.toLowerCase()} drawings. Coordinates are never copied.</small>
+          </div>
+          <button type="button" aria-label={"Save "+name+" settings as default"}
+            onClick={()=>onSaveAsDefault(draft)}><Bookmark size={14}/> Save as default</button>
+          {hasDefault&&onResetDefault&&<button type="button" className="tool-default-reset"
+            aria-label={"Reset "+name+" default settings"}
+            onClick={()=>onResetDefault(drawing.tool)}><RotateCcw size={14}/> Reset defaults</button>}
+        </div>}
       </div>}
       {tab==="style"&&<div role="tabpanel" className="drawing-settings-style">
         <div className="drawing-settings-intro"><strong>Appearance & analytical controls</strong>
