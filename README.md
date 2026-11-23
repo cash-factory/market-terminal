@@ -10,6 +10,12 @@ A **local-first market analysis and decision research workstation**, built with 
 - **Local-first:** automatic browser workspace persistence and import/export with schema validation. No account is required for local analysis.
 - **Experience:** source-status labels, mobile-friendly layered drawing rail and tool library, per-object Style / Coordinates / Visibility dialogs (with undo), source-bound chart observations, dark/light appearance and keyboard-friendly inspection.
 
+## Peak private analyst workspace — PR #58
+
+This feature branch refocuses the product on technical analysts: a persisted, favorite-first watchlist; a no-lookahead, next-bar historical scenario laboratory; study archives in local workspace exports; accessible standalone position sizing; and reversible replay stepping. The known instrument universe remains restricted to implemented sources (most synthetic), not an implied live-market catalog. Position scenarios are illustrative—not broker orders or verified execution. See [Peak analyst workspace contract](docs/PEAK_ANALYST_WORKSPACE.md).
+
+**Verification:** PR checks and actual browser workflows must pass before merging. These additions do not imply all TradingView drawings, commercial data feeds, hosted private accounts or public release readiness.
+
 ## Tool workbench refinement — PR #54
 
 The tool explorer now follows a clear **family → functional subfamily → implemented drawing → focused properties** hierarchy. Hover or focus an item to see an original, vector-rendered visual cue and concise instructions; pin favorites for quick access. The UI favors typography, restrained color, accurate tool icons, collapsible rows and short reversible transitions. It intentionally uses **no generated decorative dashboard images**.
