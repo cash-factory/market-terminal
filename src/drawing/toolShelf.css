@@ -279,3 +279,8 @@
 @media(prefers-reduced-motion:reduce){
  .tool-shelf *,.tool-shelf .tool-shelf-section-tools{animation:none!important;transition:none!important}
 }
+
+/* Focus should be clear without a glowing double border. */
+.tool-shelf-search:focus-within{border-color:var(--accent-border)!important;
+  outline:none!important;box-shadow:inset 0 0 0 1px var(--accent-border)}
+.tool-shelf-search input:focus-visible{outline:none!important;box-shadow:none!important}
