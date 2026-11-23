@@ -8,7 +8,7 @@ test("exchange feed becomes stale on disconnect, re-fetches missing candles and 
     const count=calls===1?10:12;
     const candles=Array.from({length:count},(_,i)=>{
       const t=base+i*minute;
-      return [t,"100","102","99",String(101+i/10),"1",t+minute-1,"0",1,"0","0","0"];
+      return [t,"100","110","99",String(101+i/10),"1",t+minute-1,"0",1,"0","0","0"];
     });
     await route.fulfill({status:200,contentType:"application/json",body:JSON.stringify(candles)});
   });

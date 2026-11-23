@@ -22,7 +22,7 @@ test("chart CSV download names exact selected source and frame",async({page})=>{
 
 test("Go to date command is discoverable from the search palette",async({page})=>{
   await page.goto("/market-terminal/");
-  await page.getByRole("button",{name:"Search markets & tools"}).click();
+  await page.keyboard.press("Control+k");
   const palette=page.getByRole("dialog",{name:"Search instruments and tools"});
   await palette.getByRole("combobox",{name:"Search instruments and tools"}).fill("Go to Date");
   await palette.getByRole("option",{name:/Go to Date/}).click();

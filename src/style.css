@@ -861,12 +861,3 @@
 @media(max-width:900px){.instrument-header{flex-wrap:wrap}.candle-reader{width:100%}.instrument-header .candle-reader dl{justify-content:space-between;flex-wrap:wrap}}
 
 
-/* Floating study/configuration menus must paint above the drawing rail.
-   The parent stacking context, not only the popover's z-index, determines pointer hit testing. */
-.terminal-toolbar-market:has(.study-list),
-.terminal-toolbar-market:has(.chart-profile-popover),
-.terminal-toolbar-market:has(.interval-popover) {
-  position:relative;
-  z-index:80;
-}
-.terminal-toolbar-drawing {position:relative;z-index:1}

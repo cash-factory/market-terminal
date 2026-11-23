@@ -18,7 +18,7 @@ test("price scale preset and inversion survive reload across the chart",async({p
 
 test("price scale is controllable from the universal command search",async({page})=>{
   await page.goto("/market-terminal/");
-  await page.getByRole("button",{name:"Search markets & tools"}).click();
+  await page.keyboard.press("Control+k");
   const palette=page.getByRole("dialog",{name:"Search instruments and tools"});
   await palette.getByRole("combobox",{name:"Search instruments and tools"}).fill("Log Price Scale");
   await palette.getByRole("option",{name:/Log Price Scale/}).click();

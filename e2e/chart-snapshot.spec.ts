@@ -28,7 +28,7 @@ test("PNG snapshot includes actual chart geometry and is a valid image",async({p
 
 test("chart snapshot action is discoverable in the command palette",async({page})=>{
   await page.goto("/market-terminal/");
-  await page.getByRole("button",{name:"Search markets & tools"}).click();
+  await page.keyboard.press("Control+k");
   const palette=page.getByRole("dialog",{name:"Search instruments and tools"});
   await palette.getByRole("combobox",{name:"Search instruments and tools"}).fill("Export Chart PNG");
   await expect(palette.getByRole("option",{name:/Export Chart PNG/})).toBeVisible();
