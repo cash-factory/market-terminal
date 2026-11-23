@@ -1,0 +1,19 @@
+.peak-replay-lab{display:grid;gap:11px;padding:12px 16px;border-bottom:1px solid color-mix(in srgb,currentColor 12%,transparent);background:color-mix(in srgb,currentColor 3%,transparent);font-size:12px}
+.peak-lab-heading{display:flex;gap:9px;align-items:center}.peak-lab-heading>svg{opacity:.8}.peak-lab-heading strong,.peak-lab-heading small{display:block}
+.peak-lab-heading strong{font-size:12px}.peak-lab-heading small{margin-top:2px;font-size:10px;opacity:.65}
+.peak-lab-form,.peak-lab-result{display:grid;gap:10px}.peak-lab-pair{display:flex;align-items:end;gap:12px;flex-wrap:wrap}
+.peak-lab-pair>label{width:125px}.peak-lab-reference{display:grid;gap:4px}.peak-lab-reference span{font-size:10px;opacity:.7}
+.peak-lab-reference strong{font-variant-numeric:tabular-nums}.peak-lab-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px}
+.peak-lab-form label{display:grid;gap:5px;font-size:10px;opacity:.9}
+.peak-lab-form input,.peak-lab-form select{width:100%;min-width:0;padding:7px 8px;border:1px solid color-mix(in srgb,currentColor 20%,transparent);border-radius:6px;color:inherit;background:var(--surface,#171d27);font:inherit}
+.peak-lab-primary,.peak-lab-actions button{display:inline-flex;align-items:center;justify-content:center;gap:6px;justify-self:start;cursor:pointer;border-radius:7px;padding:8px 12px;font-weight:600;font-size:11px}
+.peak-lab-primary{border:1px solid color-mix(in srgb,currentColor 25%,transparent);background:color-mix(in srgb,currentColor 12%,transparent);color:inherit}
+.peak-lab-status{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.peak-lab-status strong{font-size:12px}.peak-lab-status span{font-size:10px;opacity:.7}
+.peak-lab-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(116px,1fr));gap:8px}
+.peak-lab-metrics>div{display:grid;gap:5px}.peak-lab-metrics small{opacity:.65;font-size:10px}.peak-lab-metrics strong{font-variant-numeric:tabular-nums;font-size:12px;overflow-wrap:anywhere}
+.peak-lab-reason,.peak-lab-error{margin:0;font-size:11px}.peak-lab-error{color:#f19d91}.peak-lab-reason{opacity:.8}
+.peak-lab-actions{display:flex;gap:7px;flex-wrap:wrap}.peak-lab-actions button{background:transparent;border:1px solid color-mix(in srgb,currentColor 22%,transparent);color:inherit}
+.peak-lab-primary:disabled,.peak-lab-actions button:disabled{opacity:.5;cursor:default}
+.peak-lab-caveat{margin:0;font-size:10px;opacity:.6;line-height:1.55}
+@media(max-width:680px){.peak-replay-lab{padding:12px}.peak-lab-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
