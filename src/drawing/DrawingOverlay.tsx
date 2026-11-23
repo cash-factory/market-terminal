@@ -144,11 +144,18 @@ export function DrawingOverlay({
     };
     const observer=new ResizeObserver(refresh);
     if(svgRef.current)observer.observe(svgRef.current);
+    // Price-scale dragging and wheel zoom do not always emit chart crosshair
+    // events. Observe only this chart surface, not every move on window.
+    const surface=svgRef.current?.parentElement;
+    surface?.addEventListener("pointermove",refresh,{passive:true});
+    surface?.addEventListener("wheel",refresh,{passive:true});
     chart.timeScale().subscribeVisibleLogicalRangeChange(refresh);
     chart.subscribeCrosshairMove(refresh);
     refresh();
     return ()=>{
       observer.disconnect();
+      surface?.removeEventListener("pointermove",refresh);
+      surface?.removeEventListener("wheel",refresh);
       chart.timeScale().unsubscribeVisibleLogicalRangeChange(refresh);
       chart.unsubscribeCrosshairMove(refresh);
       if(animationFrame.current!==null)cancelAnimationFrame(animationFrame.current);
