@@ -46,7 +46,7 @@ test("strategy laboratory navigates back to chart without trading",async({page})
 
 
 test("Strategy Lab never reads unrevealed replay candles",async({page})=>{
-  await page.goto("/market-terminal/?classic");
+  await page.goto("/market-terminal/");
   await page.getByRole("button",{name:"Start replay"}).click();
   await expect(page.locator(".technical-chart-stack")).toHaveAttribute("data-visible-candles","180");
   const navigation=page.getByRole("navigation",{name:"Workstation pages"});
