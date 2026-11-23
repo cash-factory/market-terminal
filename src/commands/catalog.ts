@@ -21,7 +21,7 @@ const draw = (id:DrawingTool,label:string,description:string,keywords=""):Termin
  */
 export const TERMINAL_COMMANDS: TerminalCommand[] = [
   page("terminal","Open Chart Workspace","Return to the primary technical-analysis workstation","charts"),
-  page("sizing","Position Sizing Calculator","Calculate hypothetical units and risk without broker execution","risk calculator quantity position"),
+  page("sizing","Position Sizing Calculator","Estimate hypothetical position units and risk using manual inputs","risk calculator quantity position"),
   page("home","Market Overview","Inspect source-labelled demonstration market snapshots","watchlist home"),
   page("alerts","Price Alerts","Create and manage browser-local price alerts","notify"),
   page("library","My Workspace","Import, export and manage local chart workspace data","backup"),
