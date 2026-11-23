@@ -1,0 +1,18 @@
+.peak-watchlist{padding:12px 12px 4px;color:var(--text-primary,inherit)}
+.peak-watchlist-header,.peak-watchlist-row,.peak-watchlist-controls{display:flex;align-items:center}
+.peak-watchlist-header{justify-content:space-between;gap:12px;padding-bottom:13px}
+.peak-watchlist-header strong{font-size:13px;font-weight:650}
+.peak-watchlist-header small{display:block;font-size:10px;opacity:.65;margin-top:4px}
+.peak-watchlist-add{display:flex;align-items:center;gap:3px;border:1px solid color-mix(in srgb,currentColor 20%,transparent);border-radius:7px;padding:5px}
+.peak-watchlist-add select{max-width:87px;background:transparent;color:inherit;border:0;font-size:11px}
+.peak-watchlist-add option{color:#171a23}
+.peak-watchlist-rows{display:grid;gap:4px}
+.peak-watchlist-row{gap:6px;padding:4px;border:1px solid transparent;border-radius:8px;min-width:0}
+.peak-watchlist-row:hover,.peak-watchlist-row:focus-within,.peak-watchlist-row.is-current{background:color-mix(in srgb,currentColor 7%,transparent);border-color:color-mix(in srgb,currentColor 10%,transparent)}
+.peak-watchlist-open{flex:1;min-width:0;text-align:left;background:transparent;border:0;color:inherit;padding:5px;cursor:pointer}
+.peak-watchlist-open strong,.peak-watchlist-open small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.peak-watchlist-open strong{font-size:12px;font-weight:650}.peak-watchlist-open small{font-size:10px;opacity:.55;margin-top:2px}
+.peak-watchlist-controls{gap:1px}.peak-watchlist-controls button{display:grid;place-items:center;flex-shrink:0;width:22px;height:27px;background:transparent;border:0;border-radius:5px;color:inherit;opacity:.63;cursor:pointer}
+.peak-watchlist-controls button:hover,.peak-watchlist-controls button:focus-visible{background:color-mix(in srgb,currentColor 12%,transparent);opacity:1}
+.peak-watchlist-controls button.is-favorite{color:#e2b76a;opacity:1}.peak-watchlist-controls button:disabled{opacity:.16;cursor:default}
+.peak-watchlist-caveat,.peak-watchlist-empty{font-size:10px;line-height:1.6;opacity:.64;padding:8px 3px}

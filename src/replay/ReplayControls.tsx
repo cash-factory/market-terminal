@@ -1,15 +1,16 @@
-import { Film, Pause, Play, SkipForward, X } from "lucide-react";
+import { Film, Pause, Play, SkipBack, SkipForward, X } from "lucide-react";
 import type { ReplaySpeed,ReplayState } from "./model";
 
 type Props={
   replay:ReplayState;
   onTogglePlay:()=>void;
   onStep:()=>void;
+  onStepBack:()=>void;
   onSeek:(cursor:number)=>void;
   onSpeed:(speed:ReplaySpeed)=>void;
   onExit:()=>void;
 };
-export function ReplayControls({replay,onTogglePlay,onStep,onSeek,onSpeed,onExit}:Props){
+export function ReplayControls({replay,onTogglePlay,onStep,onStepBack,onSeek,onSpeed,onExit}:Props){
   const current=replay.snapshot[replay.cursor];
   const finished=replay.cursor>=replay.snapshot.length-1;
   return <section className="replay-controls" aria-label="Historical candle replay">
@@ -22,7 +23,9 @@ export function ReplayControls({replay,onTogglePlay,onStep,onSeek,onSpeed,onExit
         {replay.playing?<Pause size={17}/>:<Play size={17}/>}
         <span>{replay.playing?"Pause":"Play"}</span>
       </button>
-      <button className="replay-step" aria-label="Step forward" title="Next historical candle"
+      <button className="replay-step" aria-label="Step backward" title="Previous historical candle · Arrow Left"
+        onClick={onStepBack} disabled={replay.cursor===0}><SkipBack size={17}/></button>
+      <button className="replay-step" aria-label="Step forward" title="Next historical candle · Arrow Right"
         onClick={onStep} disabled={finished}><SkipForward size={17}/></button>
       <label className="replay-speed">Speed
         <select value={replay.speed} aria-label="Replay playback speed"

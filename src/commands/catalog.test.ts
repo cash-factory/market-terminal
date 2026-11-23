@@ -12,6 +12,8 @@ describe("Tool Atlas discoverability",()=>{
     expect(filterTerminalCommands("seconds").map(item=>item.id)).toContain("chart:frame-1s");
     expect(filterTerminalCommands("Decision Desk")).toEqual([]);
     expect(filterTerminalCommands("Risk Planner")).toEqual([]);
+    expect(filterTerminalCommands("Position Sizing").map(item=>item.id)).toContain("page:sizing");
+    expect(filterTerminalCommands("broker execution")).toEqual([]);
   });
   it("filters case-insensitively and does not pretend non-existent commands exist",()=>{
     expect(filterTerminalCommands("RSI").map(item=>item.id)).toContain("chart:indicators");

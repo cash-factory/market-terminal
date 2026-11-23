@@ -1,6 +1,8 @@
 import { ArrowUpRight, Calculator, Check, Info, RotateCcw, Target, Wallet } from "lucide-react";
 import { calculateRiskPlan, emptyRiskInputs, type RiskPlan, type RiskPlannerInputs } from "./risk";
 import { symbols, type SymbolId } from "../market";
+import type { Drawing } from "../drawing/types";
+import { defaultPositionTarget } from "./positionDrawing";
 
 interface Props {
   value: RiskPlannerInputs;
@@ -8,6 +10,7 @@ interface Props {
   symbol: SymbolId;
   quotePrice: number;
   sourceLabel: string;
+  selectedPosition?: Drawing;
 }
 
 type Key = keyof RiskPlannerInputs;
@@ -22,7 +25,21 @@ const fields: {key: Key; label: string; placeholder: string; hint: string}[] = [
 const format = (number: number, decimals = 2) =>
   number.toLocaleString(undefined, {maximumFractionDigits: decimals, minimumFractionDigits: decimals});
 
-export function RiskPlanner({ value, onChange, symbol, quotePrice, sourceLabel }: Props) {
+export function RiskPlanner({ value, onChange, symbol, quotePrice, sourceLabel,selectedPosition }: Props) {
+  const position=selectedPosition&&["long-position","short-position"].includes(selectedPosition.tool)&&
+    selectedPosition.symbol===symbol?selectedPosition:null;
+  const useSelectedPosition=()=>{
+    if(!position)return;
+    const target=position.target?.price??defaultPositionTarget(position.tool as "long-position"|"short-position",
+      position.start.price,position.end.price);
+    onChange({...value,entry:String(position.start.price),stop:String(position.end.price),
+      target:target===null?"":String(target),
+      ...(position.positionSettings?{
+        equity:String(position.positionSettings.equity),
+        riskPercent:String(position.positionSettings.riskPercent),
+        multiplier:String(position.positionSettings.contractMultiplier)
+      }:{})});
+  };
   const set = (key: Key, next: string) => onChange({...value, [key]: next});
   const ready = !!(value.equity.trim() && value.entry.trim() && value.stop.trim() && value.riskPercent.trim() && value.multiplier.trim());
   let plan: RiskPlan | null = null;
@@ -36,7 +53,7 @@ export function RiskPlanner({ value, onChange, symbol, quotePrice, sourceLabel }
   return <div className="content-page risk-screen">
     <div className="risk-intro">
       <div>
-        <div className="eyebrow">TRADING TOOLS / RISK PLANNER</div>
+        <div className="eyebrow">PEAK ANALYSIS / POSITION SIZING</div>
         <h1>Plan risk before entry.</h1>
         <p>Explore position size, potential loss and reward using your own assumptions. No orders are placed, and these calculations are independent of broker execution.</p>
       </div>
@@ -62,6 +79,11 @@ export function RiskPlanner({ value, onChange, symbol, quotePrice, sourceLabel }
             <small>{field.hint}</small>
           </label>)}
         </div>
+        {position&&<div className="risk-chart-link">
+          <div><strong>Selected {position.tool==="long-position"?"long":"short"} drawing</strong>
+            <small>Copy entry, stop and target from the chart; update local assumptions only where explicitly saved</small></div>
+          <button type="button" onClick={useSelectedPosition}>Use selected position <ArrowUpRight size={15}/></button>
+        </div>}
         <div className="risk-chart-link">
           <div><strong>Chart-linked entry</strong><small>{sourceLabel}</small></div>
           <button disabled={!Number.isFinite(quotePrice) || quotePrice <= 0}
