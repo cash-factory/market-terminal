@@ -4,6 +4,7 @@ import type { RefObject } from "react";
 import type { DrawingTool } from "./types";
 import { type ToolGroup, TOOL_BY_ID } from "./toolDefinitions";
 import { ToolShelf } from "./ToolShelf";
+import {ToolGlyph} from "./ToolGlyph";
 import "./studioRail.css";
 
 const familyIcons={
@@ -55,6 +56,7 @@ export function StudioDrawingRail({
   containerRef,active,opened,category,favorites,recent,magnet,repeat,canUndo,canRedo,disabled,favoriteBarVisible,onToggleFavoriteBar,
   onToggleCategory,onSelect,onFavorite,onCursor,onMagnet,onRepeat,onUndo,onRedo,onObjects,onClose
 }:Props){
+  const pin=favorites.slice(0,3);
   return <div ref={containerRef} className="studio-rail-root">
     <div className="studio-rail-tools" role="group" aria-label="Chart drawing categories">
       <button type="button" className={"studio-rail-select"+(!active?" active":"")}
@@ -88,6 +90,15 @@ export function StudioDrawingRail({
         aria-label={favoriteBarVisible?"Hide floating favorites toolbar":"Show floating favorites toolbar"}
         aria-pressed={favoriteBarVisible} title="Toggle the floating favorites toolbar"
         onClick={onToggleFavoriteBar}><Star size={19}/><span>Favorites</span></button>
+      {pin.length>0&&<div className="studio-rail-favorites">
+        <span className="studio-rail-microhead"><Star size={10}/> PINNED</span>
+        {pin.map(id=><button type="button" key={id} disabled={disabled}
+          className={"studio-rail-favorite"+(active===id?" active":"")}
+          title={TOOL_BY_ID.get(id)?.description} onClick={()=>onSelect(id)}
+          aria-label={TOOL_BY_ID.get(id)?.label??id}>
+          <ToolGlyph tool={id} size={18}/>
+        </button>)}
+      </div>}
       <div className="studio-rail-utilities" role="group" aria-label="Drawing utilities">
         <button type="button" aria-label="Snap to candle OHLC"
           aria-pressed={magnet} title="Toggle OHLC magnet" onClick={onMagnet}
