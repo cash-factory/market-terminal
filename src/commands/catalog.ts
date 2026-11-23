@@ -30,6 +30,7 @@ export const TERMINAL_COMMANDS: TerminalCommand[] = [
   chart("indicators","Technical Indicators","Open the study selector and parameter controls","RSI MACD ATR EMA SMA Bollinger"),
   chart("setup","Chart Configuration","Choose chart type, source, pane layout and profiles","source timeframe"),
   chart("goto","Go to Date","Navigate to the nearest observed UTC candle","jump history time"),
+  chart("snapshot","Export Chart PNG","Save chart image with drawing annotations and source attribution","screenshot camera image"),
   chart("csv","Export OHLC CSV","Export chart history with explicit source and timeframe","download data"),
   chart("replay","Historical Replay","Study prior candles without future-chart leakage","bar replay"),
   chart("scale-log","Log Price Scale","Enable logarithmic chart price transformations","logarithmic"),

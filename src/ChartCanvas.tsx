@@ -263,7 +263,7 @@ export function ChartCanvas({
     comparisonLine.current.setData(normalizedComparison);
   },[comparisonLabel,normalizedComparison,chartStyle,symbol,frame,source,dark,showSma,studies.ema20,studies.bollinger20]);
   const comparisonReturn=comparePercentChange(normalizedComparison);
-  return <div className="technical-chart-stack" data-visible-candles={candles.length}><div className="chart-surface">
+  return <div className="technical-chart-stack" data-pane-id={paneId} data-visible-candles={candles.length}><div className="chart-surface">
     <div ref={host} className={drawMode ? "chart-canvas drawing-armed" : "chart-canvas"}
       role="img" aria-label={(source==="demo"?"Synthetic ":"Binance Spot ")+
         symbols[symbol].label+" "+chartStyle+" chart"}/>

@@ -14,7 +14,7 @@ This project is an independently authored local-first financial charting worksta
 | Research workflow | Browser-local notes, decision records, context, replay, price alerts; deterministic SMA Strategy Lab with explicit costs and next-bar fills | Durable server alerts, configurable strategy engine, paper execution |
 | Watchlists | Multiple local lists, sections, notes, reordering, favorites, persistence | Provider-backed symbol catalog, commercial quote and fundamental permissions |
 | Screener | Search, categories, min/max change, sort, transfer to local lists | Only four synthetic sample instruments; no actual exchange screening |
-| Chart utilities | UTC observed-bar navigation, source-labelled OHLC CSV export | Image capture with drawing overlays, complete layout and indicator exports |
+| Chart utilities | UTC observed-bar navigation, source-labelled OHLC CSV export and annotated chart PNG | Complete multi-pane layout/image composition and indicator data export |
 | Data integrity | Binance Spot BTCUSDT opt-in, native 1s and derived seconds, reconnect/backfill/gap detection candidate | Real connection/outage acceptance, provider entitlement catalog, other venues |
 
 ## Acceptance gates for current PR

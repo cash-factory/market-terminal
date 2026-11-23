@@ -3,11 +3,12 @@ import {
   Activity, ArrowDownToLine, Bell, BookOpen, ChartCandlestick, Check,
   ChevronLeft, ChevronRight, Command, Compass, Download, Home, Layers,
   Menu, Moon, MousePointer2, Plus, RotateCcw, Search, Settings2, Sun, Maximize2, Minimize2,
-  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Film, Magnet, MoveUpRight, ArrowUpRight, Columns2, Grid2X2, Shapes, Pencil, ArrowUp, ArrowDown, Link2, Unlink2, SlidersHorizontal, CalendarClock
+  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Film, Magnet, MoveUpRight, ArrowUpRight, Columns2, Grid2X2, Shapes, Pencil, ArrowUp, ArrowDown, Link2, Unlink2, SlidersHorizontal, CalendarClock, Camera
 } from "lucide-react";
 import { ChartCanvas,type ChartSurface,type ChartRange } from "./ChartCanvas";
 import { MarketBoard } from "./charts/MarketBoard";
 import {nearestObservedBar,ohlcCsv,parseUtcChartDate} from "./charts/navigation";
+import {captureChartPng,snapshotAttribution,snapshotFilename} from "./charts/snapshot";
 import { WatchlistPanel } from "./watchlists/WatchlistPanel";
 import { ScreenerPanel } from "./screener/ScreenerPanel";
 import {StrategyLab} from "./strategies/StrategyLab";
@@ -263,6 +264,24 @@ export default function App() {
     window.setTimeout(()=>URL.revokeObjectURL(url),1000);
     notify(viewedCandles.length+" source-labelled candles exported.");
   };
+  const exportChartPng=async()=>{
+    const surface=linkedChartRefs.current.primary;
+    if(!surface){notify("The chart is not ready to capture.","error");return;}
+    try{
+      const overlay=document.querySelector('.technical-chart-stack[data-pane-id="primary"] svg.drawing-overlay');
+      const png=await captureChartPng(surface.chart,overlay instanceof SVGSVGElement?overlay:null,
+        snapshotAttribution(prefs.symbol,prefs.frame,prefs.priceSource)+(replay?"  /  HISTORICAL REPLAY":""),
+        prefs.dark);
+      const url=URL.createObjectURL(png);
+      const link=document.createElement("a");
+      link.href=url;link.download=snapshotFilename(prefs.symbol,prefs.frame,prefs.priceSource);
+      document.body.appendChild(link);link.click();link.remove();
+      window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+      notify("Price chart image saved with source attribution and annotations.");
+    }catch(error){
+      notify(error instanceof Error?error.message:"Could not capture chart image.","error");
+    }
+  };
   const addLevel = (price: number) => {
     if (!Number.isFinite(price) || price <= 0) { notify("Enter a valid positive price.", "error"); return; }
     setPrefs(old => ({
@@ -499,6 +518,7 @@ export default function App() {
       case "replay":replay?exitReplay():startReplay();break;
       case "goto":openGoToDate();break;
       case "csv":exportCandlesCsv();break;
+      case "snapshot":void exportChartPng();break;
       case "scale-log":update({priceScaleMode:"log"});notify("Logarithmic price scale enabled.","info");break;
       case "scale-percent":update({priceScaleMode:"percent"});notify("Percent price scale enabled.","info");break;
       case "scale-normal":update({priceScaleMode:"normal"});notify("Absolute price scale enabled.","info");break;
@@ -853,6 +873,9 @@ export default function App() {
                 onClick={openGoToDate} title="Go to an observed UTC candle"><CalendarClock size={15}/> Go to</button>
               <button type="button" className="compact-action chart-csv" aria-label="Export displayed candles as CSV"
                 onClick={exportCandlesCsv} title="Export the visible source and replay prefix to CSV"><Download size={15}/> CSV</button>
+              <button type="button" className="compact-action chart-snapshot" aria-label="Export chart PNG"
+                onClick={()=>{void exportChartPng();}} title="Save price chart and visible drawing annotations as PNG">
+                <Camera size={15}/> Snapshot</button>
               <span className="tool-divider"/>
               <button className={"compact-action "+(replay?"active":"")} aria-label={replay?"Exit replay":"Start replay"}
                 disabled={!replay&&currentCandles.length<40}
