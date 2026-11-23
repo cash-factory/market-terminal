@@ -8,6 +8,7 @@ import type { Level } from "./workspace";
 import {levelVisibleAtFrame} from "./levels/model";
 import type { PriceSource } from "./data/usePriceFeed";
 import { DrawingOverlay } from "./drawing/DrawingOverlay";
+import {priceScaleOptions,type PriceScalePreset} from "./charts/priceScale";
 import type { Drawing, DrawingTool } from "./drawing/types";
 import { bollingerBands, ema, type StudySettings } from "./indicators/studies";
 import { IndicatorPanels } from "./indicators/IndicatorPanels";
@@ -27,6 +28,8 @@ interface Props {
   frame: Frame;
   source: PriceSource;
   chartStyle: ChartDisplayStyle;
+  priceScaleMode:PriceScalePreset;
+  priceScaleInverted:boolean;
   comparisonCandles?: readonly CandlestickData<UTCTimestamp>[];
   comparisonLabel?: string;
   candles: CandlestickData<UTCTimestamp>[];
@@ -54,7 +57,7 @@ type Surface = ChartSurface;
 
 export function ChartCanvas({
   paneId,onSurfaceReady,onRangeChanged,onCrosshairChanged,
-  symbol, frame, source, chartStyle, candles, dark, comparisonCandles, comparisonLabel, showSma, levels, drawMode, onPlaceLevel,
+  symbol, frame, source, chartStyle, priceScaleMode, priceScaleInverted, candles, dark, comparisonCandles, comparisonLabel, showSma, levels, drawMode, onPlaceLevel,
   drawingTool, drawings, drawingColor, studies, customStudies, parameters, magnetEnabled, onAddDrawing, onUpdateDrawing, onDeleteDrawing, onDeleteDrawings, selectedDrawingIds, onDrawingSelectionChange, onOpenDrawingSettings
 }: Props) {
   const callbacks=useRef({onSurfaceReady,onRangeChanged,onCrosshairChanged});
@@ -166,6 +169,9 @@ export function ChartCanvas({
     };
   }, [symbol, frame, dark, showSma, source, chartStyle, studies.ema20, studies.bollinger20, paneId]);
 
+  useEffect(()=>{
+    chart.current?.priceScale("right").applyOptions(priceScaleOptions(priceScaleMode,priceScaleInverted));
+  },[priceScaleMode,priceScaleInverted,symbol,frame,source,chartStyle,dark]);
   useEffect(() => {
     if (!series.current) return;
     series.current.setData(chartStyle==="heikin-ashi"?heikinAshi(candles):candles);

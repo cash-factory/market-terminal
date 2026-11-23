@@ -26,6 +26,7 @@ import {parseCustomStudies,type CustomStudy} from "./indicators/formula";
 import {parseDecisionRecords,type DecisionRecord} from "./decisions/model";
 import {parseChartDisplayStyle,type ChartDisplayStyle} from "./charts/display";
 import {parseChartProfiles,type ChartProfile} from "./charts/profiles";
+import {parsePriceScalePreset,type PriceScalePreset} from "./charts/priceScale";
 import {defaultWatchlists,parseWatchlists,type WatchlistsState} from "./watchlists/model";
 
 export type Level = {
@@ -39,6 +40,8 @@ export type Workspace = {
   priceSource: "demo" | "binance";
   chartLayout: "single" | "dual" | "quad";
   chartDisplayStyle: ChartDisplayStyle;
+  priceScaleMode:PriceScalePreset;
+  priceScaleInverted:boolean;
   comparisonOverlaySymbol: SymbolId | null;
   comparisonOverlaySource: "demo" | "binance";
   chartProfiles: ChartProfile[];
@@ -81,6 +84,8 @@ export const defaultWorkspace: Workspace = {
   priceSource: "demo",
   chartLayout: "single",
   chartDisplayStyle: "candles",
+  priceScaleMode:"normal",
+  priceScaleInverted:false,
   comparisonOverlaySymbol: null,
   comparisonOverlaySource: "demo",
   chartProfiles: [],
@@ -137,6 +142,8 @@ export function parseWorkspace(value: unknown): Workspace {
     priceSource: symbol === "BTCUSDT" && raw.priceSource === "binance" ? "binance" : "demo",
     chartLayout: raw.chartLayout === "quad" ? "quad" : raw.chartLayout === "dual" ? "dual" : "single",
     chartDisplayStyle: parseChartDisplayStyle(raw.chartDisplayStyle),
+    priceScaleMode:parsePriceScalePreset(raw.priceScaleMode),
+    priceScaleInverted:raw.priceScaleInverted===true,
     comparisonOverlaySymbol: SYMBOLS.includes(raw.comparisonOverlaySymbol as SymbolId)
       ? raw.comparisonOverlaySymbol as SymbolId : null,
     comparisonOverlaySource: raw.comparisonOverlaySymbol==="BTCUSDT"&&raw.comparisonOverlaySource==="binance"
@@ -183,5 +190,5 @@ export function loadWorkspace(): Workspace {
   }
 }
 export function serializeWorkspace(workspace: Workspace): string {
-  return JSON.stringify({ format: "market-terminal-workspace", version: 27, preferences: workspace }, null, 2);
+  return JSON.stringify({ format: "market-terminal-workspace", version: 28, preferences: workspace }, null, 2);
 }

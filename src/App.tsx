@@ -497,6 +497,12 @@ export default function App() {
       case "replay":replay?exitReplay():startReplay();break;
       case "goto":openGoToDate();break;
       case "csv":exportCandlesCsv();break;
+      case "scale-log":update({priceScaleMode:"log"});notify("Logarithmic price scale enabled.","info");break;
+      case "scale-percent":update({priceScaleMode:"percent"});notify("Percent price scale enabled.","info");break;
+      case "scale-normal":update({priceScaleMode:"normal"});notify("Absolute price scale enabled.","info");break;
+      case "scale-indexed":update({priceScaleMode:"indexed"});notify("Indexed price scale enabled.","info");break;
+      case "scale-invert":update({priceScaleInverted:!prefs.priceScaleInverted});
+        notify("Price-scale direction updated.","info");break;
       case "focus":setFocusMode(current=>!current);notify("Chart focus toggled.","info");break;
       case "single":case "dual":case "quad":{
         const layout=id.slice(6) as Workspace["chartLayout"];
@@ -907,6 +913,18 @@ export default function App() {
                 onSave={saveFullChartProfile}
                 onApply={applyFullChartProfile}
                 onDelete={deleteFullChartProfile}/>
+              <label className="chart-style-switch">Price scale
+                <select aria-label="Chart price scale mode" value={prefs.priceScaleMode}
+                  onChange={e=>{update({priceScaleMode:e.target.value as Workspace["priceScaleMode"]});
+                    notify("Chart price-scale mode updated.","info");}}>
+                  <option value="normal">Absolute</option><option value="log">Logarithmic</option>
+                  <option value="percent">Percentage</option><option value="indexed">Indexed 100</option>
+                </select>
+              </label>
+              <button type="button" className={"compact-action "+(prefs.priceScaleInverted?"active":"")}
+                aria-label="Invert chart price scale" aria-pressed={prefs.priceScaleInverted}
+                onClick={()=>{update({priceScaleInverted:!prefs.priceScaleInverted});notify("Price scale inverted state updated.","info");}}>
+                <Repeat2 size={14}/> Invert scale</button>
               <label className="chart-style-switch">Chart style
                 <select aria-label="Chart display style" value={prefs.chartDisplayStyle}
                   onChange={e=>{
@@ -1166,7 +1184,8 @@ export default function App() {
                 </div>}
                 <ChartErrorBoundary title="Primary chart"
                   resetKey={prefs.symbol+":"+prefs.frame+":"+prefs.priceSource+":"+prefs.chartDisplayStyle}>
-                  <ChartCanvas chartStyle={prefs.chartDisplayStyle}
+                  <ChartCanvas chartStyle={prefs.chartDisplayStyle} priceScaleMode={prefs.priceScaleMode}
+                  priceScaleInverted={prefs.priceScaleInverted}
                   comparisonCandles={prefs.comparisonOverlaySymbol?overlayFeed.candles:undefined}
                   comparisonLabel={prefs.comparisonOverlaySymbol?
                     symbols[prefs.comparisonOverlaySymbol].label+" · "+overlayFeed.sourceLabel+
@@ -1225,7 +1244,8 @@ export default function App() {
                   </div>
                   <ChartErrorBoundary title={"Chart "+panel.number}
                     resetKey={panel.symbol+":"+panel.frame+":"+panel.source+":"+prefs.chartDisplayStyle}>
-                  <ChartCanvas chartStyle={prefs.chartDisplayStyle} paneId={panel.slot} onSurfaceReady={registerChartSurface}
+                  <ChartCanvas chartStyle={prefs.chartDisplayStyle} priceScaleMode={prefs.priceScaleMode}
+                    priceScaleInverted={prefs.priceScaleInverted} paneId={panel.slot} onSurfaceReady={registerChartSurface}
                     onRangeChanged={onChartRangeChanged} onCrosshairChanged={onChartCrosshairChanged}
                     key={"comparison-"+panel.slot+"-"+panel.symbol+"-"+panel.frame+"-"+panel.source}
                     symbol={panel.symbol} frame={panel.frame}
