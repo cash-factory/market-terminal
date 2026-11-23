@@ -51,3 +51,28 @@
     width:auto!important;max-height:75dvh!important;z-index:100!important}
 }
 @media(prefers-reduced-motion:reduce){.studio-rail-category .studio-rail-chevron{transition:none}}
+
+/* Human-made control rail: neutral rest states, precise active markers, no ornament. */
+.studio-rail-tools>button{
+ border-radius:6px;transition:background-color 125ms ease,color 125ms ease,border-color 125ms ease;
+}
+.studio-rail-tools>button:is(:hover,:focus-visible){color:var(--text);background:var(--raised);
+ border-color:var(--border)}
+.studio-rail-tools>button:is(.active,.selected,.armed){
+ color:var(--text);background:var(--raised);border-color:var(--border);
+}
+.studio-rail-tools>button:is(.active,.selected,.armed)::before{
+ content:"";position:absolute;left:0;top:10px;bottom:10px;width:2px;border-radius:2px;
+ background:var(--accent);
+}
+.studio-rail-tools>button>span{font-size:9px;letter-spacing:0;font-weight:570}
+.studio-rail-category>svg:first-child{stroke-width:1.65}
+.studio-rail-category .studio-rail-chevron{transition:transform 150ms ease}
+.studio-rail-favorite{width:25px;height:27px;color:var(--soft);background:var(--bg);border-color:var(--border)}
+.studio-rail-favorite:is(:hover,.active){background:var(--raised);color:var(--text);border-color:var(--accent-border)}
+.studio-rail-microhead{letter-spacing:.07em}
+.studio-rail-utilities button{transition:background-color 130ms ease,color 130ms ease}
+.studio-rail-utilities button:is(:hover,:focus-visible,.active){color:var(--text);background:var(--raised);border-color:var(--border)}
+@media(prefers-reduced-motion:reduce){
+ .studio-rail-root *{transition:none!important}
+}
