@@ -208,6 +208,9 @@
 .studio .drawing-object-row:has(:checked) {border-color:var(--border);box-shadow:inset 2px 0 var(--accent)}
 
 /* Drawing library: professional tool picker, no glowing frames or decorative badges. */
+.studio .terminal-toolbar-drawing .studio-rail-root .tool-shelf {
+  border-radius:7px!important;
+}
 .studio .tool-shelf {
   border:1px solid var(--border)!important;
   border-radius:7px!important;
