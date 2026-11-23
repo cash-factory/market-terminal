@@ -136,7 +136,7 @@ export function ToolSpecificProperties({drawing,onChange}:Props){
       </label>
     </>}
     {drawing.tool==="regression-channel"&&<>
-      <p className="tool-special-explain">This channel fits a least-squares line to observed candle closes in the selected time range. Bands use the population standard deviation of the price residuals. No future bars are included.</p>
+      <p className="tool-special-explain">Fits observed candle closes within the selected time range. Outer rails use adjustable residual standard deviations.</p>
       <label className="tool-special-field">Residual-deviation multiplier
         <input type="range" min=".5" max="4" step=".25"
           aria-label="Regression deviation multiplier" value={drawing.regressionDeviation??2}
@@ -145,7 +145,7 @@ export function ToolSpecificProperties({drawing,onChange}:Props){
       </label>
       {checkbox("Central fit line",drawing.showMidline??true,
         checked=>update({showMidline:checked}),"Toggle the least-squares center line independently of the bands")}
-      <p className="tool-special-caveat">The channel recalculates with the currently visible data set and timeframe. Missing market candles are not filled.</p>
+      <p className="tool-special-caveat">Recalculates with the loaded candle data. Missing candles are not invented.</p>
     </>}
     {drawing.tool==="trend-angle"&&<>
       <p className="tool-special-explain">An angle relative to the displayed horizontal time axis. Because chart zoom and price-scale compression change the angle, it is not an invariant market measurement.</p>
@@ -205,7 +205,7 @@ export function ToolSpecificProperties({drawing,onChange}:Props){
             Math.abs(drawing.start.price-drawing.end.price)).toFixed(2)+" R":"—"}</dd></div></dl>
       <small>Set precise entry, stop and target on the Coordinates tab. No broker order or P/L claim is implied.</small>
     </div>}
-    {!isFib&&!metrics&&!isProjection&&!["pitchfork","gann-box","channel","arrow-marker","text","callout","price-note","long-position","short-position"].includes(drawing.tool)&&
+    {!isFib&&!metrics&&!isProjection&&!["pitchfork","gann-box","channel","arrow-marker","text","callout","price-note","long-position","short-position","regression-channel","trend-angle","highlighter","fib-timezone","cyclic-lines"].includes(drawing.tool)&&
       <p className="tool-special-explain">Edit the anchors on the Coordinates tab; use the appearance controls above to set an independent style. This {title.toLowerCase()} stays bound to the original market and data source.</p>}
   </section>;
 }
