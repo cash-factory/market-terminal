@@ -436,6 +436,62 @@ export function DrawingOverlay({
         candleTimes={candleTimes}
         projectAnchor={anchor=>project({...drawing,start:anchor,end:anchor})?.a??null}
         projectPrice={price=>series.priceToCoordinate(price)}/>
+      {drawing.tool==="trend-angle"&&(()=>{
+        const dx=b.x-a.x,dy=b.y-a.y;
+        const degrees=Math.atan2(-dy,dx)*180/Math.PI;
+        if(!Number.isFinite(degrees))return null;
+        return <g className="drawing-trend-angle">
+          <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} {...common}
+            className="drawing-line drawing-angle-ray"/>
+          {drawing.showMidline!==false&&<line x1={a.x} y1={a.y} x2={b.x} y2={a.y}
+            stroke={drawing.color} strokeDasharray="4 4" strokeWidth={1}
+            opacity={.5} pointerEvents="none" className="drawing-angle-baseline"/>}
+          {drawing.showLabels!==false&&<text x={Math.max(10,Math.min(plot.width-65,a.x+14))}
+            y={Math.max(15,Math.min(plot.height-10,a.y-12))}
+            fill={drawing.color} fontSize={10} fontWeight={650} pointerEvents="none">
+            {degrees.toFixed(1)+"° · visual"}
+          </text>}
+        </g>;
+      })()}
+      {drawing.tool==="regression-channel"&&(()=>{
+        // The fitted prices come only from available candles in the selected interval.
+        const result=fitRegressionChannel(candles.map(c=>({time:Number(c.time),close:c.close})),
+          drawing.start.time,drawing.end.time);
+        if(!result)return <text x={Math.max(10,Math.min(plot.width-150,a.x+5))}
+          y={Math.max(20,a.y-8)} fontSize={10} fill={drawing.color} pointerEvents="none">
+          At least 3 observed closes required
+        </text>;
+        const fromLogical=logicalFromTime(result.fromTime,candles,frameSeconds[frame]);
+        const toLogical=logicalFromTime(result.toTime,candles,frameSeconds[frame]);
+        if(fromLogical===null||toLogical===null)return null;
+        const x0=chart.timeScale().logicalToCoordinate(fromLogical as Logical);
+        const x1=chart.timeScale().logicalToCoordinate(toLogical as Logical);
+        const spread=result.deviation*(drawing.regressionDeviation??2);
+        const top0=series.priceToCoordinate(result.first+spread);
+        const top1=series.priceToCoordinate(result.last+spread);
+        const low0=series.priceToCoordinate(result.first-spread);
+        const low1=series.priceToCoordinate(result.last-spread);
+        const mid0=series.priceToCoordinate(result.first);
+        const mid1=series.priceToCoordinate(result.last);
+        if([x0,x1,top0,top1,low0,low1,mid0,mid1].some(value=>value===null||!Number.isFinite(value)))return null;
+        return <g className="drawing-regression-channel">
+          <polygon points={`${x0},${top0} ${x1},${top1} ${x1},${low1} ${x0},${low0}`}
+            fill={drawing.color} fillOpacity={drawing.fillOpacity??.08} stroke="none"
+            pointerEvents="none"/>
+          <line x1={x0!} y1={top0!} x2={x1!} y2={top1!} {...common}
+            className="drawing-regression-upper"/>
+          <line x1={x0!} y1={low0!} x2={x1!} y2={low1!} {...common}
+            className="drawing-regression-lower"/>
+          {drawing.showMidline!==false&&<line x1={x0!} y1={mid0!} x2={x1!} y2={mid1!}
+            stroke={drawing.color} strokeWidth={1.5} strokeDasharray="5 4"
+            opacity={drawing.opacity??1} pointerEvents="none" className="drawing-regression-center"/>}
+          {drawing.showLabels!==false&&<text x={Math.max(6,Math.min(plot.width-140,x1!+4))}
+            y={Math.max(14,Math.min(plot.height-14,top1!-7))}
+            fill={drawing.color} fontSize={10} fontWeight={650} pointerEvents="none">
+            {result.count+" observed closes · ±"+(drawing.regressionDeviation??2)+"σ"}
+          </text>}
+        </g>;
+      })()}
       {drawing.tool==="channel"&&(()=>{
         const control=drawing.control??drawing.start;
         const projected=project({...drawing,start:control,end:control});
@@ -505,7 +561,10 @@ export function DrawingOverlay({
         const d=xy.map((p,i)=>(i?"L":"M")+p.x+" "+p.y).join(" ");
         return <>
           <path d={d} fill="none" stroke="transparent" strokeWidth={18} className="drawing-hit"/>
-          <path d={d} fill="none" {...common} strokeLinecap="round" strokeLinejoin="round" className="drawing-brush"/>
+          <path d={d} fill="none" {...common} strokeLinecap="round" strokeLinejoin="round"
+             strokeWidth={drawing.tool==="highlighter"?(drawing.strokeWidth??8):common.strokeWidth}
+             opacity={drawing.tool==="highlighter"?(drawing.opacity??.36):common.opacity}
+             className={drawing.tool==="highlighter"?"drawing-highlighter":"drawing-brush"}/>
         </>;
       })()}
       {(drawing.tool === "long-position" || drawing.tool === "short-position") && (() => {
