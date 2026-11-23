@@ -10,7 +10,8 @@ export type DrawingTool =
   | "price-range" | "date-range" | "info-line" | "pitchfork"
   | "fib-extension" | "fib-timezone" | "fib-circles" | "gann-box"
   | "triangle" | "pattern-abcd" | "pattern-xabcd" | "elliott-impulse"
-  | "cyclic-lines" | "callout" | "price-note" | "arrow-marker" | "date-price-range";
+  | "cyclic-lines" | "callout" | "price-note" | "arrow-marker" | "date-price-range"
+  | "trend-angle" | "regression-channel" | "highlighter";
 export type ToolLevel={ratio:number;visible:boolean;color:string};
 export type MeasurementParts={price:boolean;percent:boolean;bars:boolean;elapsed:boolean};
 export type ChartAnchor = { time: number; price: number };
@@ -41,6 +42,7 @@ export type Drawing = {
   forkLevels?:number[];
   labelMode?:"ratio"|"price"|"both";
   gridDivisions?:number;
+  regressionDeviation?:number;
   markerDirection?:"up"|"down"|"left"|"right";
   fontSize?:number;
   showMeasurements?:MeasurementParts;
@@ -91,6 +93,9 @@ export function isDrawing(input: unknown): input is Drawing {
       ["ratio","price","both"].includes(d.labelMode))) &&
     (d.gridDivisions===undefined || (d.tool==="gann-box"&&Number.isInteger(d.gridDivisions)&&
       d.gridDivisions>=2&&d.gridDivisions<=12)) &&
+    (d.regressionDeviation===undefined || (d.tool==="regression-channel"&&
+      typeof d.regressionDeviation==="number"&&Number.isFinite(d.regressionDeviation)&&
+      d.regressionDeviation>=0.5&&d.regressionDeviation<=4)) &&
     (d.markerDirection===undefined || (d.tool==="arrow-marker"&&
       ["up","down","left","right"].includes(d.markerDirection))) &&
     (d.fontSize===undefined || (["text","callout","price-note"].includes(d.tool as string)&&
