@@ -262,9 +262,9 @@ export default function App() {
     }]}));
     setDrawMode(false);notify("Comparison chart price level saved.");
   };
-  const updateDrawing = (drawing: Drawing, editKind?:"move"|"start"|"end"|"control"|"target"|"vertex") => {
+  const updateDrawing = (drawing: Drawing, editKind?:"move"|"start"|"end"|"control"|"target"|"vertex", groupCandidates?:Drawing[]) => {
     try{
-      const next=updateDrawingAndGroup(prefs.drawings,drawing,editKind);
+      const next=updateDrawingAndGroup(prefs.drawings,drawing,editKind,groupCandidates);
       commitDrawings(next,"Drawing updated.");
     }catch(error){
       notify(error instanceof Error?error.message:"Drawing edit was cancelled.","error");
