@@ -19,6 +19,7 @@ import { addMultiPointAnchor, multiPointCount, requiresMultiPoint } from "./mult
 import { AdvancedDrawingPrimitives } from "./AdvancedDrawingPrimitives";
 import {effectiveLevels,formatFibLabel,measurementSegments} from "./toolProperties";
 import {projectedSegment} from "./projection";
+import {fitRegressionChannel} from "./regressionChannel";
 import {calculatePosition,defaultPositionTarget,positionTargetAnchor} from "../analysis/positionDrawing";
 
 type Projected = { a: ChartPoint; b: ChartPoint };
@@ -106,7 +107,8 @@ export function DrawingOverlay({
     return { a: { x: ax!, y: ay! }, b: { x: bx!, y: by! } };
   };
   const makeDrawing = (first: ChartAnchor, end: ChartAnchor, selectedTool: DrawingTool): Drawing => ({
-    id: "preview", symbol, tool: selectedTool, start: first, end, color, locked: false
+    id: "preview", symbol, tool: selectedTool, start: first, end, color, locked: false,
+    ...(selectedTool==="highlighter"?{strokeWidth:8,opacity:.36}:{})
   });
 
   // Chart's time scale changes independently of React when the user pans or zooms.
@@ -270,7 +272,7 @@ export function DrawingOverlay({
     if (active.kind === "create") {
       const next = anchorAt(point);
       if (next && active.first && tool) {
-        if(tool==="brush"){
+        if(tool==="brush"||tool==="highlighter"){
           const previous=draftRef.current;
           const points=previous?.points??[active.first];
           // Resample naturally at pointer-move granularity without arbitrary drawing count limits.
@@ -364,7 +366,7 @@ export function DrawingOverlay({
         const note=tool==="callout"?"Observation":tool==="price-note"?"Marked price":undefined;
         onAdd({...makeDrawing(active.first,active.first,tool),
           ...(note?{text:note}:{}),id:crypto.randomUUID()});
-      }else if(tool==="brush"){
+      }else if(tool==="brush"||tool==="highlighter"){
         const points=draftRef.current?.points??[];
         pendingRef.current=null;
         setDraft(null);
@@ -491,7 +493,7 @@ export function DrawingOverlay({
             fontWeight={600} pointerEvents="none">{label}</text>
         </>;
       })()}
-      {drawing.tool === "brush" && (() => {
+      {(drawing.tool === "brush"||drawing.tool==="highlighter") && (() => {
         const points=drawing.points?.length?drawing.points:[drawing.start,drawing.end];
         const xy=points.map(p=>{
           const t=logicalFromTime(p.time,candles,frameSeconds[frame]);
@@ -679,7 +681,7 @@ export function DrawingOverlay({
             className="drawing-handle pattern-vertex-handle"
             onPointerDown={event=>beginEdit(event,drawing,"vertex",index+2)}/>;
         })}
-      {selected && !drawing.locked && drawing.tool!=="brush" && drawing.tool!=="text" &&
+      {selected && !drawing.locked && drawing.tool!=="brush" && drawing.tool!=="highlighter" && drawing.tool!=="text" &&
         (ONE_ANCHOR_TOOLS.has(drawing.tool)?[a]:[a,b]).map((p,i) =>
         <circle key={i} cx={p.x} cy={p.y} r={7} fill="var(--panel)"
           stroke={drawing.color} strokeWidth={2} className="drawing-handle"
