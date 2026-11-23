@@ -54,3 +54,28 @@ test("replay scenario is armed causally and its result is archived locally",asyn
  await page.getByRole("button",{name:"Workspace",exact:true}).first().click();
  await expect(page.getByRole("region",{name:"Saved simulation studies"})).toContainText("EURUSD");
 });
+
+test("selected chart long position transfers entry, stop and target into standalone calculator",async({page})=>{
+ await page.goto("/market-terminal/");
+ await page.getByRole("button",{name:"More drawing tools"}).click();
+ await page.getByRole("group",{name:"Advanced drawing tools"}).getByRole("button",{name:"Long position",exact:true}).click();
+ const box=await page.locator("svg.drawing-overlay").first().boundingBox();
+ if(!box)throw new Error("Drawing overlay was not mounted");
+ await page.mouse.move(box.x+box.width*.29,box.y+box.height*.35);
+ await page.mouse.down();
+ await page.mouse.move(box.x+box.width*.63,box.y+box.height*.62,{steps:12});
+ await page.mouse.up();
+ await expect(page.locator(".drawing-position-risk")).toHaveCount(1);
+ const drawing=await page.evaluate(()=>{
+   const workspace=JSON.parse(localStorage.getItem("market-terminal-workspace")??"{}");
+   return workspace.preferences.drawings[0] as {start:{price:number};end:{price:number};target?:{price:number}};
+ });
+ await page.getByRole("button",{name:"Position sizing",exact:true}).first().click();
+ const selected=page.getByRole("button",{name:"Use selected position"});
+ await expect(selected).toBeVisible();
+ await selected.click();
+ const form=page.getByRole("region",{name:"Risk planning parameters"});
+ await expect(form.getByRole("spinbutton",{name:"Proposed entry"})).toHaveValue(String(drawing.start.price));
+ await expect(form.getByRole("spinbutton",{name:"Protective stop-loss"})).toHaveValue(String(drawing.end.price));
+ if(drawing.target)await expect(form.getByRole("spinbutton",{name:"Take-profit (optional)"})).toHaveValue(String(drawing.target.price));
+});
