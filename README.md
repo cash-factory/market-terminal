@@ -10,6 +10,20 @@ A **local-first market analysis and decision research workstation**, built with 
 - **Local-first:** automatic browser workspace persistence and import/export with schema validation. No account is required for local analysis.
 - **Experience:** source-status labels, mobile-friendly layered drawing rail and tool library, per-object Style / Coordinates / Visibility dialogs (with undo), source-bound chart observations, dark/light appearance and keyboard-friendly inspection.
 
+## Tool workbench refinement — PR #54
+
+The tool explorer now follows a clear **family → functional subfamily → implemented drawing → focused properties** hierarchy. Hover or focus an item to see an original, vector-rendered visual cue and concise instructions; pin favorites for quick access. The UI favors typography, restrained color, accurate tool icons, collapsible rows and short reversible transitions. It intentionally uses **no generated decorative dashboard images**.
+
+Three additional functional chart tools:
+
+- **Regression channel:** fits a least-squares line to **observed candle closes** within the user-selected anchor interval, computes the population residual deviation, and draws independently adjustable upper/lower bands (0.5–4 σ). The center line can be toggled. The study respects the current data source and does not predict future prices.
+- **Trend angle:** measures the line's **visual angle** against the displayed time axis with optional baseline; this changes with chart scales and is *not* an invariant statistical slope.
+- **Highlighter:** records freehand time/price points and renders a translucent stroke with editable width and opacity.
+
+Fibonacci time zones now have independently editable integer time multipliers; cyclic-line studies allow configurable repeat counts. The settings modal explains tool-specific assumptions, retains source and price/time anchors, and supports direct right-click on chart drawings. Saved per-tool defaults also cover the new controls.
+
+Browser interaction, unit math, responsiveness, reduced-motion behavior and full regression suites are release gates; the PR is not a public deployment until merged.
+
 ## Chart-first refinement — seconds and independent tool settings
 
 **PR #53:** An interval selector supports 1s, 5s, 10s, 15s, 30s and 45s alongside minute/hour/day periods. Synthetic instruments display explicitly synthetic second-based candles. The opt-in Binance BTC/USDT Spot feed requests **native 1s** REST and WebSocket klines; other subminute frames are computed from real observed native 1s OHLCV rows. Missing source seconds are neither filled nor marked complete. This is not a trade-by-trade/tick feed or a live forex/equity source.
