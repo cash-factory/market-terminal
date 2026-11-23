@@ -19,7 +19,7 @@ export type SavedReplayStudy={
  riskCash:number;pnl:number|null;rMultiple:number|null;exitTime:number|null;
  ambiguous:boolean;reason:string|null;savedAt:number;
 };
-const positive=(v:number)=>Number.isFinite(v)&&v>0;
+const positive=(v:unknown):v is number=>typeof v==="number"&&Number.isFinite(v)&&v>0;
 const finiteInt=(v:unknown)=>typeof v==="number"&&Number.isSafeInteger(v)&&v>=0;
 const limits={equity:1e15,multiplier:1e12};
 export function createReplayScenario(replay:ReplayState,input:ScenarioInput,id:string):ReplayScenario{
