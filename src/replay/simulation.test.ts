@@ -29,6 +29,14 @@ describe("causal candle-by-candle simulation",()=>{
   expect(evaluateReplayScenario(at,plan)).toMatchObject({status:"invalidated",quantity:null});
   expect(()=>createReplayScenario(replay,{...input,target:90},"bad")).toThrow();
  });
+ it("does not reward a trade whose target was passed before the first eligible entry",()=>{
+  const replay=base(),plan=createReplayScenario(replay,{...input,stop:99,target:101},"gap-target");
+  const modified=beginReplay(bars.map((c,i)=>i===30?{...c,open:103,high:105,low:102,close:104}:c),
+    "EURUSD","1m","demo");
+  expect(evaluateReplayScenario(seekReplay(modified,30),plan)).toMatchObject({
+    status:"invalidated",pnl:null,quantity:null,exitCursor:30
+  });
+ });
  it("rejects source/history mismatch and refuses to archive unfinished studies",()=>{
   const replay=base(),plan=createReplayScenario(replay,input,"run-4");
   expect(()=>archiveReplayStudy(replay,plan,evaluateReplayScenario(replay,plan),Date.now())).toThrow();
