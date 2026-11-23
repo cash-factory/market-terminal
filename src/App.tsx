@@ -1457,7 +1457,8 @@ export default function App() {
           </aside>}
         </div>}
         {page === "strategy" && <StrategyLab symbol={prefs.symbol} frame={prefs.frame}
-          source={prefs.priceSource} status={feed.status} candles={currentCandles}
+          source={prefs.priceSource} status={replay?"historical":feed.status}
+          replayMode={replay!==null} candles={viewedCandles}
           onBack={()=>setPage("terminal")}/>}
         {page === "screener" && <ScreenerPanel frame={prefs.frame}
           activeListName={activeWatchlist(prefs.watchlists).name}

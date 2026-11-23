@@ -43,3 +43,19 @@ test("strategy laboratory navigates back to chart without trading",async({page})
   await expect(page.locator("svg.drawing-overlay")).toBeVisible();
   await expect(page.getByRole("main",{name:"Strategy laboratory"})).toHaveCount(0);
 });
+
+
+test("Strategy Lab never reads unrevealed replay candles",async({page})=>{
+  await page.goto("/market-terminal/?classic");
+  await page.getByRole("button",{name:"Start replay"}).click();
+  await expect(page.locator(".technical-chart-stack")).toHaveAttribute("data-visible-candles","180");
+  const navigation=page.getByRole("navigation",{name:"Workstation pages"});
+  await navigation.getByRole("button",{name:"Strategy Lab"}).click();
+  const lab=page.getByRole("main",{name:"Strategy laboratory"});
+  await expect(lab.getByText(/180 observed bars/)).toBeVisible();
+  await expect(lab.getByText(/REPLAY PREFIX/)).toBeVisible();
+  await lab.getByRole("button",{name:"Chart Studio"}).click();
+  await page.getByRole("button",{name:"Step forward"}).click();
+  await navigation.getByRole("button",{name:"Strategy Lab"}).click();
+  await expect(lab.getByText(/181 observed bars/)).toBeVisible();
+});

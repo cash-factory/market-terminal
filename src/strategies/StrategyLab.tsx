@@ -8,6 +8,7 @@ import "./strategyLab.css";
 type Props={
   symbol:SymbolId;frame:Frame;source:"demo"|"binance";status:string;
   candles:readonly CandlestickData<UTCTimestamp>[];
+  replayMode:boolean;
   onBack:()=>void;
 };
 const price=(n:number)=>Number.isFinite(n)?n.toLocaleString(undefined,{maximumFractionDigits:2,minimumFractionDigits:2}):"—";
@@ -21,7 +22,7 @@ const fields:[keyof BacktestConfig,string,string,string,string][]=[
   ["commissionBps","Commission (bps / side)","0","2000","0.5"],
   ["slippageBps","Slippage (bps / side)","0","2000","0.5"]
 ];
-export function StrategyLab({symbol,frame,source,status,candles,onBack}:Props){
+export function StrategyLab({symbol,frame,source,status,candles,replayMode,onBack}:Props){
   const [config,setConfig]=useState<BacktestConfig>({...defaultBacktestConfig});
   const [showAll,setShowAll]=useState(false);
   const error=validateBacktestConfig(config);
@@ -52,7 +53,7 @@ export function StrategyLab({symbol,frame,source,status,candles,onBack}:Props){
         <h1>Strategy Laboratory</h1>
         <p>Evaluate a moving-average crossover using reproducible next-bar fills and explicit costs. This never sends broker orders.</p>
       </div><span className={"stlab-dataflag "+(source==="demo"?"demo":"external")}>
-        {source==="demo"?"SYNTHETIC DATA":("BINANCE SPOT · "+status.toUpperCase())}</span></div>
+        {source==="demo"?"SYNTHETIC DATA":("BINANCE SPOT · "+status.toUpperCase())}{replayMode?" · REPLAY PREFIX":""}</span></div>
     </header>
     <div className="stlab-grid">
       <aside className="stlab-inputs">
@@ -77,7 +78,7 @@ export function StrategyLab({symbol,frame,source,status,candles,onBack}:Props){
       </aside>
       <section className="stlab-results" aria-label="Strategy test results">
         <div className="stlab-source"><span><BarChart3 size={15}/> {symbols[symbol].label} / {frame.toUpperCase()}</span>
-          <span>{candles.length} observed bars · {source==="demo"?"SIMULATED INPUT":"EXCHANGE INPUT"}
+          <span>{candles.length} observed bars · {source==="demo"?"SIMULATED INPUT":"EXCHANGE INPUT"}{replayMode?" · VISIBLE REPLAY BARS ONLY":""}
             {result?.firstTime!==null&&result?.firstTime!==undefined?" · "+utc(result.firstTime):""}</span></div>
         {tooShort?<div className="stlab-empty"><CalendarClock size={22}/><strong>Not enough history yet</strong>
           <p>The slow SMA requires {config.slow+2} observed candles. Choose another interval or wait for the selected source to load.</p></div>:
