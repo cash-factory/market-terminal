@@ -27,7 +27,7 @@ const uuid=()=>crypto.randomUUID();
 export const activeWatchlist=(state:WatchlistsState):Watchlist=>
   state.lists.find(list=>list.id===state.activeId)??state.lists[0]??defaultWatchlists.lists[0];
 const withList=(state:WatchlistsState,change:(list:Watchlist)=>Watchlist):WatchlistsState=>
-  {...state,lists:state.lists.map(list=>list.id===activeWatchlist(state).id?change(list):list)};
+  ({...state,lists:state.lists.map(list=>list.id===activeWatchlist(state).id?change(list):list)});
 export const containsSymbol=(list:Watchlist,symbol:SymbolId)=>
   list.sections.some(section=>section.entries.some(entry=>entry.symbol===symbol));
 
