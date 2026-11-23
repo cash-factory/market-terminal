@@ -1,0 +1,328 @@
+/*
+ * Market Terminal / Desk finish
+ * A neutral, data-first presentation layer for the default workstation.
+ * Function, chart geometry, stored user preferences, and color selection are unchanged.
+ * The active state uses one restrained accent; data and controls keep their own hierarchy.
+ */
+.app.studio {
+  --bg: #0e141b;
+  --panel: #151c24;
+  --raised: #1c2731;
+  --border: #303c48;
+  --text: #eaf0f5;
+  --muted: #9caaba;
+  --soft: #c8d1db;
+  --positive: #64b99d;
+  --negative: #df8b8d;
+  font-family: "Segoe UI Variable", Inter, "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  font-size: 12px;
+  letter-spacing: 0;
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+}
+.app.studio.light {
+  --bg: #edf1f4;
+  --panel: #ffffff;
+  --raised: #f3f6f8;
+  --border: #d5dee6;
+  --text: #202d3a;
+  --muted: #5c6d7d;
+  --soft: #465768;
+  --positive: #16735d;
+  --negative: #a33c48;
+}
+/* Muted workstation palettes preserve the user's selected accent family. */
+.app.studio.accent-violet {--accent:#9aaccb;--accent-dim:rgba(154,172,203,.085);--accent-border:rgba(154,172,203,.25)}
+.app.studio.accent-teal {--accent:#68b7a9;--accent-dim:rgba(104,183,169,.085);--accent-border:rgba(104,183,169,.25)}
+.app.studio.accent-amber {--accent:#ccaa78;--accent-dim:rgba(204,170,120,.085);--accent-border:rgba(204,170,120,.26)}
+.app.studio.light.accent-violet {--accent:#425d89;--accent-dim:rgba(66,93,137,.07);--accent-border:rgba(66,93,137,.25)}
+.app.studio.light.accent-teal {--accent:#126c5b;--accent-dim:rgba(18,108,91,.075);--accent-border:rgba(18,108,91,.25)}
+.app.studio.light.accent-amber {--accent:#825d32;--accent-dim:rgba(130,93,50,.075);--accent-border:rgba(130,93,50,.26)}
+
+/* Shell: no decorative sheen, calm and consistently sized controls. */
+.studio .topbar {
+  min-height: 58px;
+  padding: 0 18px;
+  background: var(--panel);
+  box-shadow: none;
+  gap: 14px;
+}
+.studio .branding {gap:10px}
+.studio .branding .logo {
+  width:30px;height:30px;
+  background:var(--raised);
+  border:1px solid var(--border);
+  color:var(--soft);
+  border-radius:5px;
+  box-shadow:none;
+}
+.studio .branding strong {font-size:12px;font-weight:720;letter-spacing:.005em}
+.studio .brand-suffix {color:var(--soft)}
+.studio .studio-destinations button {font-size:11px;font-weight:560;border-radius:4px}
+.studio .studio-destinations button[aria-current] {
+  color:var(--text);
+  background:var(--raised);
+  box-shadow:inset 0 -2px var(--accent);
+  border-radius:4px 4px 0 0;
+}
+.studio .header-center .search-trigger {
+  background:transparent;
+  border-color:var(--border);
+  border-radius:5px;
+  font-size:11px;
+}
+.studio .header-actions .icon-button,
+.studio .header-actions .focus-toggle {
+  border-radius:5px;
+  background:transparent;
+}
+.studio .header-actions .icon-button:hover,
+.studio .header-actions .focus-toggle:hover {
+  background:var(--raised);
+  border-color:var(--border);
+}
+.studio .header-actions .focus-toggle[aria-pressed="true"] {
+  background:var(--raised);
+  border-color:var(--border);
+  color:var(--accent);
+}
+.studio .demo-tag {letter-spacing:0;font-weight:600}
+
+/* Instrument strip: trading data, not a marketing headline. */
+.studio .instrument-header {
+  padding:15px 20px 14px;
+  gap:20px;
+  background:var(--panel);
+  border-bottom:1px solid var(--border);
+}
+.studio .instrument-header h1 button {
+  font-family:inherit;
+  font-size:clamp(21px,2.2vw,29px);
+  line-height:1.16;
+  letter-spacing:-.035em;
+  font-weight:650;
+}
+.studio .instrument-header h1 svg {width:15px;height:15px}
+.studio .instrument-meta {font-size:10px;letter-spacing:.025em;font-weight:600}
+.studio .instrument-quote {padding-left:18px;gap:3px}
+.studio .instrument-quote small {color:var(--muted);font-size:10px;font-weight:550;letter-spacing:0}
+.studio .instrument-quote strong {
+  font-family:inherit;
+  font-size:clamp(20px,1.9vw,27px);
+  font-weight:620;
+  letter-spacing:-.025em;
+}
+.studio .candle-reader .candle-time {font-size:10px;margin-bottom:7px}
+.studio .instrument-header .candle-reader dl {gap:clamp(9px,1.15vw,16px)}
+.studio .instrument-header .candle-reader dt {font-size:10px;margin-bottom:4px}
+.studio .instrument-header .candle-reader dd {
+  font-family:"Cascadia Mono","Consolas",ui-monospace,monospace;
+  font-size:11px;
+  font-variant-numeric:tabular-nums;
+}
+
+/* Work surface: keep chart central, replace decorative chrome with quiet edges. */
+.studio .studio-body.terminal-toolbar {grid-template-columns:66px minmax(0,1fr);background:var(--panel)}
+.studio .terminal-toolbar-market {min-height:45px;padding:7px 14px;gap:6px;background:var(--panel)}
+.studio .terminal-toolbar-market .compact-action,
+.studio .terminal-toolbar-market .timeframes button {
+  min-height:29px;
+  border-radius:4px;
+  font-size:11px;
+  font-weight:560;
+}
+.studio .terminal-toolbar-market .compact-action:not(.active) {background:transparent;border-color:transparent}
+.studio .terminal-toolbar-market .compact-action:hover {background:var(--raised);border-color:var(--border)}
+.studio .terminal-toolbar-market .compact-action.active,
+.studio .terminal-toolbar-market .timeframes button.active {
+  color:var(--text);
+  background:var(--raised);
+  border-color:var(--border);
+  box-shadow:inset 0 -2px var(--accent);
+}
+.studio .terminal-toolbar .timeframes {border-radius:5px;background:var(--raised)}
+.studio .studio-configuration {
+  background:var(--panel);
+  border-top:1px solid var(--border);
+  padding:9px 0 5px;
+}
+.studio .terminal-toolbar-drawing {
+  background:var(--panel);
+  padding:10px 4px;
+  border-right:1px solid var(--border);
+}
+.studio .studio-rail-tools {gap:2px}
+.studio .studio-rail-tools>button {
+  width:54px;min-height:43px;
+  border-radius:4px;
+  padding:4px 2px;
+}
+.studio .studio-rail-tools>button>span {font-size:9px;font-weight:560}
+.studio .studio-rail-tools>button:is(.active,.selected,.armed) {background:var(--raised);border-color:var(--border)}
+.studio .studio-rail-tools>button:is(.active,.selected,.armed)::before {top:7px;bottom:7px}
+.studio .studio-rail-rule {width:30px}
+.studio .studio-rail-favorite {border-radius:4px}
+.studio .studio-tool-state {
+  background:var(--panel);
+  color:var(--muted);
+  height:34px;
+  min-height:34px;
+  padding:3px 13px;
+  font-size:11px;
+}
+.studio .studio-tool-state button,
+.studio .studio-tool-state select {border-radius:4px}
+.studio .chart-surface,
+.studio .chart-cell-label,
+.studio .chart-footer,
+.studio .market-session-reference {background:var(--panel)}
+.studio .market-session-reference {padding:6px 14px;font-size:10px}
+.studio .chart-footer {padding:8px 14px;font-size:10px}
+.studio .chart-grid-single {border-top:1px solid var(--border)}
+
+/* Inspector: entries read as a continuous market ledger rather than cards. */
+.studio .right-panel {padding:13px 13px 16px;background:var(--panel)}
+.studio .workspace-rail-tabs {margin:-2px -13px 14px;padding:0 9px}
+.studio .workspace-rail-tabs button {
+  min-height:41px;
+  font-size:11px;
+  font-weight:570;
+}
+.studio .workspace-rail-tabs button.active {font-weight:670}
+.studio .panel-head strong {font-size:12px;font-weight:660;letter-spacing:0}
+.studio .watchlist {gap:0}
+.studio .watchlist button {
+  min-height:52px;
+  padding:8px 10px;
+  border:0;
+  border-bottom:1px solid var(--border);
+  border-radius:0;
+}
+.studio .watchlist button.selected {
+  background:var(--raised);
+  border-color:var(--border);
+  box-shadow:inset 2px 0 var(--accent);
+}
+.studio .watchlist b {font-size:12px;font-weight:650}
+.studio .watchlist small {font-size:10px}
+.studio .drawing-object-row:has(:checked) {border-color:var(--border);box-shadow:inset 2px 0 var(--accent)}
+
+/* Drawing library: professional tool picker, no glowing frames or decorative badges. */
+.studio .terminal-toolbar-drawing .studio-rail-root .tool-shelf {
+  border-radius:7px!important;
+}
+.studio .tool-shelf {
+  border:1px solid var(--border)!important;
+  border-radius:7px!important;
+  box-shadow:0 16px 38px rgba(0,0,0,.28)!important;
+}
+.studio .tool-shelf-head {padding:11px 14px}
+.studio .tool-shelf-symbol {
+  width:32px;height:32px;
+  border-color:var(--border);
+  color:var(--soft);
+  background:var(--raised);
+  border-radius:5px;
+}
+.studio .tool-shelf-ident strong {font-size:15px;letter-spacing:-.02em;font-weight:680}
+.studio .tool-shelf-ident span:not(.tool-shelf-symbol) {letter-spacing:.04em}
+.studio .tool-shelf-filter {padding:9px 13px}
+.studio .tool-shelf-search {
+  background:var(--bg);
+  border-color:var(--border);
+  border-radius:5px;
+}
+.studio .tool-shelf-main .tool-shelf-groups button.active {
+  background:var(--raised);
+  color:var(--text);
+  border-color:var(--border);
+  box-shadow:inset 2px 0 var(--accent);
+}
+.studio .tool-shelf-row {border-radius:4px}
+.studio .tool-shelf-row.active {
+  background:var(--raised);
+  border-color:var(--border);
+  box-shadow:inset 2px 0 var(--accent);
+}
+.studio .tool-shelf-tool-mark {
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:4px;
+  color:var(--soft);
+}
+.studio .tool-shelf-row.active .tool-shelf-tool-mark {border-color:var(--border);color:var(--text)}
+.studio .tool-guide {background:var(--bg);min-height:66px}
+.studio .tool-guide-visual {
+  border-color:var(--border);
+  background:var(--panel);
+  border-radius:4px;
+}
+.studio .tool-shelf-chip.selected,
+.studio .tool-shelf-chip:hover {
+  background:var(--raised);
+  color:var(--text);
+  border-color:var(--border);
+}
+.studio .tool-shelf-star:hover,
+.studio .tool-shelf-star.pinned {color:var(--accent)}
+
+/* Object properties: one typographic system, quiet surfaces, clear focus. */
+.studio .drawing-dialog-backdrop {backdrop-filter:none;background:rgba(6,11,16,.68)}
+.studio .drawing-dialog {
+  border:1px solid var(--border);
+  border-radius:8px;
+  box-shadow:0 22px 55px rgba(0,0,0,.32);
+}
+.studio .drawing-dialog-mark {
+  background:var(--raised);
+  border-color:var(--border);
+  color:var(--soft);
+  border-radius:5px;
+}
+.studio .drawing-dialog-heading h2 {font-size:18px;font-weight:670}
+.studio .drawing-dialog-header {padding:15px 18px}
+.studio .drawing-settings-preview {background:var(--bg);border-radius:5px}
+.studio .drawing-dialog-tabs button.active {color:var(--text);border-color:var(--accent)}
+
+/* Overview: let live market content lead, not decorative feature blocks. */
+.studio .studio-overview {max-width:1050px}
+.studio .overview-heading h1 {font-size:clamp(28px,3vw,40px);font-weight:640;letter-spacing:-.04em}
+.studio .overview-links button {border-radius:5px;background:var(--panel);padding:14px}
+.studio .overview-links button:hover {background:var(--raised);border-color:var(--border)}
+.studio .board-row {padding-block:14px}
+.studio .board-row.current {background:var(--raised);box-shadow:inset 2px 0 var(--accent)}
+.studio .board-symbol strong {font-weight:650}
+.studio .board-quote b,
+.studio .instrument-header dd {font-variant-numeric:tabular-nums}
+
+/* Non-mouse interaction remains visible; motion adds feedback, never spectacle. */
+.studio :is(button,input,select,textarea):focus-visible {
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+}
+@media(max-width:1100px) {
+  .studio .instrument-header {gap:12px;flex-wrap:wrap}
+  .studio .candle-reader {margin-left:0;flex-basis:100%}
+}
+@media(max-width:700px) {
+  .studio .topbar {padding-inline:10px;gap:8px}
+  .studio .branding .logo {width:28px;height:28px}
+  .studio .branding strong {font-size:11px}
+  .studio .instrument-header {padding:11px 12px;gap:10px}
+  .studio .instrument-header h1 button {font-size:21px}
+  .studio .instrument-quote {padding-left:12px}
+  .studio .instrument-quote strong {font-size:20px}
+  .studio .instrument-header .candle-reader dl {gap:9px}
+  .studio .studio-body.terminal-toolbar {display:flex}
+  .studio .terminal-toolbar-drawing {padding:4px 5px}
+  .studio .studio-rail-tools>button {width:44px;min-width:44px;min-height:42px}
+  .studio .studio-rail-tools>button>span {font-size:8px}
+  .studio .terminal-toolbar-market {padding:6px 8px}
+  .studio .tool-shelf {border-radius:7px!important}
+  .studio .right-panel {padding:12px}
+}
+@media(prefers-reduced-motion:reduce) {
+  .studio .studio-rail-root *,
+  .studio .tool-shelf *,
+  .studio .overview-links button {animation:none!important;transition:none!important}
+}
