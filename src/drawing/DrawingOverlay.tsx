@@ -567,8 +567,8 @@ export function DrawingOverlay({
         return <>
           <path d={d} fill="none" stroke="transparent" strokeWidth={18} className="drawing-hit"/>
           <path d={d} fill="none" {...common} strokeLinecap="round" strokeLinejoin="round"
-             strokeWidth={drawing.tool==="highlighter"?(drawing.strokeWidth??8):common.strokeWidth}
-             opacity={drawing.tool==="highlighter"?(drawing.opacity??.36):common.opacity}
+             strokeWidth={drawing.tool==="highlighter"?(drawing.strokeWidth??16):common.strokeWidth}
+             opacity={drawing.tool==="highlighter"?(drawing.opacity??.28):common.opacity}
              className={drawing.tool==="highlighter"?"drawing-highlighter":"drawing-brush"}/>
         </>;
       })()}
