@@ -1,6 +1,7 @@
 import { ALL_FRAMES, type SymbolId, type Frame } from "../market";
 import { TOOL_BY_ID } from "./toolDefinitions";
 import { isCompleteMultiPointDrawing } from "./multiAnchor";
+import {isPositionSettings,type PositionSettings} from "../analysis/positionMetrics";
 
 export type DrawingTool =
   | "trendline" | "rectangle" | "fibonacci" | "ray" | "measure"
@@ -49,6 +50,7 @@ export type Drawing = {
   fontSize?:number;
   showMeasurements?:MeasurementParts;
   projection?:"segment"|"left"|"right"|"both";
+  positionSettings?:PositionSettings;
 };
 
 const validSymbols = new Set<SymbolId>(["EURUSD", "BTCUSDT", "AAPL", "US100"]);
@@ -114,6 +116,7 @@ export function isDrawing(input: unknown): input is Drawing {
         typeof d.showMeasurements?.[key as keyof MeasurementParts]==="boolean"))) &&
     (d.projection===undefined || (["trendline","ray","extended-line","info-line"].includes(d.tool as string)&&
       ["segment","left","right","both"].includes(d.projection))) &&
+    (d.positionSettings===undefined || (["long-position","short-position"].includes(d.tool as string)&&isPositionSettings(d.positionSettings))) &&
     (d.visibleOnFrames === undefined ||
       (Array.isArray(d.visibleOnFrames) && d.visibleOnFrames.length <= ALL_FRAMES.length &&
        new Set(d.visibleOnFrames).size === d.visibleOnFrames.length &&

@@ -195,16 +195,8 @@ export function ToolSpecificProperties({drawing,onChange}:Props){
         onChange={e=>update({fontSize:Number(e.target.value)})}/>
       <small>{drawing.fontSize??11}px</small>
     </label>}
-    {["long-position","short-position"].includes(drawing.tool)&&<div className="tool-position-readout">
-      <strong>Illustrative position geometry</strong>
-      <dl><div><dt>Entry</dt><dd>{drawing.start.price.toFixed(5)}</dd></div>
-        <div><dt>Protective stop</dt><dd>{drawing.end.price.toFixed(5)}</dd></div>
-        <div><dt>Target</dt><dd>{(drawing.target?.price??drawing.start.price).toFixed(5)}</dd></div>
-        <div><dt>Reward / risk</dt><dd>{Math.abs(drawing.start.price-drawing.end.price)>0?
-          (Math.abs((drawing.target?.price??drawing.start.price)-drawing.start.price)/
-            Math.abs(drawing.start.price-drawing.end.price)).toFixed(2)+" R":"—"}</dd></div></dl>
-      <small>Set precise entry, stop and target on the Coordinates tab. No broker order or P/L claim is implied.</small>
-    </div>}
+    {["long-position","short-position"].includes(drawing.tool)&&
+      <p className="tool-special-explain">Use the Position tab to configure risk-based sizing, contract units, fees, slippage, currency conversion, leverage and chart labels. Use Coordinates for entry, stop and target.</p>}
     {!isFib&&!metrics&&!isProjection&&!["pitchfork","gann-box","channel","arrow-marker","text","callout","price-note","long-position","short-position","regression-channel","trend-angle","highlighter","fib-timezone","cyclic-lines"].includes(drawing.tool)&&
       <p className="tool-special-explain">Edit the anchors on the Coordinates tab; use the appearance controls above to set an independent style. This {title.toLowerCase()} stays bound to the original market and data source.</p>}
   </section>;
