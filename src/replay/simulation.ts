@@ -55,6 +55,13 @@ export function evaluateReplayScenario(replay:ReplayState,plan:ReplayScenario):S
    return {...base,status:"invalidated",entryPrice:entry,exitCursor:first,
      reason:"Next-bar opening gap crossed the planned stop; entry is invalidated before sizing."};
  }
+ // When the target was already crossed before the first eligible fill, the analyst
+ // never held the intended price path. Treat this as a missed/invalid setup,
+ // not a zero-risk target win.
+ if((entry-plan.target)*sign>=0){
+   return {...base,status:"invalidated",entryPrice:entry,exitCursor:first,
+     reason:"Next-bar opening gap already crossed the planned target; no target win is recorded."};
+ }
  const quantity=riskCash/(distance*plan.contractMultiplier);
  if(!positive(quantity)||!Number.isFinite(quantity))return {...base,status:"invalidated",
    entryPrice:entry,exitCursor:first,reason:"Theoretical quantity is outside supported numeric limits."};
@@ -95,7 +102,7 @@ export function parseReplayStudies(value:unknown):SavedReplayStudy[]{
    const study=raw as SavedReplayStudy,plan=study.scenario;
    if(!plan||typeof plan!=="object"||typeof study.id!=="string"||study.id.length>128||ids.has(study.id)||
       !(study.status==="stopped"||study.status==="target"||study.status==="invalidated")||
-      !(plan.symbol in symbols)||!ALL_FRAMES.includes(plan.frame)||
+      !Object.prototype.hasOwnProperty.call(symbols,plan.symbol)||!ALL_FRAMES.includes(plan.frame)||
       !(plan.source==="demo"||plan.source==="binance")||
       typeof plan.id!=="string"||plan.id!==study.id||
       !finiteInt(plan.createdCursor)||!finiteInt(plan.createdTime)||!positive(plan.referenceClose)||
