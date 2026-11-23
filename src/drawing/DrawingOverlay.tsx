@@ -13,7 +13,7 @@ import {
 import { snapAnchorToOhlc, measurement } from "./snap";
 import { horizontalReference, verticalReference,
   observedBarCount, formatElapsedDuration } from "./precision";
-import { ONE_ANCHOR_TOOLS } from "./toolDefinitions";
+import { ONE_ANCHOR_TOOLS,TOOL_BY_ID } from "./toolDefinitions";
 import { isDrawingVisibleAtFrame } from "./drawingSettings";
 import { addMultiPointAnchor, multiPointCount, requiresMultiPoint } from "./multiAnchor";
 import { AdvancedDrawingPrimitives } from "./AdvancedDrawingPrimitives";
@@ -430,7 +430,12 @@ export function DrawingOverlay({
     };
     return <g key={drawing.id} className={"drawing-shape " + (selected ? "is-selected" : "")}
       onPointerDown={event => { if (!isPreview) beginEdit(event, drawing, "move"); }}
-      onDoubleClick={event=>{if(!isPreview){event.stopPropagation();onOpenSettings(drawing.id);}}}>
+      onDoubleClick={event=>{if(!isPreview){event.stopPropagation();onOpenSettings(drawing.id);}}}
+      onContextMenu={event=>{
+        if(!isPreview){event.preventDefault();event.stopPropagation();onOpenSettings(drawing.id);}
+      }}>
+      {!isPreview&&<title>{(TOOL_BY_ID.get(drawing.tool)?.label??"Chart object")+
+        " · Double-click or right-click for properties"}</title>}
       <AdvancedDrawingPrimitives drawing={drawing} a={a} b={b} plot={plot}
         common={common} precision={symbols[symbol].precision}
         candleTimes={candleTimes}
