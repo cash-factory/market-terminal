@@ -26,6 +26,7 @@ import {calculatePositionMetrics,effectivePositionSettings,formatPositionCash} f
 type Projected = { a: ChartPoint; b: ChartPoint };
 type Gesture = {
   kind: "create" | "move" | "start" | "end" | "control" | "target" | "vertex";
+  pointerId:number;
   vertexIndex?:number;
   origin: ChartPoint;
   original?: Drawing;
@@ -174,7 +175,7 @@ export function DrawingOverlay({
     try { svgRef.current?.setPointerCapture(event.pointerId); } catch { /* pointer was released */ }
   };
   const beginEdit = (event: ReactPointerEvent<SVGElement>, drawing: Drawing, kind: Gesture["kind"],vertexIndex?:number) => {
-    if (tool || event.button !== 0) return;
+    if (tool || event.button !== 0 || !event.isPrimary || gestureRef.current) return;
     // Preserve the browser's click/double-click sequence for selected shapes.
     // Suppress native gestures only if the pointer actually begins dragging.
     event.stopPropagation();
@@ -192,7 +193,7 @@ export function DrawingOverlay({
     // Do not capture a stationary object-selection click: pointer capture
     // retargets the subsequent click to the SVG root and breaks double-click.
     // Acquire capture only once an actual drag begins.
-    gestureRef.current = { kind, origin: pointFromEvent(event), original: drawing,vertexIndex };
+    gestureRef.current = { kind, origin: pointFromEvent(event), original: drawing,vertexIndex,pointerId:event.pointerId };
     setDraft(null);
     setGroupDrafts([]);
   };
@@ -202,7 +203,7 @@ export function DrawingOverlay({
     const target = event.target;
     const onPlotSurface = target === event.currentTarget ||
       (target instanceof SVGRectElement && target.dataset.drawingSurface === "true");
-    if (!tool || event.button !== 0 || !onPlotSurface) return;
+    if (!tool || event.button !== 0 || !event.isPrimary || gestureRef.current || !onPlotSurface) return;
     const point = pointFromEvent(event);
     const anchor = anchorAt(point);
     if (!anchor) return;
@@ -232,7 +233,7 @@ export function DrawingOverlay({
     }
     capture(event);
     gestureRef.current = {
-      kind: "create", origin: point,
+      kind: "create", origin: point, pointerId:event.pointerId,
       first: pendingRef.current?.tool === tool ? pendingRef.current.first : anchor
     };
     const drawing=makeDrawing(gestureRef.current.first!, anchor, tool);
@@ -242,8 +243,10 @@ export function DrawingOverlay({
     onSelectionChange([]);
   };
   const onPointerMove = (event: ReactPointerEvent<SVGSVGElement>) => {
-    const point = pointFromEvent(event);
+    if(!event.isPrimary)return;
     const active = gestureRef.current;
+    if(active&&active.pointerId!==event.pointerId)return;
+    const point = pointFromEvent(event);
     if (!active) {
       if(pendingMultiRef.current&&pendingMultiRef.current.tool===tool){
         const next=anchorAt(point),pending=pendingMultiRef.current;
@@ -363,7 +366,7 @@ export function DrawingOverlay({
   };
   const onPointerUp = (event: ReactPointerEvent<SVGSVGElement>) => {
     const active = gestureRef.current;
-    if (!active) return;
+    if (!active || active.pointerId!==event.pointerId) return;
     gestureRef.current = null;
     const point = pointFromEvent(event);
     const distance = pointerDistance(active.origin, point);
@@ -788,8 +791,9 @@ export function DrawingOverlay({
   return <svg ref={svgRef} className={"drawing-overlay " + (tool ? "armed" : "")}
     aria-label={tool ? "Draw " + tool + ": " + (requiresMultiPoint(tool)?multiPointCount(tool):ONE_ANCHOR_TOOLS.has(tool)?1:2) + " anchors required" : "Select chart drawings"}
     onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
-    onPointerCancel={cancel} onLostPointerCapture={() => {
-      if(gestureRef.current)cancel();
+    onPointerCancel={event=>{if(gestureRef.current?.pointerId===event.pointerId)cancel();}}
+    onLostPointerCapture={event=>{
+      if(gestureRef.current?.pointerId===event.pointerId)cancel();
     }}>
     {/* A real transparent SVG rect is required: empty SVG pixels are not reliably
         pointer targets in every browser. Restrict interception to chart plotting area. */}
