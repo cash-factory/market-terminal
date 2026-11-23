@@ -1,5 +1,5 @@
 import {expect,test,type Page} from "@playwright/test";
-import {TOOL_BY_ID,ONE_ANCHOR_TOOLS} from "../src/drawing/toolDefinitions";
+import {TOOL_BY_ID,ONE_ANCHOR_TOOLS,TOOL_DEFINITIONS} from "../src/drawing/toolDefinitions";
 import {requiresMultiPoint,multiPointCount} from "../src/drawing/multiAnchor";
 import type {DrawingTool} from "../src/drawing/types";
 
@@ -33,10 +33,11 @@ async function firstDrawing(page:Page):Promise<any>{
   return page.evaluate(()=>JSON.parse(localStorage.getItem("market-terminal-workspace")??"{}").preferences?.drawings?.[0]);
 }
 
-const tools:DrawingTool[]=[
-  "trendline","channel","fibonacci","fib-circles","gann-box",
-  "pitchfork","pattern-xabcd","long-position","price-note","regression-channel"
-];
+// Exercise every tool that exposes canonical anchor handles. Freehand and
+// text tools are handled through independent whole-object move tests.
+const tools:DrawingTool[]=TOOL_DEFINITIONS
+  .filter(def=>!["brush","highlighter","text"].includes(def.id))
+  .map(def=>def.id);
 for(const tool of tools){
   test(tool+": selected handle edit, undo and reload retain canonical anchors",async({page})=>{
     test.setTimeout(90_000);
