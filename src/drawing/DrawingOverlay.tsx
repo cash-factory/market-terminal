@@ -239,7 +239,7 @@ export function DrawingOverlay({
       first: pendingRef.current?.tool === tool ? pendingRef.current.first : anchor
     };
     const drawing=makeDrawing(gestureRef.current.first!, anchor, tool);
-    if(tool==="brush")drawing.points=[anchor];
+    if(tool==="brush"||tool==="highlighter")drawing.points=[anchor];
     if(tool==="text")drawing.text="Note";
     setDraft(drawing);
     onSelectionChange([]);
