@@ -26,6 +26,7 @@ import {parseCustomStudies,type CustomStudy} from "./indicators/formula";
 import {parseDecisionRecords,type DecisionRecord} from "./decisions/model";
 import {parseChartDisplayStyle,type ChartDisplayStyle} from "./charts/display";
 import {parseChartProfiles,type ChartProfile} from "./charts/profiles";
+import {defaultWatchlists,parseWatchlists,type WatchlistsState} from "./watchlists/model";
 
 export type Level = {
   id:string;symbol:SymbolId;price:number;color:string;source?:"demo"|"binance";
@@ -69,6 +70,7 @@ export type Workspace = {
   chartTemplates: ChartTemplate[];
   alerts: PriceAlert[];
   decisions: DecisionRecord[];
+  watchlists:WatchlistsState;
   favoriteDrawingTools: DrawingTool[];
   favoriteBar:FavoriteBarLayout;
   toolPresets:ToolPresets;
@@ -110,6 +112,7 @@ export const defaultWorkspace: Workspace = {
   chartTemplates: [],
   alerts: [],
   decisions: [],
+  watchlists:structuredClone(defaultWatchlists),
   favoriteDrawingTools: [...DEFAULT_FAVORITE_TOOLS],
   favoriteBar:{...DEFAULT_FAVORITE_BAR},
   toolPresets:{},
@@ -165,6 +168,7 @@ export function parseWorkspace(value: unknown): Workspace {
     chartTemplates: parseChartTemplates(raw.chartTemplates),
     alerts: Array.isArray(raw.alerts)?raw.alerts.filter(isPriceAlert):[],
     decisions: parseDecisionRecords(raw.decisions),
+    watchlists:parseWatchlists(raw.watchlists),
     favoriteDrawingTools: parseFavoriteTools(raw.favoriteDrawingTools),
     favoriteBar:parseFavoriteBar(raw.favoriteBar),
     toolPresets:parseToolPresets(raw.toolPresets),
@@ -179,5 +183,5 @@ export function loadWorkspace(): Workspace {
   }
 }
 export function serializeWorkspace(workspace: Workspace): string {
-  return JSON.stringify({ format: "market-terminal-workspace", version: 26, preferences: workspace }, null, 2);
+  return JSON.stringify({ format: "market-terminal-workspace", version: 27, preferences: workspace }, null, 2);
 }
