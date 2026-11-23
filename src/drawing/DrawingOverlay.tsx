@@ -118,27 +118,42 @@ export function DrawingOverlay({
     ...(selectedTool==="highlighter"?{strokeWidth:16,opacity:.28}:{})
   });
 
-  // Chart's time scale changes independently of React when the user pans or zooms.
+  // Lightweight Charts updates geometry outside React. Compare chart geometry,
+  // not cursor positions: merely moving the crosshair must not rerender hundreds
+  // of drawing SVGs. Two price probes detect vertical zoom/scale changes even
+  // when time range is stationary; range and plot dimensions detect pan/resize.
   useEffect(() => {
-    const refresh = () => {
-      if (animationFrame.current !== null) return;
-      animationFrame.current = requestAnimationFrame(() => {
-        animationFrame.current = null;
-        setRevision(n => n + 1);
+    let lastProjection="";
+    const refresh=()=>{
+      const scale=chart.timeScale(),range=scale.getVisibleLogicalRange();
+      const price=candles.at(-1)?.close??1;
+      const probeA=series.priceToCoordinate(price);
+      const probeB=series.priceToCoordinate(price*1.01);
+      const projection=[
+        range?.from,range?.to,scale.width(),scale.height(),
+        svgRef.current?.clientHeight,probeA,probeB
+      ].join("|");
+      if(projection===lastProjection)return;
+      lastProjection=projection;
+      if(animationFrame.current!==null)return;
+      animationFrame.current=requestAnimationFrame(()=>{
+        animationFrame.current=null;
+        setRevision(n=>n+1);
       });
     };
-    const observer = new ResizeObserver(refresh);
-    if (svgRef.current) observer.observe(svgRef.current);
+    const observer=new ResizeObserver(refresh);
+    if(svgRef.current)observer.observe(svgRef.current);
     chart.timeScale().subscribeVisibleLogicalRangeChange(refresh);
     chart.subscribeCrosshairMove(refresh);
-    return () => {
+    refresh();
+    return ()=>{
       observer.disconnect();
       chart.timeScale().unsubscribeVisibleLogicalRangeChange(refresh);
       chart.unsubscribeCrosshairMove(refresh);
-      if (animationFrame.current !== null) cancelAnimationFrame(animationFrame.current);
-      animationFrame.current = null;
+      if(animationFrame.current!==null)cancelAnimationFrame(animationFrame.current);
+      animationFrame.current=null;
     };
-  }, [chart]);
+  },[chart,series,candles]);
 
   useEffect(() => {
     gestureRef.current = null;
