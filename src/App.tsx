@@ -33,6 +33,10 @@ import { panelWidthAfterDrag, panelWidthAfterKey } from "./layout";
 import {calculatePosition,defaultPositionTarget} from "./analysis/positionDrawing";
 import { AlertsCenter } from "./alerts/AlertsCenter";
 import { ReplayControls } from "./replay/ReplayControls";
+import { ReplayLab } from "./replay/ReplayLab";
+import { drawingVisibleInReplay } from "./replay/visibility";
+import { WatchlistPanel } from "./watchlist/WatchlistPanel";
+import { RiskPlanner } from "./analysis/RiskPlanner";
 import { beginReplay,stepReplay,seekReplay,toggleReplayPlayback,setReplaySpeed,visibleReplayCandles,type ReplayState,type ReplaySpeed } from "./replay/model";
 import { evaluatePriceAlerts, createPriceAlert, type PriceAlert } from "./alerts/engine";
 import { ChartContextLens } from "./context/ChartContextLens";
@@ -43,20 +47,21 @@ import {createCustomStudy} from "./indicators/formula";
 import { defaultWorkspace, loadWorkspace, parseWorkspace, serializeWorkspace, type Workspace, type Level } from "./workspace";
 import { CommandPalette } from "./commands/CommandPalette";
 
-type Page = "home" | "terminal" | "alerts" | "library" | "settings";
+type Page = "home" | "terminal" | "sizing" | "alerts" | "library" | "settings";
 type Notice = { id: number; message: string; kind: "success" | "info" | "error" };
 const frames: Frame[] = ALL_FRAMES;
 const studyKeys=Object.keys(defaultStudies) as (keyof StudySettings)[];
 const menu: { id: Page; label: string; Icon: typeof Home }[] = [
   { id: "home", label: "Overview", Icon: Home },
-  { id: "terminal", label: "Terminal", Icon: ChartCandlestick },
+  { id: "terminal", label: "Chart workspace", Icon: ChartCandlestick },
+  { id: "sizing", label: "Position sizing", Icon: Ruler },
   { id: "alerts", label: "Price Alerts", Icon: Bell },
   { id: "library", label: "Workspace", Icon: Layers },
   { id: "settings", label: "Preferences", Icon: Settings2 },
 ];
 const marketList = Object.keys(symbols) as SymbolId[];
 const titles: Record<Page, string> = {
-  home: "Market overview", terminal: "Trading terminal", alerts:"Price alerts", library: "My workspace", settings: "Preferences"
+  home: "Market overview", terminal: "Chart workspace", sizing: "Position sizing", alerts:"Price alerts", library: "My workspace", settings: "Preferences"
 };
 
 const studio = !new URLSearchParams(window.location.search).has("classic");
@@ -165,7 +170,7 @@ export default function App() {
   }) : "—";
   const displaySourceLabel=replay?"REPLAY · HISTORICAL SNAPSHOT":sourceStateLabel;
   const replayDrawings=useMemo(()=>replay?
-    currentDrawings.filter(d=>d.start.time<=replayTime&&d.end.time<=replayTime):currentDrawings,
+    currentDrawings.filter(d=>drawingVisibleInReplay(d,replayTime)):currentDrawings,
     [replay,currentDrawings,replayTime]);
   const registerChartSurface=(id:string,surface:ChartSurface|null)=>{
     if(surface)linkedChartRefs.current[id]=surface;
@@ -593,7 +598,7 @@ export default function App() {
       const json: unknown = JSON.parse(await file.text());
       if (!json || typeof json !== "object" || Array.isArray(json) ||
         !("format" in json) || json.format !== "market-terminal-workspace" ||
-        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15 && json.version !== 16 && json.version !== 17 && json.version !== 18 && json.version !== 19 && json.version !== 20 && json.version !== 21 && json.version !== 22 && json.version !== 23 && json.version !== 24 && json.version !== 25 && json.version !== 26) ||
+        !("version" in json) || (json.version !== 27 && json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15 && json.version !== 16 && json.version !== 17 && json.version !== 18 && json.version !== 19 && json.version !== 20 && json.version !== 21 && json.version !== 22 && json.version !== 23 && json.version !== 24 && json.version !== 25 && json.version !== 26) ||
         !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
       const workspace = parseWorkspace(json);
       setReplay(null);
@@ -681,6 +686,18 @@ export default function App() {
     window.addEventListener("keydown", drawingShortcuts);
     return () => window.removeEventListener("keydown", drawingShortcuts);
   }, [prefs.drawings]);
+  useEffect(()=>{
+    if(!replay||page!=="terminal")return;
+    const onReplayKey=(event:KeyboardEvent)=>{
+      if(event.altKey||event.ctrlKey||event.metaKey||event.shiftKey||
+        (event.target instanceof HTMLElement&&event.target.closest("input,textarea,select,button,[contenteditable='true']")))return;
+      if(event.key==="ArrowRight"){event.preventDefault();setReplay(s=>s?stepReplay({...s,playing:false},1):null);}
+      if(event.key==="ArrowLeft"){event.preventDefault();setReplay(s=>s?stepReplay({...s,playing:false},-1):null);}
+      if(event.code==="Space"){event.preventDefault();setReplay(s=>s?toggleReplayPlayback(s):null);}
+    };
+    window.addEventListener("keydown",onReplayKey);
+    return()=>window.removeEventListener("keydown",onReplayKey);
+  },[replay!==null,page]);
   useEffect(()=>{
     if(!replay?.playing)return;
     const timer=window.setInterval(()=>setReplay(current=>current?stepReplay(current,1):null),
@@ -787,6 +804,9 @@ export default function App() {
           <div className="summary-grid"><div><span>Current timeframe</span><strong>{prefs.frame.toUpperCase()}</strong></div><div><span>Saved price levels</span><strong>{prefs.levels.length}</strong></div><div><span>Core drawing quota</span><strong>None</strong></div></div>
           <p className="data-caveat"><Activity size={16}/> Demo instruments use synthetic prices. Opt-in Binance Spot BTC/USDT is available in the terminal; forex, equities and indices are not connected to live feeds.</p>
         </div>}
+        {page === "sizing" && <RiskPlanner value={prefs.riskPlanner}
+          onChange={riskPlanner=>update({riskPlanner})} symbol={prefs.symbol}
+          quotePrice={viewedLast} sourceLabel={displaySourceLabel}/>}
         {page === "terminal" && <div className={"terminal-layout " + (prefs.rightPanelOpen ? "" : "panel-closed")}
           style={{"--right-panel-width": prefs.rightPanelWidth + "px"} as CSSProperties}>
           <section className="terminal-center">
@@ -1088,10 +1108,16 @@ export default function App() {
             {replay && <ReplayControls replay={replay}
               onTogglePlay={()=>setReplay(s=>s?toggleReplayPlayback(s):s)}
               onStep={()=>setReplay(s=>s?stepReplay({...s,playing:false}):s)}
+              onStepBack={()=>setReplay(s=>s?stepReplay({...s,playing:false},-1):s)}
               onSeek={index=>setReplay(s=>s?seekReplay(s,index):s)}
               onSpeed={(speed:ReplaySpeed)=>setReplay(s=>s?setReplaySpeed(s,speed):s)}
               onExit={exitReplay}
             />}
+            {replay && <ReplayLab key={[replay.symbol,replay.frame,replay.source,replay.snapshot[0]?.time].join(":")}
+              replay={replay} onSave={study=>{
+                setPrefs(old=>({...old,replayStudies:[study,...old.replayStudies.filter(item=>item.id!==study.id)].slice(0,200)}));
+                notify("Replay study saved to your local workspace.");
+              }}/>}
             {studio && <div className="studio-tool-state" role="status">
               {selectedObject && !drawingTool && !drawMode ? <>
                 <Pencil size={14}/><strong>{selectedObject.tool}</strong>
@@ -1218,10 +1244,10 @@ export default function App() {
                 onClick={()=>setPanelTab("context")}><Activity size={15}/> Context</button>
             </div>
             {panelTab==="markets"&&<div className="workspace-rail-content" id="rail-panel-markets" role="tabpanel" aria-labelledby="rail-tab-markets">
-            {studio && !replay ? <MarketBoard compact frame={prefs.frame} selected={prefs.symbol} onOpen={openDemoMarket}/> : <>
-            <div className="panel-head"><strong>Watchlist</strong><button aria-label="Search instruments" title="Search instruments" className="mini-button" onClick={() => setSearchOpen(true)}><Search size={16}/></button></div>
-            <div className="watchlist">{marketList.map(symbol => <button key={symbol} onClick={() => openInstrument(symbol)} className={symbol === prefs.symbol ? "selected" : ""}><span><b>{symbols[symbol].label}</b><small>{symbols[symbol].market.split(" · ")[0]}</small></span><ChevronRight size={15}/></button>)}</div>
-            </>}
+            <WatchlistPanel items={prefs.watchlist} favorites={prefs.watchlistFavorites} selected={prefs.symbol}
+              onOpen={openInstrument} onChange={(watchlist,watchlistFavorites)=>{
+                update({watchlist,watchlistFavorites});notify("Watchlist saved locally.");
+              }}/>
             <div className="panel-head separated"><strong>Price levels</strong><span className="count">{currentLevels.length}</span></div>
             <div className="price-form"><input type="number" min="0" step="any" aria-label="Level price" placeholder={last.toFixed(symbols[prefs.symbol].precision)} value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === "Enter") addLevel(draft.trim() ? Number(draft) : last); }}/><button aria-label="Add price level" title="Add price level" onClick={() => addLevel(draft.trim() ? Number(draft) : last)}><Plus size={17}/></button></div>
             <div className="level-list">{currentLevels.map(level =>
@@ -1374,6 +1400,21 @@ export default function App() {
           <div className="section-head"><div><small>PORTABILITY</small><h2>Back up your work</h2></div></div>
           <div className="action-grid"><button onClick={exportWorkspace}><Download size={23}/><strong>Export workspace</strong><span>Download your chart setup, drawings and workspace settings as JSON.</span></button><button onClick={() => inputFile.current?.click()}><Upload size={23}/><strong>Import workspace</strong><span>Restore a compatible exported workspace from your device.</span></button></div>
           <input ref={inputFile} type="file" accept=".json,application/json" className="visually-hidden" onChange={importWorkspace}/>
+          <section className="peak-study-archive" aria-label="Saved simulation studies">
+            <div className="section-head"><div><small>HISTORICAL RESEARCH</small><h2>Saved replay studies</h2>
+              <p>Completed hypothetical scenarios from frozen market snapshots. No broker orders.</p></div>
+              <span className="count">{prefs.replayStudies.length}</span></div>
+            {prefs.replayStudies.length===0?<p>No completed studies saved yet. Start a chart replay to test a scenario.</p>:
+              <div className="peak-study-archive-list">{prefs.replayStudies.map(study=><div className="peak-study-archive-row" key={study.id}>
+                <span><strong>{study.scenario.symbol} · {study.scenario.frame} · {study.scenario.side.toUpperCase()}</strong>
+                  <small>{study.scenario.source==="demo"?"SYNTHETIC":"BINANCE SPOT"} · {study.status.toUpperCase()}
+                    {study.ambiguous?" · ambiguous candle":""} · {new Date(study.savedAt).toLocaleDateString()}</small></span>
+                <strong>{study.rMultiple===null?"—":study.rMultiple.toFixed(2)+"R"}</strong>
+                <button type="button" aria-label={"Remove saved study "+study.id} title="Remove study"
+                  onClick={()=>{update({replayStudies:prefs.replayStudies.filter(item=>item.id!==study.id)});notify("Replay study removed.");}}>
+                  <Trash2 size={14}/></button>
+              </div>)}</div>}
+          </section>
         </div>}
         {page === "settings" && <div className="content-page preferences-page">
           <div className="section-head first"><div><small>PERSONALIZE</small><h1>Workspace preferences</h1><p>Make the experience yours. Changes are saved automatically in this browser.</p></div></div>
