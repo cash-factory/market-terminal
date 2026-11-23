@@ -30,7 +30,7 @@ test("precision line tools have working mouse anchors, plotting and persisted id
   await draw(page,[.25,.32],[.55,.65]);
   await expect(page.locator(".drawing-reference")).toHaveCount(4);
   const json=await page.evaluate(()=>JSON.parse(localStorage.getItem("market-terminal-workspace")??"{}"));
-  expect(json.version).toBe(26);
+  expect(json.version).toBe(28);
   expect(json.preferences.drawings.map((drawing:{tool:string})=>drawing.tool))
     .toEqual(["horizontal-ray","vertical-line","cross-line","extended-line"]);
   expect(json.preferences.drawings[0].start).toEqual(json.preferences.drawings[0].end);
