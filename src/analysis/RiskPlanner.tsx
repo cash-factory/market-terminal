@@ -36,7 +36,7 @@ export function RiskPlanner({ value, onChange, symbol, quotePrice, sourceLabel }
   return <div className="content-page risk-screen">
     <div className="risk-intro">
       <div>
-        <div className="eyebrow">TRADING TOOLS / RISK PLANNER</div>
+        <div className="eyebrow">PEAK ANALYSIS / POSITION SIZING</div>
         <h1>Plan risk before entry.</h1>
         <p>Explore position size, potential loss and reward using your own assumptions. No orders are placed, and these calculations are independent of broker execution.</p>
       </div>
