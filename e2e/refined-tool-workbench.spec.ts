@@ -86,8 +86,16 @@ test("translucent highlighter is traced and saved as actual points",async({page}
   expect(state.preferences.drawings[0].opacity).toBe(.28);
   expect(state.preferences.drawings[0].points.length).toBeGreaterThan(2);
   expect(state.preferences.drawings[0].strokeWidth).toBe(16);
+  await page.getByRole("button",{name:"Settings for drawing 1"}).click();
+  const dialog=page.getByRole("dialog",{name:/Drawing settings/});
+  await dialog.getByRole("slider",{name:"Highlighter tip width"}).fill("24");
+  await dialog.getByRole("slider",{name:"Drawing opacity"}).fill("0.4");
+  await dialog.getByRole("button",{name:"Apply changes"}).click();
   await page.reload();
+  const updated=await page.evaluate(()=>JSON.parse(localStorage.getItem("market-terminal-workspace")??"{}"));
+  expect(updated.preferences.drawings[0]).toMatchObject({strokeWidth:24,opacity:.4});
   await expect(page.locator(".drawing-highlighter")).toHaveCount(1);
+  await expect(page.locator(".drawing-highlighter")).toHaveAttribute("stroke-width","24");
 });
 
 test("mobile layered families, subgroup controls and guide stay within the phone viewport",async({page})=>{
