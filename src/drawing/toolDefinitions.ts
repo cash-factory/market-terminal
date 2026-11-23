@@ -75,7 +75,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
     description:"Attach an editable note to a market coordinate.",keywords:"comment annotation"},
   {id:"highlighter",label:"Highlighter",group:"Shapes",points:2,
     description:"Trace a translucent freehand path to emphasize chart structure without hiding candles.",keywords:"ink marker brush translucent highlight"},
-    {id:"brush",label:"Freehand brush",group:"Annotations",points:2,
+    {id:"brush",label:"Freehand brush",group:"Shapes",points:2,
     description:"Draw a continuous hand-traced path.",keywords:"sketch pencil"},
   {id:"date-price-range",label:"Date + price range",group:"Measurement",points:2,
     description:"Measure time, observed bars, absolute and percentage price movement together.",keywords:"range combined duration ruler"},
