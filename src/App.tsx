@@ -1321,6 +1321,18 @@ export default function App() {
                         if(event.target.value)setPositionTarget(drawing,Number(event.target.value));
                       }}/>
                   </label>}
+                {(drawing.tool==="long-position"||drawing.tool==="short-position")&&
+                  <div className="drawing-position-alerts" role="group" aria-label={"Position alerts "+(index+1)}>
+                    <button type="button" aria-label={"Alert at position stop "+(index+1)}
+                      title="Arm an in-tab crossing alert at the stop price"
+                      onClick={()=>armLevelAlert(drawing.end.price)}><Bell size={12}/> Stop alert</button>
+                    <button type="button" aria-label={"Alert at position target "+(index+1)}
+                      title="Arm an in-tab crossing alert at the target price"
+                      disabled={!drawing.target&&!defaultPositionTarget(drawing.tool,drawing.start.price,drawing.end.price)}
+                      onClick={()=>armLevelAlert(drawing.target?.price??
+                        defaultPositionTarget(drawing.tool,drawing.start.price,drawing.end.price)??0)}>
+                      <Bell size={12}/> Target alert</button>
+                  </div>}
                 {noteEditingId===drawing.id&&drawing.tool==="text"&&
                   <div className="drawing-note-edit">
                     <textarea aria-label="Annotation text" maxLength={2000} value={noteDraft}

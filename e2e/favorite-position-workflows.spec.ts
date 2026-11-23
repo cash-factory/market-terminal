@@ -98,3 +98,23 @@ test("short position calculations and cost assumptions are independent of long p
  await expect(dialog.getByText("Estimated stop loss, after costs")).toBeVisible();
  await expect(dialog.getByText("Net reward / risk")).toBeVisible();
 });
+
+test("position stop and target can arm source-aware in-tab crossing alerts",async({page})=>{
+ await page.goto("/market-terminal/?classic");
+ await page.getByRole("button",{name:"More drawing tools"}).click();
+ await page.getByRole("group",{name:"Advanced drawing tools"}).getByRole("button",{name:"Long position",exact:true}).click();
+ await draw(page,[.29,.35],[.63,.62]);
+ await page.getByRole("button",{name:"Alert at position stop 1"}).click();
+ await page.getByRole("button",{name:"Alert at position target 1"}).click();
+ await expect.poll(async()=>{
+   const state=await page.evaluate(()=>JSON.parse(localStorage.getItem("market-terminal-workspace")??"{}"));
+   return state.preferences?.alerts?.length;
+ }).toBe(2);
+ const state=await page.evaluate(()=>JSON.parse(localStorage.getItem("market-terminal-workspace")??"{}"));
+ const position=state.preferences.drawings[0];
+ const prices=state.preferences.alerts.map((alert:{price:number})=>alert.price);
+ expect(prices).toContain(position.end.price);
+ expect(prices).toContain(position.start.price+(position.start.price-position.end.price)*2);
+ expect(state.preferences.alerts.every((alert:{source:string;symbol:string})=>
+   alert.source==="demo"&&alert.symbol==="EURUSD")).toBe(true);
+});

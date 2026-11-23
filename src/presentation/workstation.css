@@ -326,3 +326,9 @@
   .studio .tool-shelf *,
   .studio .overview-links button {animation:none!important;transition:none!important}
 }
+
+/* Position alerts remain explicit, source-aware actions in the object inspector. */
+.studio .drawing-position-alerts,.drawing-position-alerts{display:flex;flex-wrap:wrap;gap:6px;padding:6px 0 8px}
+.studio .drawing-position-alerts button,.drawing-position-alerts button{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);border-radius:4px;padding:5px 7px;background:var(--raised);color:var(--soft);font-size:10px}
+.drawing-position-alerts button:hover{border-color:var(--accent-border);color:var(--text)}
+.drawing-position-alerts button:disabled{opacity:.4;cursor:not-allowed}
