@@ -4,13 +4,13 @@ import type {
 } from "lightweight-charts";
 import { frameSeconds, symbols, type Frame } from "../market";
 import {
-  translateDrawing,
   type ChartAnchor, type Drawing, type DrawingTool
 } from "./types";
 import {
   inChartPlot, logicalFromTime, pointerDistance, timeFromLogical, type ChartPoint
 } from "./geometry";
 import { snapAnchorToOhlc, measurement } from "./snap";
+import {translateDrawingOnChart} from "./interactions";
 import { horizontalReference, verticalReference,
   observedBarCount, formatElapsedDuration } from "./precision";
 import { ONE_ANCHOR_TOOLS,TOOL_BY_ID } from "./toolDefinitions";
@@ -26,6 +26,7 @@ import {calculatePositionMetrics,effectivePositionSettings,formatPositionCash} f
 type Projected = { a: ChartPoint; b: ChartPoint };
 type Gesture = {
   kind: "create" | "move" | "start" | "end" | "control" | "target" | "vertex";
+  pointerId:number;
   vertexIndex?:number;
   origin: ChartPoint;
   original?: Drawing;
@@ -45,7 +46,7 @@ interface Props {
   color: string;
   magnetEnabled: boolean;
   onAdd: (drawing: Drawing) => void;
-  onUpdate: (drawing: Drawing,editKind?:"move"|"start"|"end"|"control"|"target"|"vertex") => void;
+  onUpdate: (drawing: Drawing,editKind?:"move"|"start"|"end"|"control"|"target"|"vertex",groupCandidates?:Drawing[]) => void;
   onDelete: (id: string) => void;
   onDeleteMany: (ids: string[]) => void;
   selectedIds: string[];
@@ -63,6 +64,12 @@ export function DrawingOverlay({
   const pendingChannelRef=useRef<PendingChannel|null>(null);
   const pendingMultiRef=useRef<{tool:DrawingTool;points:ChartAnchor[];required:number}|null>(null);
   const [draft, setDraftState] = useState<Drawing | null>(null);
+  const [groupDrafts,setGroupDraftState]=useState<Drawing[]>([]);
+  const groupDraftRef=useRef<Drawing[]>([]);
+  const setGroupDrafts=(next:Drawing[])=>{
+    groupDraftRef.current=next;
+    setGroupDraftState(next);
+  };
   const candleTimes=useMemo(()=>candles.map(c=>Number(c.time)),[candles]);
   const [, setRevision] = useState(0);
   const animationFrame = useRef<number | null>(null);
@@ -76,16 +83,16 @@ export function DrawingOverlay({
     const rect = svgRef.current!.getBoundingClientRect();
     return { x: event.clientX - rect.left, y: event.clientY - rect.top };
   };
-  const anchorAt = (point: ChartPoint): ChartAnchor | null => {
+  const anchorAt = (point: ChartPoint, allowMagnet=magnetEnabled, allowOutside=false): ChartAnchor | null => {
     const scale = chart.timeScale();
-    if (!inChartPlot(point, scale.width(), svgRef.current!.clientHeight - scale.height())) return null;
+    if (!allowOutside && !inChartPlot(point, scale.width(), svgRef.current!.clientHeight - scale.height())) return null;
     const logical = scale.coordinateToLogical(point.x);
     const price = series.coordinateToPrice(point.y);
     if (logical === null || price === null || !Number.isFinite(price) || price <= 0) return null;
     const time = timeFromLogical(logical, candles, frameSeconds[frame]);
     if (time === null) return null;
     const anchor={time,price};
-    if(!magnetEnabled)return anchor;
+    if(!allowMagnet)return anchor;
     const snapped=snapAnchorToOhlc(anchor,point,candles,
       timestamp=>{
         const logical=logicalFromTime(timestamp,candles,frameSeconds[frame]);
@@ -112,29 +119,49 @@ export function DrawingOverlay({
     ...(selectedTool==="highlighter"?{strokeWidth:16,opacity:.28}:{})
   });
 
-  // Chart's time scale changes independently of React when the user pans or zooms.
+  // Lightweight Charts updates geometry outside React. Compare chart geometry,
+  // not cursor positions: merely moving the crosshair must not rerender hundreds
+  // of drawing SVGs. Two price probes detect vertical zoom/scale changes even
+  // when time range is stationary; range and plot dimensions detect pan/resize.
   useEffect(() => {
-    const refresh = () => {
-      if (animationFrame.current !== null) return;
-      animationFrame.current = requestAnimationFrame(() => {
-        animationFrame.current = null;
-        setRevision(n => n + 1);
+    let lastProjection="";
+    const refresh=()=>{
+      const scale=chart.timeScale(),range=scale.getVisibleLogicalRange();
+      const price=candles.at(-1)?.close??1;
+      const probeA=series.priceToCoordinate(price);
+      const probeB=series.priceToCoordinate(price*1.01);
+      const projection=[
+        range?.from,range?.to,scale.width(),scale.height(),
+        svgRef.current?.clientHeight,probeA,probeB
+      ].join("|");
+      if(projection===lastProjection)return;
+      lastProjection=projection;
+      if(animationFrame.current!==null)return;
+      animationFrame.current=requestAnimationFrame(()=>{
+        animationFrame.current=null;
+        setRevision(n=>n+1);
       });
     };
-    const observer = new ResizeObserver(refresh);
-    if (svgRef.current) observer.observe(svgRef.current);
+    const observer=new ResizeObserver(refresh);
+    if(svgRef.current)observer.observe(svgRef.current);
+    // Price-scale dragging and wheel zoom do not always emit chart crosshair
+    // events. Observe only this chart surface, not every move on window.
+    const surface=svgRef.current?.parentElement;
+    surface?.addEventListener("pointermove",refresh,{passive:true});
+    surface?.addEventListener("wheel",refresh,{passive:true});
     chart.timeScale().subscribeVisibleLogicalRangeChange(refresh);
     chart.subscribeCrosshairMove(refresh);
-    window.addEventListener("pointermove", refresh, { passive: true });
-    return () => {
+    refresh();
+    return ()=>{
       observer.disconnect();
+      surface?.removeEventListener("pointermove",refresh);
+      surface?.removeEventListener("wheel",refresh);
       chart.timeScale().unsubscribeVisibleLogicalRangeChange(refresh);
       chart.unsubscribeCrosshairMove(refresh);
-      window.removeEventListener("pointermove", refresh);
-      if (animationFrame.current !== null) cancelAnimationFrame(animationFrame.current);
-      animationFrame.current = null;
+      if(animationFrame.current!==null)cancelAnimationFrame(animationFrame.current);
+      animationFrame.current=null;
     };
-  }, [chart]);
+  },[chart,series,candles]);
 
   useEffect(() => {
     gestureRef.current = null;
@@ -142,44 +169,20 @@ export function DrawingOverlay({
     pendingChannelRef.current=null;
     pendingMultiRef.current=null;
     setDraft(null);
+    setGroupDrafts([]);
     if (tool) onSelectionChange([]);
   }, [symbol, tool, frame]);
   useEffect(() => {
     onSelectionChange([]);
   }, [symbol, frame]);
 
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        gestureRef.current = null;
-        pendingRef.current = null;
-        pendingChannelRef.current=null;
-    pendingMultiRef.current=null;
-        setDraft(null);
-        onSelectionChange([]);
-        return;
-      }
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement ||
-          event.target instanceof HTMLSelectElement) return;
-      if ((event.key === "Delete" || event.key === "Backspace") && selectedIds.length) {
-        const removable=selectedIds.filter(id=>drawings.some(d=>d.id===id&&!d.locked));
-        if(removable.length){
-          event.preventDefault();
-          if(removable.length===1)onDelete(removable[0]);
-          else onDeleteMany(removable);
-          onSelectionChange([]);
-        }
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [drawings, onDelete, onDeleteMany, selectedIds, onSelectionChange]);
+  // Workspace-level shortcuts prevent competing handlers in multi-pane layouts.
 
   const capture = (event: ReactPointerEvent<SVGElement>) => {
     try { svgRef.current?.setPointerCapture(event.pointerId); } catch { /* pointer was released */ }
   };
   const beginEdit = (event: ReactPointerEvent<SVGElement>, drawing: Drawing, kind: Gesture["kind"],vertexIndex?:number) => {
-    if (tool || event.button !== 0) return;
+    if (tool || event.button !== 0 || !event.isPrimary || gestureRef.current) return;
     // Preserve the browser's click/double-click sequence for selected shapes.
     // Suppress native gestures only if the pointer actually begins dragging.
     event.stopPropagation();
@@ -197,8 +200,9 @@ export function DrawingOverlay({
     // Do not capture a stationary object-selection click: pointer capture
     // retargets the subsequent click to the SVG root and breaks double-click.
     // Acquire capture only once an actual drag begins.
-    gestureRef.current = { kind, origin: pointFromEvent(event), original: drawing,vertexIndex };
+    gestureRef.current = { kind, origin: pointFromEvent(event), original: drawing,vertexIndex,pointerId:event.pointerId };
     setDraft(null);
+    setGroupDrafts([]);
   };
   const onPointerDown = (event: ReactPointerEvent<SVGSVGElement>) => {
     // The transparent plot hit-surface is an SVG child. Prior versions rejected
@@ -206,7 +210,7 @@ export function DrawingOverlay({
     const target = event.target;
     const onPlotSurface = target === event.currentTarget ||
       (target instanceof SVGRectElement && target.dataset.drawingSurface === "true");
-    if (!tool || event.button !== 0 || !onPlotSurface) return;
+    if (!tool || event.button !== 0 || !event.isPrimary || gestureRef.current || !onPlotSurface) return;
     const point = pointFromEvent(event);
     const anchor = anchorAt(point);
     if (!anchor) return;
@@ -236,7 +240,7 @@ export function DrawingOverlay({
     }
     capture(event);
     gestureRef.current = {
-      kind: "create", origin: point,
+      kind: "create", origin: point, pointerId:event.pointerId,
       first: pendingRef.current?.tool === tool ? pendingRef.current.first : anchor
     };
     const drawing=makeDrawing(gestureRef.current.first!, anchor, tool);
@@ -246,8 +250,10 @@ export function DrawingOverlay({
     onSelectionChange([]);
   };
   const onPointerMove = (event: ReactPointerEvent<SVGSVGElement>) => {
-    const point = pointFromEvent(event);
+    if(!event.isPrimary)return;
     const active = gestureRef.current;
+    if(active&&active.pointerId!==event.pointerId)return;
+    const point = pointFromEvent(event);
     if (!active) {
       if(pendingMultiRef.current&&pendingMultiRef.current.tool===tool){
         const next=anchorAt(point),pending=pendingMultiRef.current;
@@ -294,6 +300,28 @@ export function DrawingOverlay({
     if (!originalProjected) return;
     const dx = point.x - active.origin.x;
     const dy = point.y - active.origin.y;
+    if(active.kind==="move"){
+      const members=active.original.groupId?
+        drawings.filter(item=>item.groupId===active.original!.groupId):[active.original];
+      const moved=members.map(item=>translateDrawingOnChart(item,{x:dx,y:dy},
+        anchor=>project({...item,start:anchor,end:anchor})?.a??null,
+        position=>anchorAt(position,false,true)));
+      if(moved.every((item):item is Drawing=>item!==null)){
+        const primary=moved.find(item=>item.id===active.original!.id);
+        if(primary){
+          setDraft(primary);
+          setGroupDrafts(moved.filter(item=>item.id!==primary.id));
+        }
+      }else{
+        // A locked sibling blocks the group; show the attempted movement for
+        // feedback, but the workspace will atomically reject the commit.
+        const primary=translateDrawingOnChart(active.original,{x:dx,y:dy},
+          anchor=>project({...active.original!,start:anchor,end:anchor})?.a??null,
+          position=>anchorAt(position,false,true));
+        if(primary){setDraft(primary);setGroupDrafts([]);}
+      }
+      return;
+    }
     if(active.kind==="vertex"&&active.original.points&&active.vertexIndex!==undefined){
       const index=active.vertexIndex,vertex=active.original.points[index];
       if(vertex){
@@ -336,8 +364,7 @@ export function DrawingOverlay({
     const end = active.kind === "start" ? active.original.end :
       anchorAt({ x: originalProjected.b.x + dx, y: originalProjected.b.y + dy });
     if (start && end) {
-      const changed=active.kind==="move"?translateDrawing(active.original,start,end):
-        {...active.original,start,end,
+      const changed={...active.original,start,end,
           ...(active.original.points?{points:active.original.points.map((p,i)=>
             active.kind==="start"&&i===0?start:active.kind==="end"&&i===1?end:p)}:{})};
       setDraft(ONE_ANCHOR_TOOLS.has(active.original.tool)
@@ -346,7 +373,7 @@ export function DrawingOverlay({
   };
   const onPointerUp = (event: ReactPointerEvent<SVGSVGElement>) => {
     const active = gestureRef.current;
-    if (!active) return;
+    if (!active || active.pointerId!==event.pointerId) return;
     gestureRef.current = null;
     const point = pointFromEvent(event);
     const distance = pointerDistance(active.origin, point);
@@ -398,9 +425,12 @@ export function DrawingOverlay({
       }
     } else {
       const committed = draftRef.current;
+      const groupCandidates=active.original?.groupId&&active.kind==="move"?
+        groupDraftRef.current:undefined;
       setDraft(null);
+      setGroupDrafts([]);
       if (distance >= 2 && committed && active.original) {
-        onUpdate(committed,active.kind);
+        onUpdate(committed,active.kind,groupCandidates);
       }
     }
   };
@@ -410,6 +440,7 @@ export function DrawingOverlay({
     pendingChannelRef.current=null;
     pendingMultiRef.current=null;
     setDraft(null);
+    setGroupDrafts([]);
   };
 
   const renderDrawing = (drawing: Drawing) => {
@@ -767,13 +798,17 @@ export function DrawingOverlay({
   return <svg ref={svgRef} className={"drawing-overlay " + (tool ? "armed" : "")}
     aria-label={tool ? "Draw " + tool + ": " + (requiresMultiPoint(tool)?multiPointCount(tool):ONE_ANCHOR_TOOLS.has(tool)?1:2) + " anchors required" : "Select chart drawings"}
     onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
-    onPointerCancel={cancel} onLostPointerCapture={() => { /* normal end handled by pointerup */ }}>
+    onPointerCancel={event=>{if(gestureRef.current?.pointerId===event.pointerId)cancel();}}
+    onLostPointerCapture={event=>{
+      if(gestureRef.current?.pointerId===event.pointerId)cancel();
+    }}>
     {/* A real transparent SVG rect is required: empty SVG pixels are not reliably
         pointer targets in every browser. Restrict interception to chart plotting area. */}
     <rect className="drawing-plot-surface" data-drawing-surface="true"
       x={0} y={0} width="100%" height="100%"
       fill="transparent" pointerEvents={tool ? "all" : "none"}/>
-    {drawings.filter(d => d.symbol === symbol && isDrawingVisibleAtFrame(d,frame)).map(d => renderDrawing(draft?.id === d.id ? draft : d))}
+    {drawings.filter(d => d.symbol === symbol && isDrawingVisibleAtFrame(d,frame)).map(d =>
+      renderDrawing(draft?.id===d.id?draft:groupDrafts.find(peer=>peer.id===d.id)??d))}
     {draft?.id === "preview" && renderDrawing(draft)}
     {tool&&pendingMultiRef.current&&<g className="drawing-anchor-progress" pointerEvents="none">
       <rect x={12} y={12} width={188} height={35} rx={6}

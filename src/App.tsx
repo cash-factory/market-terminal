@@ -262,8 +262,13 @@ export default function App() {
     }]}));
     setDrawMode(false);notify("Comparison chart price level saved.");
   };
-  const updateDrawing = (drawing: Drawing, editKind?:"move"|"start"|"end"|"control"|"target"|"vertex") => {
-    commitDrawings(updateDrawingAndGroup(prefs.drawings,drawing,editKind),"Drawing updated.");
+  const updateDrawing = (drawing: Drawing, editKind?:"move"|"start"|"end"|"control"|"target"|"vertex", groupCandidates?:Drawing[]) => {
+    try{
+      const next=updateDrawingAndGroup(prefs.drawings,drawing,editKind,groupCandidates);
+      commitDrawings(next,"Drawing updated.");
+    }catch(error){
+      notify(error instanceof Error?error.message:"Drawing edit was cancelled.","error");
+    }
   };
   const removeDrawing = (id: string) => {
     if(drawingSettingsId===id)setDrawingSettingsId(null);
@@ -272,8 +277,11 @@ export default function App() {
   };
   const removeDrawings=(ids:string[])=>{
     const selection=new Set(ids);
+    const removed=prefs.drawings.filter(d=>selection.has(d.id)&&!d.locked);
+    if(!removed.length)return;
     commitDrawings(prefs.drawings.filter(d=>!selection.has(d.id)||d.locked),
       "Selected unlocked drawings removed. Use Undo to restore.");
+    setDrawingSettingsId(current=>current&&selection.has(current)?null:current);
     setSelectedDrawingIds([]);
   };
   const groupSelectedDrawings=()=>{
@@ -660,7 +668,7 @@ export default function App() {
         event.preventDefault();
         setSearchOpen(value => !value);
       }
-      if (event.key === "Escape") { setSearchOpen(false); setHelpOpen(false); setDrawMode(false); setDrawingTool(null); setStudyMenuOpen(false); setMoreToolsOpen(false); }
+      if (event.key === "Escape") { setSearchOpen(false); setHelpOpen(false); setDrawMode(false); setDrawingTool(null); setStudyMenuOpen(false); setMoreToolsOpen(false); setSelectedDrawingIds([]); }
     };
     window.addEventListener("keydown", shortcut);
     return () => window.removeEventListener("keydown", shortcut);
@@ -686,6 +694,22 @@ export default function App() {
     window.addEventListener("keydown", drawingShortcuts);
     return () => window.removeEventListener("keydown", drawingShortcuts);
   }, [prefs.drawings]);
+  useEffect(()=>{
+    // Delete belongs to one workspace command, not one listener per chart pane.
+    const onDeleteKey=(event:KeyboardEvent)=>{
+      if(!["Delete","Backspace"].includes(event.key)||event.ctrlKey||event.metaKey||event.altKey||
+        !selectedDrawingIds.length)return;
+      const target=event.target;
+      if(target instanceof HTMLElement&&target.closest(
+        "input,textarea,select,[contenteditable='true'],[role='dialog'],.modal-backdrop"))return;
+      const removable=selectedDrawingIds.filter(id=>prefs.drawings.some(d=>d.id===id&&!d.locked));
+      if(!removable.length)return;
+      event.preventDefault();
+      removeDrawings(removable);
+    };
+    window.addEventListener("keydown",onDeleteKey);
+    return()=>window.removeEventListener("keydown",onDeleteKey);
+  },[prefs.drawings,selectedDrawingIds]);
   useEffect(()=>{
     if(!replay||page!=="terminal")return;
     const onReplayKey=(event:KeyboardEvent)=>{

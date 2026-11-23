@@ -37,21 +37,24 @@ export function snapAnchorToOhlc(
   if (!Number.isFinite(tolerancePx) || tolerancePx <= 0 || !candles.length) return none;
   const center = nearestCandleIndex(candles, anchor.time);
   if (center < 0) return none;
-  const bar = candles[center];
-  const x = timeToX(Number(bar.time));
-  if (x === null || !Number.isFinite(x) || Math.abs(point.x-x) > tolerancePx) return none;
-
+  // A financial chart spaces observed candles evenly despite long exchange
+  // closures. Nearest *wall-clock timestamp* need not be nearest *screen point*;
+  // inspect the timestamp neighbor candidates and choose by true pixel distance.
   const fields = ["open","high","low","close"] as const;
   let best: SnapResult = none;
   let closest = tolerancePx;
-  for (const field of fields) {
-    const price = bar[field];
-    const y = priceToY(price);
-    if (y === null || !Number.isFinite(y)) continue;
-    const distance = Math.hypot(point.x-x,point.y-y);
-    if (distance <= closest) {
-      closest = distance;
-      best = {anchor:{time:Number(bar.time),price},snapped:true,field};
+  for(let index=Math.max(0,center-1);index<=Math.min(candles.length-1,center+1);index++){
+    const bar=candles[index];
+    const x=timeToX(Number(bar.time));
+    if(x===null||!Number.isFinite(x)||Math.abs(point.x-x)>tolerancePx)continue;
+    for(const field of fields){
+      const price=bar[field],y=priceToY(price);
+      if(y===null||!Number.isFinite(y))continue;
+      const distance=Math.hypot(point.x-x,point.y-y);
+      if(distance<=closest){
+        closest=distance;
+        best={anchor:{time:Number(bar.time),price},snapped:true,field};
+      }
     }
   }
   return best;

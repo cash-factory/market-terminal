@@ -30,6 +30,16 @@ describe("OHLC drawing magnet",()=>{
    expect(far.snapped).toBe(false);
    expect(far.anchor.time).toBe(1062);
  });
+ it("chooses the visually closest OHLC candle when calendar gaps compress on screen",()=>{
+   const plotX=new Map([[1000,0],[1060,10],[1120,20]]);
+   const result=snapAnchorToOhlc(
+     {time:1060,price:107},{x:20,y:93},bars,
+     time=>plotX.get(time)??null,price=>200-price,12
+   );
+   expect(result).toEqual({
+     anchor:{time:1120,price:107},snapped:true,field:"high"
+   });
+ });
  it("handles missing projections, empty data and invalid distances",()=>{
    expect(snapAnchorToOhlc({time:1000,price:100},{x:0,y:0},[],()=>0,()=>0).snapped).toBe(false);
    expect(snapAnchorToOhlc({time:1000,price:100},{x:0,y:0},bars,()=>null,()=>0).snapped).toBe(false);
