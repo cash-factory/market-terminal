@@ -90,3 +90,44 @@ test("dragging a grouped pair moves both members as one undoable edit",async({pa
   await expect.poll(async()=>JSON.stringify(await savedDrawings(page)))
     .toBe(JSON.stringify(grouped));
 });
+
+test("a secondary touch cannot take over or cancel a primary drawing gesture",async({page})=>{
+  await page.goto("/market-terminal/?classic");
+  await page.getByRole("button",{name:"Trendline",exact:true}).click();
+  await expect(page.locator("svg.drawing-overlay.armed")).toBeVisible();
+  const afterSecondary=await page.evaluate(()=>{
+    const svg=document.querySelector<SVGSVGElement>("svg.drawing-overlay");
+    const plot=svg?.querySelector<SVGRectElement>("[data-drawing-surface='true']");
+    if(!svg||!plot)throw new Error("Missing drawing surface");
+    const rect=svg.getBoundingClientRect();
+    const fire=(type:string,id:number,isPrimary:boolean,x:number,y:number)=>{
+      plot.dispatchEvent(new PointerEvent(type,{
+        bubbles:true,pointerType:"touch",pointerId:id,isPrimary,
+        clientX:rect.x+rect.width*x,clientY:rect.y+rect.height*y,
+        button:0,buttons:type==="pointerup"?0:1
+      }));
+    };
+    fire("pointerdown",101,true,.27,.38);
+    fire("pointerdown",202,false,.52,.60);
+    fire("pointermove",202,false,.65,.68);
+    fire("pointerup",202,false,.65,.68);
+    fire("pointercancel",202,false,.65,.68);
+    return JSON.parse(localStorage.getItem("market-terminal-workspace")??"{}").preferences?.drawings?.length??0;
+  });
+  expect(afterSecondary,"Secondary touch must not commit or cancel the primary gesture").toBe(0);
+  await page.evaluate(()=>{
+    const svg=document.querySelector<SVGSVGElement>("svg.drawing-overlay");
+    const plot=svg?.querySelector<SVGRectElement>("[data-drawing-surface='true']");
+    if(!svg||!plot)throw new Error("Missing drawing surface");
+    const rect=svg.getBoundingClientRect();
+    for(const type of ["pointermove","pointerup"]){
+      plot.dispatchEvent(new PointerEvent(type,{
+        bubbles:true,pointerType:"touch",pointerId:101,isPrimary:true,
+        clientX:rect.x+rect.width*.60,clientY:rect.y+rect.height*.62,
+        button:0,buttons:type==="pointerup"?0:1
+      }));
+    }
+  });
+  await expect.poll(async()=>(await savedDrawings(page)).length).toBe(1);
+  expect((await savedDrawings(page))[0].tool).toBe("trendline");
+});
