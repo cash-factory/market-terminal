@@ -129,3 +129,13 @@ test("Fibonacci time guides and cycle repeats have standalone editable calculati
   await page.reload();
   await expect(page.locator(".drawing-cyclic-lines line")).not.toHaveCount(0);
 });
+
+test("chart object context-click opens precise properties without an extra UI panel",async({page})=>{
+  await page.goto("/market-terminal/?classic");
+  await page.getByRole("button",{name:"Rectangle",exact:true}).click();
+  await draw(page,[.29,.35],[.61,.68]);
+  const object=page.locator("svg.drawing-overlay .drawing-rectangle").first();
+  await expect(object).toBeVisible();
+  await object.click({button:"right",position:{x:12,y:12}});
+  await expect(page.getByRole("dialog",{name:/Drawing settings/})).toBeVisible();
+});
