@@ -108,7 +108,7 @@ export function DrawingOverlay({
   };
   const makeDrawing = (first: ChartAnchor, end: ChartAnchor, selectedTool: DrawingTool): Drawing => ({
     id: "preview", symbol, tool: selectedTool, start: first, end, color, locked: false,
-    ...(selectedTool==="highlighter"?{strokeWidth:8,opacity:.36}:{})
+    ...(selectedTool==="highlighter"?{strokeWidth:16,opacity:.28}:{})
   });
 
   // Chart's time scale changes independently of React when the user pans or zooms.
