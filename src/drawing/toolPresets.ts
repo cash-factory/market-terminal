@@ -5,7 +5,7 @@ import {multiPointCount,requiresMultiPoint} from "./multiAnchor";
 const FIELDS=[
   "color","strokeWidth","dash","opacity","fillOpacity","showMidline",
   "showLabels","visibleOnFrames","fibLevels","forkLevels","labelMode",
-  "gridDivisions","markerDirection","fontSize","showMeasurements","projection"
+  "gridDivisions","regressionDeviation","markerDirection","fontSize","showMeasurements","projection"
 ] as const;
 export type ToolPreset=Partial<Pick<Drawing,typeof FIELDS[number]>>;
 export type ToolPresets=Partial<Record<DrawingTool,ToolPreset>>;
