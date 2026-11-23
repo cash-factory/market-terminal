@@ -3,10 +3,13 @@ import {
   Activity, ArrowDownToLine, Bell, BookOpen, ChartCandlestick, Check,
   ChevronLeft, ChevronRight, Command, Compass, Download, Home, Layers,
   Menu, Moon, MousePointer2, Plus, RotateCcw, Search, Settings2, Sun, Maximize2, Minimize2,
-  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Film, Magnet, MoveUpRight, ArrowUpRight, Columns2, Grid2X2, Shapes, Pencil, ArrowUp, ArrowDown, Link2, Unlink2
+  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Film, Magnet, MoveUpRight, ArrowUpRight, Columns2, Grid2X2, Shapes, Pencil, ArrowUp, ArrowDown, Link2, Unlink2, SlidersHorizontal
 } from "lucide-react";
 import { ChartCanvas,type ChartSurface,type ChartRange } from "./ChartCanvas";
 import { MarketBoard } from "./charts/MarketBoard";
+import { WatchlistPanel } from "./watchlists/WatchlistPanel";
+import { ScreenerPanel } from "./screener/ScreenerPanel";
+import {activeWatchlist,addSymbol,containsSymbol} from "./watchlists/model";
 import { InstrumentHeader, type CandleInspector } from "./charts/InstrumentHeader";
 import {ChartErrorBoundary} from "./charts/ChartErrorBoundary";
 import {chartStyles,type ChartDisplayStyle} from "./charts/display";
@@ -43,20 +46,21 @@ import {createCustomStudy} from "./indicators/formula";
 import { defaultWorkspace, loadWorkspace, parseWorkspace, serializeWorkspace, type Workspace, type Level } from "./workspace";
 import { CommandPalette } from "./commands/CommandPalette";
 
-type Page = "home" | "terminal" | "alerts" | "library" | "settings";
+type Page = "home" | "terminal" | "screener" | "alerts" | "library" | "settings";
 type Notice = { id: number; message: string; kind: "success" | "info" | "error" };
 const frames: Frame[] = ALL_FRAMES;
 const studyKeys=Object.keys(defaultStudies) as (keyof StudySettings)[];
 const menu: { id: Page; label: string; Icon: typeof Home }[] = [
   { id: "home", label: "Overview", Icon: Home },
   { id: "terminal", label: "Terminal", Icon: ChartCandlestick },
+  { id: "screener", label: "Screener", Icon: SlidersHorizontal },
   { id: "alerts", label: "Price Alerts", Icon: Bell },
   { id: "library", label: "Workspace", Icon: Layers },
   { id: "settings", label: "Preferences", Icon: Settings2 },
 ];
 const marketList = Object.keys(symbols) as SymbolId[];
 const titles: Record<Page, string> = {
-  home: "Market overview", terminal: "Trading terminal", alerts:"Price alerts", library: "My workspace", settings: "Preferences"
+  home: "Market overview", terminal: "Trading terminal", screener:"Market screener", alerts:"Price alerts", library: "My workspace", settings: "Preferences"
 };
 
 const studio = !new URLSearchParams(window.location.search).has("classic");
@@ -219,6 +223,14 @@ export default function App() {
     openInstrument(symbol);
     update({priceSource:"demo"});
     setReplay(null);
+  };
+  const addToActiveWatchlist=(symbol:SymbolId):boolean=>{
+    if(containsSymbol(activeWatchlist(prefs.watchlists),symbol)){
+      notify(symbols[symbol].label+" already belongs to this watchlist.","info");return false;
+    }
+    update({watchlists:addSymbol(prefs.watchlists,symbol)});
+    notify(symbols[symbol].label+" saved to "+activeWatchlist(prefs.watchlists).name+".");
+    return true;
   };
   const addLevel = (price: number) => {
     if (!Number.isFinite(price) || price <= 0) { notify("Enter a valid positive price.", "error"); return; }
@@ -1218,7 +1230,9 @@ export default function App() {
                 onClick={()=>setPanelTab("context")}><Activity size={15}/> Context</button>
             </div>
             {panelTab==="markets"&&<div className="workspace-rail-content" id="rail-panel-markets" role="tabpanel" aria-labelledby="rail-tab-markets">
-            {studio && !replay ? <MarketBoard compact frame={prefs.frame} selected={prefs.symbol} onOpen={openDemoMarket}/> : <>
+            {studio && !replay ? <WatchlistPanel state={prefs.watchlists} frame={prefs.frame} selected={prefs.symbol}
+              onChange={watchlists=>update({watchlists})} onOpen={openDemoMarket}
+              onFeedback={message=>notify(message)}/> : <>
             <div className="panel-head"><strong>Watchlist</strong><button aria-label="Search instruments" title="Search instruments" className="mini-button" onClick={() => setSearchOpen(true)}><Search size={16}/></button></div>
             <div className="watchlist">{marketList.map(symbol => <button key={symbol} onClick={() => openInstrument(symbol)} className={symbol === prefs.symbol ? "selected" : ""}><span><b>{symbols[symbol].label}</b><small>{symbols[symbol].market.split(" · ")[0]}</small></span><ChevronRight size={15}/></button>)}</div>
             </>}
@@ -1362,6 +1376,9 @@ export default function App() {
               onShowObjects={()=>setPanelTab("objects")}/>}
           </aside>}
         </div>}
+        {page === "screener" && <ScreenerPanel frame={prefs.frame}
+          activeListName={activeWatchlist(prefs.watchlists).name}
+          onOpen={openDemoMarket} onAddToWatchlist={addToActiveWatchlist}/>}
         {page === "alerts" && <AlertsCenter
           alerts={prefs.alerts} symbol={prefs.symbol} source={prefs.priceSource}
           sourceLabel={feed.sourceLabel} status={feed.status} currentPrice={last}
