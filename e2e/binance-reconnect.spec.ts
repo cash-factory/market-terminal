@@ -46,6 +46,7 @@ test("exchange feed becomes stale on disconnect, re-fetches missing candles and 
   };
   await page.goto("/market-terminal/");
   await page.getByRole("button",{name:"Open BTCUSDT chart"}).click();
+  await page.getByRole("group",{name:"Quick chart intervals"}).getByRole("button",{name:"1m"}).click();
   await page.getByRole("button",{name:"Chart setup"}).click();
   await page.getByRole("group",{name:"Chart price source"}).getByRole("button",{name:"Binance Spot"}).click();
   await expect.poll(()=>calls).toBeGreaterThanOrEqual(1);

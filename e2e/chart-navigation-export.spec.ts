@@ -5,7 +5,7 @@ test("go to date navigates an observed candle rather than inventing market histo
   await page.getByRole("button",{name:"Go to date"}).click();
   const dialog=page.getByRole("dialog",{name:"Go to chart date"});
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByRole("textbox",{name:"UTC chart date and time"})).toHaveValue(/.+/);
+  await expect(dialog.locator('input[aria-label="UTC chart date and time"]')).toHaveValue(/.+/);
   await dialog.getByRole("button",{name:"Navigate"}).click();
   await expect(dialog).toHaveCount(0);
   await expect(page.getByRole("status").filter({hasText:"Navigated to observed"})).toBeVisible();
