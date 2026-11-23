@@ -96,6 +96,32 @@ export function ToolSpecificProperties({drawing,onChange}:Props){
         </select>
       </label>
     </>}
+    {drawing.tool==="regression-channel"&&<>
+      <p className="tool-special-explain">This channel fits a least-squares line to observed candle closes in the selected time range. Bands use the population standard deviation of the price residuals. No future bars are included.</p>
+      <label className="tool-special-field">Residual-deviation multiplier
+        <input type="range" min=".5" max="4" step=".25"
+          aria-label="Regression deviation multiplier" value={drawing.regressionDeviation??2}
+          onChange={e=>update({regressionDeviation:Number(e.target.value)})}/>
+        <small>{(drawing.regressionDeviation??2).toFixed(2)} σ on each side</small>
+      </label>
+      {checkbox("Central fit line",drawing.showMidline??true,
+        checked=>update({showMidline:checked}),"Toggle the least-squares center line independently of the bands")}
+      <p className="tool-special-caveat">The channel recalculates with the currently visible data set and timeframe. Missing market candles are not filled.</p>
+    </>}
+    {drawing.tool==="trend-angle"&&<>
+      <p className="tool-special-explain">An angle relative to the displayed horizontal time axis. Because chart zoom and price-scale compression change the angle, it is not an invariant market measurement.</p>
+      {checkbox("Horizontal angle guide",drawing.showMidline??true,
+        checked=>update({showMidline:checked}),"Show or hide the dashed zero-degree reference")}
+    </>}
+    {drawing.tool==="highlighter"&&<>
+      <p className="tool-special-explain">A freehand translucent stroke. Drag on the chart to trace emphasis; width and transparency stay independent per stroke.</p>
+      <label className="tool-special-field">Marker tip width
+        <input type="range" min="1" max="8" step="1" aria-label="Highlighter tip width"
+          value={drawing.strokeWidth??8}
+          onChange={e=>update({strokeWidth:Number(e.target.value)})}/>
+        <small>{drawing.strokeWidth??8}px</small>
+      </label>
+    </>}
     {isProjection&&<label className="tool-special-field">Line projection
       <select aria-label="Line projection" value={drawing.projection??(
         drawing.tool==="ray"?"right":drawing.tool==="extended-line"?"both":"segment")}
