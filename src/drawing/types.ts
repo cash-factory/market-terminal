@@ -75,7 +75,7 @@ export function isDrawing(input: unknown): input is Drawing {
     (d.points === undefined || (Array.isArray(d.points) &&
       d.points.length <= 100000 && d.points.every(anchor))) &&
     (d.groupId === undefined || (typeof d.groupId === "string" && d.groupId.length > 0 && d.groupId.length <= 128)) &&
-    (d.strokeWidth === undefined || (typeof d.strokeWidth === "number" && Number.isFinite(d.strokeWidth) && d.strokeWidth >= 1 && d.strokeWidth <= 8)) &&
+    (d.strokeWidth === undefined || (typeof d.strokeWidth === "number" && Number.isFinite(d.strokeWidth) && d.strokeWidth >= 1 && d.strokeWidth <= (d.tool==="highlighter"?32:8))) &&
     (d.dash === undefined || d.dash === "solid" || d.dash === "dashed" || d.dash === "dotted") &&
     (d.opacity === undefined || (typeof d.opacity === "number" && Number.isFinite(d.opacity) && d.opacity >= .1 && d.opacity <= 1)) &&
     (d.fillOpacity === undefined || (typeof d.fillOpacity === "number" && Number.isFinite(d.fillOpacity) && d.fillOpacity >= 0 && d.fillOpacity <= .8)) &&
