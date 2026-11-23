@@ -1315,7 +1315,7 @@ export default function App() {
                       key={drawing.id+":"+(drawing.target?.price??"default")}
                       aria-label={"Position target "+(index+1)}
                       defaultValue={drawing.target?.price??
-                        defaultPositionTarget(drawing.tool,drawing.start.price,drawing.end.price)??""}
+                        defaultPositionTarget(drawing.tool as "long-position"|"short-position",drawing.start.price,drawing.end.price)??""}
                       onKeyDown={event=>{if(event.key==="Enter")event.currentTarget.blur();}}
                       onBlur={event=>{
                         if(event.target.value)setPositionTarget(drawing,Number(event.target.value));
@@ -1328,9 +1328,9 @@ export default function App() {
                       onClick={()=>armLevelAlert(drawing.end.price)}><Bell size={12}/> Stop alert</button>
                     <button type="button" aria-label={"Alert at position target "+(index+1)}
                       title="Arm an in-tab crossing alert at the target price"
-                      disabled={!drawing.target&&!defaultPositionTarget(drawing.tool,drawing.start.price,drawing.end.price)}
+                      disabled={!drawing.target&&!defaultPositionTarget(drawing.tool as "long-position"|"short-position",drawing.start.price,drawing.end.price)}
                       onClick={()=>armLevelAlert(drawing.target?.price??
-                        defaultPositionTarget(drawing.tool,drawing.start.price,drawing.end.price)??0)}>
+                        defaultPositionTarget(drawing.tool as "long-position"|"short-position",drawing.start.price,drawing.end.price)??0)}>
                       <Bell size={12}/> Target alert</button>
                   </div>}
                 {noteEditingId===drawing.id&&drawing.tool==="text"&&
