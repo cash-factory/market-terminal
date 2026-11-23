@@ -155,10 +155,10 @@ export function ToolSpecificProperties({drawing,onChange}:Props){
     {drawing.tool==="highlighter"&&<>
       <p className="tool-special-explain">A freehand translucent stroke. Drag on the chart to trace emphasis; width and transparency stay independent per stroke.</p>
       <label className="tool-special-field">Marker tip width
-        <input type="range" min="1" max="8" step="1" aria-label="Highlighter tip width"
-          value={drawing.strokeWidth??8}
+        <input type="range" min="1" max="32" step="1" aria-label="Highlighter tip width"
+          value={drawing.strokeWidth??16}
           onChange={e=>update({strokeWidth:Number(e.target.value)})}/>
-        <small>{drawing.strokeWidth??8}px</small>
+        <small>{drawing.strokeWidth??16}px</small>
       </label>
     </>}
     {isProjection&&<label className="tool-special-field">Line projection
