@@ -103,3 +103,29 @@ test("mobile layered families, subgroup controls and guide stay within the phone
   expect(overflow).toBeLessThanOrEqual(2);
   await shot(page,"refined-layered-tool-workbench-mobile");
 });
+
+test("Fibonacci time guides and cycle repeats have standalone editable calculations",async({page})=>{
+  await page.goto("/market-terminal/?classic");
+  await select(page,"Fib time zones");
+  await draw(page,[.22,.43],[.31,.58]);
+  await expect(page.locator(".drawing-fib-timezone")).toHaveCount(1);
+  await page.getByRole("button",{name:"Settings for drawing 1"}).click();
+  const dialog=page.getByRole("dialog",{name:/Drawing settings/});
+  await dialog.getByRole("button",{name:"Remove time guide 8"}).click();
+  await dialog.getByRole("spinbutton",{name:"New time guide level"}).fill("55");
+  await dialog.getByRole("button",{name:"Add time guide"}).click();
+  await dialog.getByRole("button",{name:"Apply changes"}).click();
+  let stored=await page.evaluate(()=>JSON.parse(localStorage.getItem("market-terminal-workspace")??"{}"));
+  expect(stored.preferences.drawings[0].timeLevels).toContain(55);
+  expect(stored.preferences.drawings[0].timeLevels).not.toContain(8);
+  await select(page,"Cyclic lines");
+  await draw(page,[.25,.3],[.33,.64]);
+  await page.getByRole("button",{name:"Settings for drawing 2"}).click();
+  const cycleDialog=page.getByRole("dialog",{name:/Drawing settings/});
+  await cycleDialog.getByRole("combobox",{name:"Cycle marker count"}).selectOption("4");
+  await cycleDialog.getByRole("button",{name:"Apply changes"}).click();
+  stored=await page.evaluate(()=>JSON.parse(localStorage.getItem("market-terminal-workspace")??"{}"));
+  expect(stored.preferences.drawings[1]).toMatchObject({tool:"cyclic-lines",cycleCount:4});
+  await page.reload();
+  await expect(page.locator(".drawing-cyclic-lines line")).not.toHaveCount(0);
+});
