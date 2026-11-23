@@ -10,7 +10,8 @@ export type DrawingTool =
   | "price-range" | "date-range" | "info-line" | "pitchfork"
   | "fib-extension" | "fib-timezone" | "fib-circles" | "gann-box"
   | "triangle" | "pattern-abcd" | "pattern-xabcd" | "elliott-impulse"
-  | "cyclic-lines" | "callout" | "price-note" | "arrow-marker" | "date-price-range";
+  | "cyclic-lines" | "callout" | "price-note" | "arrow-marker" | "date-price-range"
+  | "trend-angle" | "regression-channel" | "highlighter";
 export type ToolLevel={ratio:number;visible:boolean;color:string};
 export type MeasurementParts={price:boolean;percent:boolean;bars:boolean;elapsed:boolean};
 export type ChartAnchor = { time: number; price: number };
@@ -41,6 +42,9 @@ export type Drawing = {
   forkLevels?:number[];
   labelMode?:"ratio"|"price"|"both";
   gridDivisions?:number;
+  regressionDeviation?:number;
+  timeLevels?:number[];
+  cycleCount?:number;
   markerDirection?:"up"|"down"|"left"|"right";
   fontSize?:number;
   showMeasurements?:MeasurementParts;
@@ -71,7 +75,7 @@ export function isDrawing(input: unknown): input is Drawing {
     (d.points === undefined || (Array.isArray(d.points) &&
       d.points.length <= 100000 && d.points.every(anchor))) &&
     (d.groupId === undefined || (typeof d.groupId === "string" && d.groupId.length > 0 && d.groupId.length <= 128)) &&
-    (d.strokeWidth === undefined || (typeof d.strokeWidth === "number" && Number.isFinite(d.strokeWidth) && d.strokeWidth >= 1 && d.strokeWidth <= 8)) &&
+    (d.strokeWidth === undefined || (typeof d.strokeWidth === "number" && Number.isFinite(d.strokeWidth) && d.strokeWidth >= 1 && d.strokeWidth <= (d.tool==="highlighter"?32:8))) &&
     (d.dash === undefined || d.dash === "solid" || d.dash === "dashed" || d.dash === "dotted") &&
     (d.opacity === undefined || (typeof d.opacity === "number" && Number.isFinite(d.opacity) && d.opacity >= .1 && d.opacity <= 1)) &&
     (d.fillOpacity === undefined || (typeof d.fillOpacity === "number" && Number.isFinite(d.fillOpacity) && d.fillOpacity >= 0 && d.fillOpacity <= .8)) &&
@@ -91,6 +95,15 @@ export function isDrawing(input: unknown): input is Drawing {
       ["ratio","price","both"].includes(d.labelMode))) &&
     (d.gridDivisions===undefined || (d.tool==="gann-box"&&Number.isInteger(d.gridDivisions)&&
       d.gridDivisions>=2&&d.gridDivisions<=12)) &&
+    (d.regressionDeviation===undefined || (d.tool==="regression-channel"&&
+      typeof d.regressionDeviation==="number"&&Number.isFinite(d.regressionDeviation)&&
+      d.regressionDeviation>=0.5&&d.regressionDeviation<=4)) &&
+    (d.timeLevels===undefined || (d.tool==="fib-timezone"&&
+      Array.isArray(d.timeLevels)&&d.timeLevels.length>=1&&d.timeLevels.length<=16&&
+      new Set(d.timeLevels).size===d.timeLevels.length&&
+      d.timeLevels.every(level=>Number.isInteger(level)&&level>=0&&level<=55))) &&
+    (d.cycleCount===undefined || (d.tool==="cyclic-lines"&&
+      Number.isInteger(d.cycleCount)&&d.cycleCount>=2&&d.cycleCount<=24)) &&
     (d.markerDirection===undefined || (d.tool==="arrow-marker"&&
       ["up","down","left","right"].includes(d.markerDirection))) &&
     (d.fontSize===undefined || (["text","callout","price-note"].includes(d.tool as string)&&

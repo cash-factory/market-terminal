@@ -5,10 +5,24 @@ A **local-first market analysis and decision research workstation**, built with 
 ## Available workflows
 
 - **Chart Studio:** one-, two- and four-pane charts, independent frames/sources, chart types, indicators, saved profiles, drawing and direct manipulation.
-- **Drawing tools:** a 34-type implementation catalog on the layered drawing-system branch, grouped into trend/channels, Fibonacci/Gann, manually anchored patterns, measurement, shapes, annotations and markers. Notable additions: real three-to-six-point drawing gestures, median pitchfork, Fibonacci extension and time guides, ABCD/XABCD/Elliott pivot annotations, Gann grid, callout evidence notes and date+price ranges. Select a family on the chart rail or search within the **Tool Library**; pin favorites and return to recent tools. These analytical drawings do not predict market outcomes.
+- **Drawing tools:** 37 implemented tools, grouped into trend/channels, Fibonacci/Gann, manually anchored patterns, measurement, shapes, annotations and markers. Notable additions: real three-to-six-point drawing gestures, median pitchfork, Fibonacci extension and time guides, ABCD/XABCD/Elliott pivot annotations, Gann grid, callout evidence notes and date+price ranges. Select a family on the chart rail or search within the **Tool Library**; pin favorites and return to recent tools. These analytical drawings do not predict market outcomes.
 - **Chart workflows:** historical replay, browser-local price alerts, searchable Tool Atlas (`Ctrl/⌘ + K`), and **Chart Context Lens** for source-qualified price levels and chart objects. Decision Desk and Risk Planner are intentionally hidden from the current chart-first UI; previously saved browser data remains intact.
 - **Local-first:** automatic browser workspace persistence and import/export with schema validation. No account is required for local analysis.
 - **Experience:** source-status labels, mobile-friendly layered drawing rail and tool library, per-object Style / Coordinates / Visibility dialogs (with undo), source-bound chart observations, dark/light appearance and keyboard-friendly inspection.
+
+## Tool workbench refinement — PR #54
+
+The tool explorer now follows a clear **family → functional subfamily → implemented drawing → focused properties** hierarchy. Hover or focus an item to see an original, vector-rendered visual cue and concise instructions; pin favorites for quick access. The UI favors typography, restrained color, accurate tool icons, collapsible rows and short reversible transitions. It intentionally uses **no generated decorative dashboard images**.
+
+Three additional functional chart tools:
+
+- **Regression channel:** fits a least-squares line to **observed candle closes** within the user-selected anchor interval, computes the population residual deviation, and draws independently adjustable upper/lower bands (0.5–4 σ). The center line can be toggled. The study respects the current data source and does not predict future prices.
+- **Trend angle:** measures the line's **visual angle** against the displayed time axis with optional baseline; this changes with chart scales and is *not* an invariant statistical slope.
+- **Highlighter:** records freehand time/price points and renders a translucent stroke with editable width and opacity.
+
+Fibonacci time zones now have independently editable integer time multipliers; cyclic-line studies allow configurable repeat counts. The settings modal explains tool-specific assumptions, retains source and price/time anchors, and supports direct right-click on chart drawings. Saved per-tool defaults also cover the new controls.
+
+Browser interaction, unit math, responsiveness, reduced-motion behavior and full regression suites are release gates; the PR is not a public deployment until merged.
 
 ## Chart-first refinement — seconds and independent tool settings
 

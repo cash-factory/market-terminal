@@ -31,6 +31,22 @@ describe("additional drawing types and safe storage",()=>{
     ]);
     expect(initial.points?.[0]).toEqual(base.start);
   });
+  it("validates independently adjustable time markers and new analytical drawing variants",()=>{
+    const newTools:DrawingTool[]=["trend-angle","regression-channel","highlighter"];
+    for(const tool of newTools)expect(isDrawing({...base,tool})).toBe(true);
+    expect(isDrawing({...base,tool:"regression-channel",regressionDeviation:2.5})).toBe(true);
+    expect(isDrawing({...base,tool:"regression-channel",regressionDeviation:5})).toBe(false);
+    expect(isDrawing({...base,tool:"trendline",regressionDeviation:2})).toBe(false);
+    expect(isDrawing({...base,tool:"fib-timezone",timeLevels:[0,1,2,3,5,8]})).toBe(true);
+    expect(isDrawing({...base,tool:"fib-timezone",timeLevels:[1,1]})).toBe(false);
+    expect(isDrawing({...base,tool:"fib-timezone",timeLevels:[-1,5]})).toBe(false);
+    expect(isDrawing({...base,tool:"cyclic-lines",cycleCount:16})).toBe(true);
+    expect(isDrawing({...base,tool:"cyclic-lines",cycleCount:25})).toBe(false);
+    expect(isDrawing({...base,tool:"fibonacci",timeLevels:[1,2]})).toBe(false);
+    expect(isDrawing({...base,tool:"highlighter",strokeWidth:24,opacity:.4})).toBe(true);
+    expect(isDrawing({...base,tool:"highlighter",strokeWidth:33})).toBe(false);
+    expect(isDrawing({...base,tool:"trendline",strokeWidth:24})).toBe(false);
+  });
   it("roundtrips extended drawing objects and keeps legacy workspace data",()=>{
     const docs:Drawing[]=[{...base,tool:"text",text:"Entry zone"},
       {...base,id:"b",tool:"brush",points:[base.start,base.end]}];

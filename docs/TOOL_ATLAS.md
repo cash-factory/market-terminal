@@ -56,7 +56,7 @@ Group repeated *self-reported* strategy deviations and hypothesis invalidations 
 
 ## Current drawing-library coverage
 
-**34 drawing tool definitions are implemented in this feature branch, pending CI and user acceptance.** This covers the core line, basic Fibonacci, shapes, annotations, measurement and illustrative position families. The Tool Library exposes only implemented operations. Favorites are workspace-local and capped at 12 for usability, *not as a product paywall*. The application also has a standalone one-click horizontal **price level** action.
+**37 source-aware drawing tool definitions are implemented, including trend angle, a candle-close regression channel and a translucent highlighter.** This covers the core line, basic Fibonacci, shapes, annotations, measurement and illustrative position families. The Tool Library exposes only implemented operations. Favorites are workspace-local and capped at 12 for usability, *not as a product paywall*. The application also has a standalone one-click horizontal **price level** action.
 
 **TradingView's wider taxonomy is a roadmap reference, not a licensed feature entitlement**. Their published categories include trend and drawing geometry, Gann and Fibonacci constructions, pattern tools (including Elliott Wave and harmonic patterns), brushes/annotation/icons, forecasting/measurement, and additional chart controls. Some require multi-anchor interaction, projection semantics or exchange/volume metadata we do not yet have.
 

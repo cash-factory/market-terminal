@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Bookmark, Check, Clock3, Eye, EyeOff, LayoutGrid, Lock, Paintbrush, RotateCcw, SlidersHorizontal, X } from "lucide-react";
 import { symbols } from "../market";
 import { TOOL_BY_ID, ONE_ANCHOR_TOOLS } from "./toolDefinitions";
+import {ToolGlyph} from "./ToolGlyph";
 import {ToolSpecificProperties} from "./ToolSpecificProperties";
 import "./toolSpecificProperties.css";
 import { type ChartAnchor, type Drawing, type DrawingTool } from "./types";
@@ -120,8 +121,11 @@ export function DrawingSettingsDialog({drawing,onSave,onClose,onSaveAsDefault,on
     </div>
     <div className="drawing-dialog-content">
       {tab==="style"&&<div role="tabpanel" className="drawing-settings-style">
-        <div className="drawing-settings-intro"><strong>Appearance</strong>
-          <p>Adjust one object without changing other drawings or your saved tool favorites.</p></div>
+        <div className="drawing-settings-intro"><strong>Appearance & analytical controls</strong>
+          <p>These settings belong to this object. Its geometry and source remain independent.</p></div>
+        <div className="drawing-tool-identity"><span className="drawing-tool-identity-icon">
+          <ToolGlyph tool={drawing.tool} size={28}/></span>
+          <span><strong>{name}</strong><small>{TOOL_BY_ID.get(drawing.tool)?.description}</small></span></div>
         <div className="drawing-settings-preview" aria-label="Drawing style preview">
           <span>LIVE STYLE PREVIEW</span>
           <svg viewBox="0 0 320 54" role="img" aria-label="Preview line">
@@ -139,7 +143,7 @@ export function DrawingSettingsDialog({drawing,onSave,onClose,onSaveAsDefault,on
           <label>Line weight
             <select aria-label="Drawing line weight" value={draft.strokeWidth??2}
               onChange={e=>setDraft(old=>({...old,strokeWidth:Number(e.target.value)}))}>
-              {[1,2,3,4,5,6,7,8].map(value=><option key={value} value={value}>{value} px</option>)}
+              {(drawing.tool==="highlighter"?Array.from({length:32},(_,i)=>i+1):[1,2,3,4,5,6,7,8]).map(value=><option key={value} value={value}>{value} px</option>)}
             </select>
           </label>
           <label>Line pattern
@@ -150,11 +154,11 @@ export function DrawingSettingsDialog({drawing,onSave,onClose,onSaveAsDefault,on
             </select>
           </label>
           <label>Opacity <strong>{Math.round((draft.opacity??1)*100)}%</strong>
-            <input type="range" min=".1" max="1" step=".1" aria-label="Drawing opacity"
+            <input type="range" min=".1" max="1" step=".01" aria-label="Drawing opacity"
               value={draft.opacity??1}
               onChange={e=>setDraft(old=>({...old,opacity:Number(e.target.value)}))}/>
           </label>
-          {(["rectangle","ellipse","channel","measure","price-range","date-range","date-price-range","gann-box","triangle"].includes(drawing.tool))&&
+          {(["rectangle","ellipse","channel","measure","price-range","date-range","date-price-range","gann-box","regression-channel","triangle"].includes(drawing.tool))&&
             <label>Region fill <strong>{Math.round((draft.fillOpacity??.09)*100)}%</strong>
               <input type="range" min="0" max=".8" step=".05" aria-label="Drawing region fill"
                 value={draft.fillOpacity??.09}
@@ -177,7 +181,7 @@ export function DrawingSettingsDialog({drawing,onSave,onClose,onSaveAsDefault,on
             onChange={e=>setDraft(old=>({...old,showMidline:e.target.checked}))}/>
           <span><strong>Show midpoint</strong><small>Draw a 50% reference through the highlighted zone.</small></span>
         </label>}
-        {["fibonacci","measure","price-range","date-range","date-price-range","info-line","fib-extension","fib-timezone","fib-circles","gann-box","cyclic-lines","pattern-abcd","pattern-xabcd","elliott-impulse"].includes(drawing.tool)&&
+        {["fibonacci","measure","price-range","date-range","date-price-range","info-line","fib-extension","fib-timezone","fib-circles","gann-box","cyclic-lines","pattern-abcd","pattern-xabcd","elliott-impulse","trend-angle","regression-channel"].includes(drawing.tool)&&
           <label className="drawing-settings-toggle">
             <input type="checkbox" checked={draft.showLabels!==false}
               onChange={e=>setDraft(old=>({...old,showLabels:e.target.checked}))}/>
@@ -190,7 +194,7 @@ export function DrawingSettingsDialog({drawing,onSave,onClose,onSaveAsDefault,on
         <ToolSpecificProperties drawing={draft} onChange={setDraft}/>
         {onSaveAsDefault&&<div className="tool-default-actions">
           <div><strong>Save your tool setup</strong>
-            <small>Reuse these appearance and analytical settings the next time you draw a {name.toLowerCase()}. Anchors, market and source will not be copied.</small>
+            <small>Future {name.toLowerCase()} drawings inherit these controls, never the original coordinates or data source.</small>
           </div>
           <button type="button" aria-label={"Save "+name+" settings as default"}
             onClick={()=>onSaveAsDefault(draft)}><Bookmark size={14}/> Save as default</button>

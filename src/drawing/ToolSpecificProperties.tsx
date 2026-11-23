@@ -1,5 +1,5 @@
 import {useState} from "react";
-import {Plus,RotateCcw,Trash2} from "lucide-react";
+import {Plus,RotateCcw,Trash2,X} from "lucide-react";
 import type {Drawing,ToolLevel,MeasurementParts} from "./types";
 import {TOOL_BY_ID} from "./toolDefinitions";
 import {FORK_RATIOS,MEASUREMENT_DEFAULTS,effectiveLevels} from "./toolProperties";
@@ -15,6 +15,8 @@ const checkbox=(text:string,checked:boolean,update:(checked:boolean)=>void,note:
 export function ToolSpecificProperties({drawing,onChange}:Props){
   const [newRatio,setNewRatio]=useState(".886");
   const [levelError,setLevelError]=useState("");
+  const [newTimeLevel,setNewTimeLevel]=useState("55");
+  const [timeLevelError,setTimeLevelError]=useState("");
   const title=TOOL_BY_ID.get(drawing.tool)?.label??drawing.tool;
   const update=(patch:Partial<Drawing>)=>onChange({...drawing,...patch});
   const isFib=["fibonacci","fib-extension","fib-circles"].includes(drawing.tool);
@@ -75,6 +77,43 @@ export function ToolSpecificProperties({drawing,onChange}:Props){
         <RotateCcw size={13}/> Restore this tool’s default levels
       </button>
     </>}
+    {drawing.tool==="fib-timezone"&&<>
+      <p className="tool-special-explain">Each level multiplies the time spacing between your two anchors, based on chart bar positions. You decide which Fibonacci indices appear; no date or price is predicted.</p>
+      <div className="time-guide-list" aria-label="Fibonacci time guide levels">
+        {(drawing.timeLevels??[0,1,2,3,5,8,13,21,34]).map(level=>
+          <span key={level} className="time-guide-chip">{level}
+            <button type="button" aria-label={"Remove time guide "+level}
+              disabled={(drawing.timeLevels??[0,1,2,3,5,8,13,21,34]).length===1}
+              onClick={()=>update({timeLevels:(drawing.timeLevels??[0,1,2,3,5,8,13,21,34])
+                .filter(value=>value!==level)})}><X size={12}/></button>
+          </span>)}
+      </div>
+      <div className="tool-level-add"><label>Time multiplier (0–55)
+        <input aria-label="New time guide level" type="number" min="0" max="55"
+          step="1" value={newTimeLevel}
+          onChange={e=>{setNewTimeLevel(e.target.value);setTimeLevelError("");}}/>
+      </label><button type="button" aria-label="Add time guide"
+        disabled={(drawing.timeLevels??[0,1,2,3,5,8,13,21,34]).length>=16}
+        onClick={()=>{
+          const level=Number(newTimeLevel),list=drawing.timeLevels??[0,1,2,3,5,8,13,21,34];
+          if(newTimeLevel.trim()===""||!Number.isInteger(level)||level<0||level>55||list.includes(level)){
+            setTimeLevelError("Use a unique whole-number time multiplier between 0 and 55.");return;
+          }
+          update({timeLevels:[...list,level].sort((a,b)=>a-b)});setTimeLevelError("");
+        }}><Plus size={14}/> Add guide</button></div>
+      {timeLevelError&&<p className="tool-level-error" role="alert">{timeLevelError}</p>}
+      <button type="button" className="tool-special-reset"
+        onClick={()=>update({timeLevels:undefined})}><RotateCcw size={13}/> Restore standard Fibonacci time sequence</button>
+    </>}
+    {drawing.tool==="cyclic-lines"&&<>
+      <p className="tool-special-explain">Use the time spacing between the two anchors as a repeating observed-bar hypothesis. Choose how many guide lines to plot; the calculation never creates future candles.</p>
+      <label className="tool-special-field">Maximum cycle markers
+        <select aria-label="Cycle marker count" value={drawing.cycleCount??12}
+          onChange={e=>update({cycleCount:Number(e.target.value)})}>
+          {[2,3,4,6,8,12,16,24].map(count=><option key={count} value={count}>{count} markers</option>)}
+        </select>
+      </label>
+    </>}
     {drawing.tool==="pitchfork"&&<>
       <p className="tool-special-explain">Choose outer median-line distances independently. A ratio of 1 follows the two manually placed outer pivots; additional pairs are parallel projections in the current chart scale.</p>
       <div className="tool-fork-options">{FORK_RATIOS.map(ratio=>
@@ -94,6 +133,32 @@ export function ToolSpecificProperties({drawing,onChange}:Props){
           onChange={e=>update({gridDivisions:Number(e.target.value)})}>
           {Array.from({length:11},(_,i)=>i+2).map(n=><option key={n} value={n}>{n} divisions</option>)}
         </select>
+      </label>
+    </>}
+    {drawing.tool==="regression-channel"&&<>
+      <p className="tool-special-explain">Fits observed candle closes within the selected time range. Outer rails use adjustable residual standard deviations.</p>
+      <label className="tool-special-field">Residual-deviation multiplier
+        <input type="range" min=".5" max="4" step=".25"
+          aria-label="Regression deviation multiplier" value={drawing.regressionDeviation??2}
+          onChange={e=>update({regressionDeviation:Number(e.target.value)})}/>
+        <small>{(drawing.regressionDeviation??2).toFixed(2)} σ on each side</small>
+      </label>
+      {checkbox("Central fit line",drawing.showMidline??true,
+        checked=>update({showMidline:checked}),"Toggle the least-squares center line independently of the bands")}
+      <p className="tool-special-caveat">Recalculates with the loaded candle data. Missing candles are not invented.</p>
+    </>}
+    {drawing.tool==="trend-angle"&&<>
+      <p className="tool-special-explain">An angle relative to the displayed horizontal time axis. Because chart zoom and price-scale compression change the angle, it is not an invariant market measurement.</p>
+      {checkbox("Horizontal angle guide",drawing.showMidline??true,
+        checked=>update({showMidline:checked}),"Show or hide the dashed zero-degree reference")}
+    </>}
+    {drawing.tool==="highlighter"&&<>
+      <p className="tool-special-explain">A freehand translucent stroke. Drag on the chart to trace emphasis; width and transparency stay independent per stroke.</p>
+      <label className="tool-special-field">Marker tip width
+        <input type="range" min="1" max="32" step="1" aria-label="Highlighter tip width"
+          value={drawing.strokeWidth??16}
+          onChange={e=>update({strokeWidth:Number(e.target.value)})}/>
+        <small>{drawing.strokeWidth??16}px</small>
       </label>
     </>}
     {isProjection&&<label className="tool-special-field">Line projection
@@ -140,7 +205,7 @@ export function ToolSpecificProperties({drawing,onChange}:Props){
             Math.abs(drawing.start.price-drawing.end.price)).toFixed(2)+" R":"—"}</dd></div></dl>
       <small>Set precise entry, stop and target on the Coordinates tab. No broker order or P/L claim is implied.</small>
     </div>}
-    {!isFib&&!metrics&&!isProjection&&!["pitchfork","gann-box","channel","arrow-marker","text","callout","price-note","long-position","short-position"].includes(drawing.tool)&&
+    {!isFib&&!metrics&&!isProjection&&!["pitchfork","gann-box","channel","arrow-marker","text","callout","price-note","long-position","short-position","regression-channel","trend-angle","highlighter","fib-timezone","cyclic-lines"].includes(drawing.tool)&&
       <p className="tool-special-explain">Edit the anchors on the Coordinates tab; use the appearance controls above to set an independent style. This {title.toLowerCase()} stays bound to the original market and data source.</p>}
   </section>;
 }
