@@ -84,7 +84,7 @@ export function ToolShelf({
        <span className="tool-shelf-nav-caption">FAMILIES</span>
        <button type="button" className={!group?"active":""} aria-pressed={!group}
          onClick={()=>changeCategory(null)}><span>All tools</span><small>{filterDrawingTools(query).length}</small></button>
-       {TOOL_GROUPS.map(value=><button key={value} type="button"
+       {TOOL_GROUPS.map(value=><button key={value} type="button" aria-label={value}
          className={group===value?"active":""} aria-pressed={group===value}
          onClick={()=>changeCategory(value)}>
          <span>{groupLabels[value]}</span><small>{filterDrawingTools(query,value).length}</small>
