@@ -15,7 +15,7 @@ export function ungroupDrawings(drawings:readonly Drawing[],ids:readonly string[
   const selection=new Set(ids);
   return drawings.map(d=>selection.has(d.id)?{...d,groupId:undefined}:d);
 }
-export function updateDrawingAndGroup(drawings:readonly Drawing[],updated:Drawing,editKind?:"move"|"start"|"end"|"control"|"target"|"vertex"):Drawing[]{
+export function updateDrawingAndGroup(drawings:readonly Drawing[],updated:Drawing,editKind?:"move"|"start"|"end"|"control"|"target"|"vertex",groupCandidates?:readonly Drawing[]):Drawing[]{
   const original=drawings.find(d=>d.id===updated.id);
   if(!original)throw new Error("This drawing no longer exists.");
   if(original.locked)throw new Error("Unlock the drawing before editing it.");
@@ -36,6 +36,25 @@ export function updateDrawingAndGroup(drawings:readonly Drawing[],updated:Drawin
     throw new Error("Unlock every member of this group before moving it.");
   if(peers.some(d=>d.symbol!==original.symbol||(d.source??"demo")!==(original.source??"demo")))
     throw new Error("Cannot move a group spanning different symbols or sources.");
+  if(groupCandidates!==undefined){
+    // The overlay recovers each group's coordinates from the same visual delta
+    // (rather than applying a fixed wall-clock time delta across session gaps).
+    if(editKind!=="move")throw new Error("Group projection is only valid for whole-object moves.");
+    const expected=new Set(peers.filter(d=>d.id!==original.id).map(d=>d.id));
+    if(groupCandidates.length!==expected.size||new Set(groupCandidates.map(d=>d.id)).size!==expected.size||
+      groupCandidates.some(d=>!expected.has(d.id)))
+      throw new Error("Group move cancelled: not all member projections were supplied.");
+    const candidates=new Map(groupCandidates.map(d=>[d.id,d]));
+    for(const peer of peers){
+      if(peer.id===original.id)continue;
+      const next=candidates.get(peer.id);
+      if(!next||next.tool!==peer.tool||next.symbol!==peer.symbol||
+        (next.source??"demo")!==(peer.source??"demo")||
+        next.groupId!==peer.groupId||!isDrawing(next))
+        throw new Error("Group move cancelled: a member has invalid or mismatched coordinates.");
+    }
+    return drawings.map(d=>d.id===updated.id?updated:candidates.get(d.id)??d);
+  }
   const changed=drawings.map(d=>{
     if(d.id===updated.id)return updated;
     if(d.groupId!==original.groupId)return d;
