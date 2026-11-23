@@ -38,6 +38,8 @@ type Props={
   canUndo:boolean;
   canRedo:boolean;
   disabled:boolean;
+  favoriteBarVisible:boolean;
+  onToggleFavoriteBar:()=>void;
   onToggleCategory:(category:ToolGroup|null)=>void;
   onSelect:(tool:DrawingTool)=>void;
   onFavorite:(tool:DrawingTool)=>void;
@@ -51,7 +53,7 @@ type Props={
 };
 
 export function StudioDrawingRail({
-  containerRef,active,opened,category,favorites,recent,magnet,repeat,canUndo,canRedo,disabled,
+  containerRef,active,opened,category,favorites,recent,magnet,repeat,canUndo,canRedo,disabled,favoriteBarVisible,onToggleFavoriteBar,
   onToggleCategory,onSelect,onFavorite,onCursor,onMagnet,onRepeat,onUndo,onRedo,onObjects,onClose
 }:Props){
   const pin=favorites.slice(0,3);
@@ -84,6 +86,10 @@ export function StudioDrawingRail({
         <Layers size={19}/><span>Tool library</span>
       </button>
       <div className="studio-rail-rule"/>
+      <button type="button" className={"studio-rail-library"+(favoriteBarVisible?" armed":"")}
+        aria-label={favoriteBarVisible?"Hide floating favorites toolbar":"Show floating favorites toolbar"}
+        aria-pressed={favoriteBarVisible} title="Toggle the floating favorites toolbar"
+        onClick={onToggleFavoriteBar}><Star size={19}/><span>Favorites</span></button>
       {pin.length>0&&<div className="studio-rail-favorites">
         <span className="studio-rail-microhead"><Star size={10}/> PINNED</span>
         {pin.map(id=><button type="button" key={id} disabled={disabled}
