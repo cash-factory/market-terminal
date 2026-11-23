@@ -147,7 +147,9 @@ export function DrawingSettingsDialog({drawing,onSave,onClose,onSaveAsDefault,on
     </div>
     <div className="drawing-dialog-content">
       {tab==="position"&&<div role="tabpanel" className="drawing-settings-position">
-        <PositionProperties drawing={draft} onChange={setDraft}/>
+        <PositionProperties drawing={draft} onChange={setDraft}
+          priceValues={{start:fields.start?.price,end:fields.end?.price,target:fields.target?.price}}
+          onPriceChange={(key,value)=>setCoordinate(key,"price",value)}/>
         {onSaveAsDefault&&<div className="tool-default-actions">
           <div><strong>Reuse these position assumptions</strong>
             <small>Save sizing, fees, currency, leverage and label options for new {name.toLowerCase()} drawings. Coordinates are never copied.</small>

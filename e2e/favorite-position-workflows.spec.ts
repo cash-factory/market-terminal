@@ -63,10 +63,16 @@ test("long position settings calculate net risk, quantity, fees, leverage and pe
  await dialog.getByRole("spinbutton",{name:"Fee per side (basis points)"}).fill("10");
  await dialog.getByRole("spinbutton",{name:"Adverse slippage (ticks per side)"}).fill("1");
  await dialog.getByRole("spinbutton",{name:"Illustrative leverage"}).fill("5");
+ const entry=Number(await dialog.getByRole("spinbutton",{name:"Position entry price"}).inputValue());
+ const stop=Number(await dialog.getByRole("spinbutton",{name:"Position stop price"}).inputValue());
+ const customTarget=entry+(entry-stop)*3;
+ await dialog.getByRole("spinbutton",{name:"Position target price"}).fill(String(customTarget));
  await expect(dialog.getByText("Calculated position outcomes")).toBeVisible();
  await expect(dialog.getByText("Estimated target profit, after costs")).toBeVisible();
  await dialog.getByRole("button",{name:"Apply changes"}).click();
  await expect(page.locator(".drawing-position-reward")).toHaveCount(1);
+ const updatedTarget=await page.evaluate(()=>JSON.parse(localStorage.getItem("market-terminal-workspace")??"{}").preferences?.drawings?.[0]?.target?.price);
+ expect(updatedTarget).toBeCloseTo(customTarget,8);
  await expect.poll(async()=>{
    const data=await page.evaluate(()=>JSON.parse(localStorage.getItem("market-terminal-workspace")??"{}"));
    return data.preferences?.drawings?.[0]?.positionSettings?.feeBps;

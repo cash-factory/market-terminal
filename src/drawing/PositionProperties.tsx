@@ -5,7 +5,10 @@ import {calculatePositionMetrics,defaultPositionSettings,effectivePositionSettin
 import {defaultPositionTarget} from "../analysis/positionDrawing";
 import "./positionProperties.css";
 
-type Props={drawing:Drawing;onChange:(drawing:Drawing)=>void};
+type PriceKey="start"|"end"|"target";
+type Props={drawing:Drawing;onChange:(drawing:Drawing)=>void;
+ priceValues:Partial<Record<PriceKey,string>>;
+ onPriceChange:(key:PriceKey,value:string)=>void};
 type NumericKey=Exclude<keyof PositionSettings,"sizing"|"accountCurrency"|"showPnl"|"showPriceChange"|"showQuantity">;
 const fields:{key:NumericKey;label:string;hint:string;min:number;max:number;step:string}[]=[
  {key:"equity",label:"Account equity",hint:"In the account currency below",min:.01,max:1e15,step:"any"},
@@ -20,7 +23,7 @@ const fields:{key:NumericKey;label:string;hint:string;min:number;max:number;step
 ];
 const money=(v:number,c:string)=>formatPositionCash(v,c);
 const number=(v:number,digits=4)=>v.toLocaleString(undefined,{maximumFractionDigits:digits});
-export function PositionProperties({drawing,onChange}:Props){
+export function PositionProperties({drawing,onChange,priceValues,onPriceChange}:Props){
  const settings=effectivePositionSettings(drawing.positionSettings,drawing.symbol);
  const update=(patch:Partial<PositionSettings>)=>onChange({...drawing,positionSettings:{...settings,...patch}});
  const isPosition=drawing.tool==="long-position"||drawing.tool==="short-position";
@@ -36,11 +39,14 @@ export function PositionProperties({drawing,onChange}:Props){
      <p>These are theoretical linear-contract estimates, not live broker orders or guaranteed P&amp;L. Specify your broker's multiplier, tick size, currency conversion, fees and slippage.</p>
    </div>
    <div className="position-properties-prices">
-     <div><span>Entry</span><strong>{number(drawing.start.price,8)}</strong></div>
-     <div><span>Protective stop</span><strong>{number(drawing.end.price,8)}</strong></div>
-     <div><span>Profit target</span><strong>{target===null?"Invalid stop":number(target,8)}</strong></div>
+     {([["start","Entry price"],["end","Protective stop price"],["target","Profit target price"]] as const)
+       .map(([key,label])=><label key={key}><span>{label}</span>
+         <input type="number" min="0.000000000001" step="any"
+           aria-label={"Position "+(key==="start"?"entry":key==="end"?"stop":"target")+" price"}
+           value={priceValues[key]??""} onChange={e=>onPriceChange(key,e.target.value)}/>
+       </label>)}
    </div>
-   <p className="position-properties-help">Edit entry, stop and target on the Coordinates tab or drag their chart handles. The target defaults to 2R until explicitly changed.</p>
+   <p className="position-properties-help">Edit prices here or adjust the chart handles. For exact UTC anchor times, use Coordinates. The initial target is 2R.</p>
    <div className="position-properties-group">
      <h3>Account and position sizing</h3>
      <div className="position-properties-sizing" role="group" aria-label="Position sizing mode">
