@@ -143,7 +143,7 @@ export function DrawingSettingsDialog({drawing,onSave,onClose,onSaveAsDefault,on
           <label>Line weight
             <select aria-label="Drawing line weight" value={draft.strokeWidth??2}
               onChange={e=>setDraft(old=>({...old,strokeWidth:Number(e.target.value)}))}>
-              {[1,2,3,4,5,6,7,8].map(value=><option key={value} value={value}>{value} px</option>)}
+              {(drawing.tool==="highlighter"?Array.from({length:32},(_,i)=>i+1):[1,2,3,4,5,6,7,8]).map(value=><option key={value} value={value}>{value} px</option>)}
             </select>
           </label>
           <label>Line pattern
