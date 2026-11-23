@@ -24,7 +24,7 @@ export function PositionProperties({drawing,onChange}:Props){
  const settings=effectivePositionSettings(drawing.positionSettings,drawing.symbol);
  const update=(patch:Partial<PositionSettings>)=>onChange({...drawing,positionSettings:{...settings,...patch}});
  const isPosition=drawing.tool==="long-position"||drawing.tool==="short-position";
- const target=isPosition?(drawing.target?.price??defaultPositionTarget(drawing.tool,drawing.start.price,drawing.end.price)):null;
+ const target=isPosition?(drawing.target?.price??defaultPositionTarget(drawing.tool as "long-position"|"short-position",drawing.start.price,drawing.end.price)):null;
  const result=useMemo(()=>isPosition&&target!==null?
    calculatePositionMetrics(drawing.tool as "long-position"|"short-position",
      drawing.start.price,drawing.end.price,target,settings):null,
