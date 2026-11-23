@@ -194,7 +194,7 @@ export function DrawingSettingsDialog({drawing,onSave,onClose,onSaveAsDefault,on
         <ToolSpecificProperties drawing={draft} onChange={setDraft}/>
         {onSaveAsDefault&&<div className="tool-default-actions">
           <div><strong>Save your tool setup</strong>
-            <small>Reuse these appearance and analytical settings the next time you draw a {name.toLowerCase()}. Anchors, market and source will not be copied.</small>
+            <small>Future {name.toLowerCase()} drawings inherit these controls, never the original coordinates or data source.</small>
           </div>
           <button type="button" aria-label={"Save "+name+" settings as default"}
             onClick={()=>onSaveAsDefault(draft)}><Bookmark size={14}/> Save as default</button>
