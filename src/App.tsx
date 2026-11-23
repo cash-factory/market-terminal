@@ -3,10 +3,11 @@ import {
   Activity, ArrowDownToLine, Bell, BookOpen, ChartCandlestick, Check,
   ChevronLeft, ChevronRight, Command, Compass, Download, Home, Layers,
   Menu, Moon, MousePointer2, Plus, RotateCcw, Search, Settings2, Sun, Maximize2, Minimize2,
-  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Film, Magnet, MoveUpRight, ArrowUpRight, Columns2, Grid2X2, Shapes, Pencil, ArrowUp, ArrowDown, Link2, Unlink2, SlidersHorizontal
+  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Film, Magnet, MoveUpRight, ArrowUpRight, Columns2, Grid2X2, Shapes, Pencil, ArrowUp, ArrowDown, Link2, Unlink2, SlidersHorizontal, CalendarClock
 } from "lucide-react";
 import { ChartCanvas,type ChartSurface,type ChartRange } from "./ChartCanvas";
 import { MarketBoard } from "./charts/MarketBoard";
+import {nearestObservedBar,ohlcCsv,parseUtcChartDate} from "./charts/navigation";
 import { WatchlistPanel } from "./watchlists/WatchlistPanel";
 import { ScreenerPanel } from "./screener/ScreenerPanel";
 import {activeWatchlist,addSymbol,containsSymbol} from "./watchlists/model";
@@ -70,6 +71,8 @@ export default function App() {
   const [manageObjects,setManageObjects] = useState(false);
   const [saveFailed,setSaveFailed] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
+  const [dateNavigationOpen,setDateNavigationOpen]=useState(false);
+  const [dateNavigationValue,setDateNavigationValue]=useState("");
   const [prefs, setPrefs] = useState<Workspace>(loadWorkspace);
   const [marketClock,setMarketClock]=useState(()=>Date.now());
   useEffect(()=>{
@@ -231,6 +234,32 @@ export default function App() {
     update({watchlists:addSymbol(prefs.watchlists,symbol)});
     notify(symbols[symbol].label+" saved to "+activeWatchlist(prefs.watchlists).name+".");
     return true;
+  };
+  const openGoToDate=()=>{
+    setDateNavigationValue(viewedCandles.length?
+      new Date(Number(viewedCandles.at(-1)!.time)*1000).toISOString().slice(0,16):"");
+    setDateNavigationOpen(true);
+  };
+  const jumpToDate=()=>{
+    const instant=parseUtcChartDate(dateNavigationValue);
+    if(instant===null){notify("Enter a valid UTC date/time.","error");return;}
+    const index=nearestObservedBar(viewedCandles,instant);
+    const surface=linkedChartRefs.current.primary;
+    if(index===null||!surface){notify("Chart data is not ready for date navigation.","error");return;}
+    surface.chart.timeScale().setVisibleLogicalRange({from:Math.max(0,index-55),to:index+25});
+    setDateNavigationOpen(false);
+    notify("Navigated to observed "+prefs.frame+" candle at "+
+      new Date(Number(viewedCandles[index].time)*1000).toISOString().slice(0,16).replace("T"," ")+" UTC.","info");
+  };
+  const exportCandlesCsv=()=>{
+    if(!viewedCandles.length){notify("No chart candles available.","error");return;}
+    const csv=ohlcCsv(viewedCandles,prefs.symbol,prefs.priceSource,prefs.frame);
+    const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+    const link=document.createElement("a");
+    link.href=url;link.download="market-terminal-"+prefs.symbol+"-"+prefs.priceSource+"-"+prefs.frame+".csv";
+    document.body.appendChild(link);link.click();link.remove();
+    window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+    notify(viewedCandles.length+" source-labelled candles exported.");
   };
   const addLevel = (price: number) => {
     if (!Number.isFinite(price) || price <= 0) { notify("Enter a valid positive price.", "error"); return; }
@@ -466,6 +495,8 @@ export default function App() {
       case "indicators":setStudyMenuOpen(true);notify("Technical indicators opened.","info");break;
       case "setup":setSetupOpen(true);notify("Chart configuration expanded.","info");break;
       case "replay":replay?exitReplay():startReplay();break;
+      case "goto":openGoToDate();break;
+      case "csv":exportCandlesCsv();break;
       case "focus":setFocusMode(current=>!current);notify("Chart focus toggled.","info");break;
       case "single":case "dual":case "quad":{
         const layout=id.slice(6) as Workspace["chartLayout"];
@@ -810,6 +841,10 @@ export default function App() {
               <button className="symbol-button" onClick={() => setSearchOpen(true)}><span>{symbols[prefs.symbol].label}</span><Search size={15}/></button>
               <TimeframePicker value={prefs.frame} source={prefs.priceSource}
                 onSelect={frame=>{update({frame});notify("Chart interval changed to "+frame+".","info");}}/>
+              <button type="button" className="compact-action chart-goto" aria-label="Go to date"
+                onClick={openGoToDate} title="Go to an observed UTC candle"><CalendarClock size={15}/> Go to</button>
+              <button type="button" className="compact-action chart-csv" aria-label="Export displayed candles as CSV"
+                onClick={exportCandlesCsv} title="Export the visible source and replay prefix to CSV"><Download size={15}/> CSV</button>
               <span className="tool-divider"/>
               <button className={"compact-action "+(replay?"active":"")} aria-label={replay?"Exit replay":"Start replay"}
                 disabled={!replay&&currentCandles.length<40}
@@ -1400,7 +1435,20 @@ export default function App() {
         </div>}
       </div>
     </div>
-    <footer className="statusbar"><span><span className="sync-point">●</span> MARKET TERMINAL / LOCAL-FIRST PREVIEW</span><span>Feed: {sourceStateLabel} · {saveFailed?"Local save failed":"Workspace saved locally"}</span></footer>
+    {dateNavigationOpen&&<div className="modal-backdrop" onMouseDown={event=>{
+       if(event.target===event.currentTarget)setDateNavigationOpen(false);
+     }}>
+       <section className="command-dialog jump-dialog" role="dialog" aria-modal="true" aria-label="Go to chart date">
+         <header><div><strong>Go to date</strong><span>Navigate to the nearest observed candle in UTC.</span></div>
+           <button aria-label="Close date navigation" onClick={()=>setDateNavigationOpen(false)}><X size={17}/></button></header>
+         <label>UTC date and time<input type="datetime-local" aria-label="UTC chart date and time" autoFocus
+           value={dateNavigationValue} onChange={event=>setDateNavigationValue(event.target.value)}
+           onKeyDown={event=>{if(event.key==="Enter")jumpToDate();if(event.key==="Escape")setDateNavigationOpen(false);}}/></label>
+         <footer><span>Missing trading sessions are never interpolated.</span>
+           <button onClick={jumpToDate} disabled={!dateNavigationValue}>Navigate</button></footer>
+       </section>
+     </div>}
+     <footer className="statusbar"><span><span className="sync-point">●</span> MARKET TERMINAL / LOCAL-FIRST PREVIEW</span><span>Feed: {sourceStateLabel} · {saveFailed?"Local save failed":"Workspace saved locally"}</span></footer>
     {notice && <div role="status" className={"toast " + notice.kind} key={notice.id}><span>{notice.kind === "success" ? <Check size={17}/> : <Activity size={17}/>}</span><p>{notice.message}</p><button aria-label="Dismiss notification" onClick={() => setNotice(null)}><X size={16}/></button></div>}
     {levelSettingsId&&prefs.levels.some(level=>level.id===levelSettingsId)&&
       <PriceLevelPropertiesDialog

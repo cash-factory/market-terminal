@@ -28,6 +28,8 @@ export const TERMINAL_COMMANDS: TerminalCommand[] = [
   page("settings","Preferences","Change appearance and workspace controls","theme"),
   chart("indicators","Technical Indicators","Open the study selector and parameter controls","RSI MACD ATR EMA SMA Bollinger"),
   chart("setup","Chart Configuration","Choose chart type, source, pane layout and profiles","source timeframe"),
+  chart("goto","Go to Date","Navigate to the nearest observed UTC candle","jump history time"),
+  chart("csv","Export OHLC CSV","Export chart history with explicit source and timeframe","download data"),
   chart("replay","Historical Replay","Study prior candles without future-chart leakage","bar replay"),
   chart("focus","Toggle Focus Mode","Distraction-free chart analysis","zen"),
   chart("single","Single Chart Layout","Maximize one chart panel","one"),
