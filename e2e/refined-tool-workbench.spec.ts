@@ -83,8 +83,9 @@ test("translucent highlighter is traced and saved as actual points",async({page}
   await expect(page.locator(".drawing-highlighter")).toHaveCount(1);
   const state=await page.evaluate(()=>JSON.parse(localStorage.getItem("market-terminal-workspace")??"{}"));
   expect(state.preferences.drawings[0].tool).toBe("highlighter");
-  expect(state.preferences.drawings[0].opacity).toBe(.36);
+  expect(state.preferences.drawings[0].opacity).toBe(.28);
   expect(state.preferences.drawings[0].points.length).toBeGreaterThan(2);
+  expect(state.preferences.drawings[0].strokeWidth).toBe(16);
   await page.reload();
   await expect(page.locator(".drawing-highlighter")).toHaveCount(1);
 });
