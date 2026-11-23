@@ -21,6 +21,7 @@ import {effectiveLevels,formatFibLabel,measurementSegments} from "./toolProperti
 import {projectedSegment} from "./projection";
 import {fitRegressionChannel} from "./regressionChannel";
 import {calculatePosition,defaultPositionTarget,positionTargetAnchor} from "../analysis/positionDrawing";
+import {calculatePositionMetrics,effectivePositionSettings,formatPositionCash} from "../analysis/positionMetrics";
 
 type Projected = { a: ChartPoint; b: ChartPoint };
 type Gesture = {
@@ -581,13 +582,16 @@ export function DrawingOverlay({
         const targetY=target!==null&&target!==undefined?series.priceToCoordinate(target):null;
         const position=target===null||target===undefined?null:
           calculatePosition(drawing.tool as "long-position"|"short-position",entry,stop,target);
-        if(!correct||targetY===null)return <>
+        const settings=effectivePositionSettings(drawing.positionSettings,symbol);
+        const metrics=target===null||target===undefined?null:
+          calculatePositionMetrics(drawing.tool as "long-position"|"short-position",entry,stop,target,settings);
+        if(!correct||targetY===null||!position?.targetIsValid)return <>
           <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="transparent"
             strokeWidth={18} className="drawing-hit"/>
           <line x1={a.x} y1={a.y} x2={b.x} y2={b.y}
             {...common} className="drawing-line"/>
           <text x={x1} y={a.y-12} fill="#e66a77"
-            fontSize={11} pointerEvents="none">Move stop {isLong?"below":"above"} entry</text>
+            fontSize={11} pointerEvents="none">{!correct?"Move stop "+(isLong?"below":"above")+" entry":"Move target "+(isLong?"above":"below")+" entry"}</text>
         </>;
         const riskTop=Math.min(a.y,b.y),rewardTop=Math.min(a.y,targetY);
         return <>
@@ -597,8 +601,11 @@ export function DrawingOverlay({
             fill="#22b98e" fillOpacity={.16} stroke="#22b98e" strokeWidth={1} className="drawing-position-reward"/>
           <line x1={x1} y1={a.y} x2={x1+width} y2={a.y} {...common} className="drawing-line"/>
           {drawing.showLabels!==false&&<text x={x1+6} y={rewardTop+14} fill="#22b98e" fontSize={11}
-            pointerEvents="none">{isLong?"LONG":"SHORT"} ·
-            {position&&position.targetIsValid?position.multiple.toFixed(2)+"R":"Target on wrong side"}</text>}
+             pointerEvents="none">{isLong?"LONG":"SHORT"} · {position.multiple.toFixed(2)}R
+             {settings.showPnl&&metrics?" · "+formatPositionCash(metrics.estimatedProfit,metrics.currency):""}</text>}
+           {drawing.showLabels!==false&&settings.showQuantity&&metrics&&Math.abs(targetY-a.y)>31&&
+             <text x={x1+6} y={rewardTop+27} fill="#22b98e" fontSize={10} pointerEvents="none">
+               {metrics.quantity.toLocaleString(undefined,{maximumFractionDigits:6})} units</text>}
           {selected&&!drawing.locked&&
             <circle cx={b.x} cy={targetY} r={7}
               fill="var(--panel)" stroke="#22b98e" strokeWidth={2}
@@ -606,7 +613,10 @@ export function DrawingOverlay({
               onPointerDown={event=>beginEdit(event,drawing,"target")}/>}
 
           {drawing.showLabels!==false&&<text x={x1+6} y={riskTop+Math.max(12,Math.abs(b.y-a.y)-5)}
-            fill="#e66a77" fontSize={10} pointerEvents="none">Stop · risk 1R</text>}
+             fill="#e66a77" fontSize={10} pointerEvents="none">Stop · {settings.showPnl&&metrics?
+               formatPositionCash(-metrics.estimatedLoss,metrics.currency):"risk 1R"}
+             {settings.showPriceChange&&metrics?" · "+metrics.stopPercent.toFixed(2)+"% / "+
+               metrics.stopTicks.toFixed(1)+" ticks":""}</text>}
         </>;
       })()}
       {(["extended-line","horizontal-line","horizontal-ray","vertical-line","cross-line"] as string[])
