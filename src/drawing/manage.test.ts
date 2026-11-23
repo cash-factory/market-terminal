@@ -59,6 +59,23 @@ describe("chart drawing editor: groups, style and layering",()=>{
    },"end")).toThrow(/outside valid time/);
    expect(items.map(d=>d.end.price)).toEqual([12,12]);
  });
+ it("applies all group projections as one edit without time-gap distortion",()=>{
+   const grouped=groupDrawings([d("a"),{...d("b"),
+     start:{time:2000,price:5},end:{time:2060,price:7}}],["a","b"],"g");
+   const selected={...grouped[0],start:{time:1030,price:11},end:{time:1090,price:13}};
+   // On a discontinuous time axis the second member can move 2,000 seconds
+   // while the first moves 30; both represent an equal visual translation.
+   const peer={...grouped[1],start:{time:4000,price:6},end:{time:4060,price:8}};
+   const result=updateDrawingAndGroup(grouped,selected,"move",[peer]);
+   expect(result[0]).toEqual(selected);
+   expect(result[1]).toEqual(peer);
+   expect(()=>updateDrawingAndGroup(grouped,selected,"move",[]))
+     .toThrow(/not all member projections/);
+   expect(()=>updateDrawingAndGroup(grouped,selected,"move",[
+     {...peer,end:{time:-1,price:8}}
+   ])).toThrow(/invalid or mismatched/);
+   expect(grouped[1].start.time).toBe(2000);
+ });
  it("styles multiple selected objects and changes their visual z-order",()=>{
    const initial=[d("a"),d("b"),d("c"),d("d")];
    const styled=styleDrawings(initial,["b","c"],{
