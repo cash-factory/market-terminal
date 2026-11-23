@@ -75,3 +75,35 @@ for(const tool of tools){
     expect(await firstDrawing(page)).toEqual(edited);
   });
 }
+
+for(const tool of ["brush","highlighter","text"] as DrawingTool[]){
+  test(tool+": entire freeform object drags without losing stroke or annotation",async({page})=>{
+    test.setTimeout(90_000);
+    await page.goto("/market-terminal/?classic");
+    await place(page,tool);
+    await expect.poll(async()=>!!(await firstDrawing(page))).toBe(true);
+    const before=await firstDrawing(page);
+    const hit=page.locator(tool==="text"?".drawing-note-box":".drawing-hit").first();
+    const box=await hit.boundingBox();
+    if(!box)throw new Error("Missing object hit target");
+    const x=box.x+box.width/2,y=box.y+box.height/2;
+    await page.mouse.move(x,y);
+    await page.mouse.down();
+    await page.mouse.move(x+34,y+14,{steps:10});
+    await page.mouse.up();
+    await expect.poll(async()=>(await firstDrawing(page)).start.time).not.toBe(before.start.time);
+    const moved=await firstDrawing(page);
+    expect(moved.tool).toBe(tool);
+    if(tool!=="text"){
+      expect(moved.points.length).toBe(before.points.length);
+      expect(moved.points[0]).toEqual(moved.start);
+      expect(moved.points.at(-1)).toEqual(moved.end);
+    }else expect(moved.text).toBe(before.text);
+    await page.getByRole("button",{name:"Undo drawing"}).click();
+    await expect.poll(async()=>JSON.stringify(await firstDrawing(page)))
+      .toBe(JSON.stringify(before));
+    await page.getByRole("button",{name:"Redo drawing"}).click();
+    await expect.poll(async()=>JSON.stringify(await firstDrawing(page)))
+      .toBe(JSON.stringify(moved));
+  });
+}
