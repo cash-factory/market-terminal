@@ -861,3 +861,12 @@
 @media(max-width:900px){.instrument-header{flex-wrap:wrap}.candle-reader{width:100%}.instrument-header .candle-reader dl{justify-content:space-between;flex-wrap:wrap}}
 
 
+
+/* Lift only an opened market popover above the neighboring drawing controls.
+   Never create a stacking context around the drawing library itself. */
+.terminal-toolbar-market:has(.study-list),
+.terminal-toolbar-market:has(.chart-profile-popover),
+.terminal-toolbar-market:has(.interval-popover) {
+  position:relative;
+  z-index:80;
+}
