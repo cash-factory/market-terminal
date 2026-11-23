@@ -108,7 +108,7 @@ export function parseFavoriteTools(input: unknown): DrawingTool[] {
     if(typeof candidate==="string"&&TOOL_BY_ID.has(candidate as DrawingTool))
       unique.add(candidate as DrawingTool);
   }
-  return [...unique].slice(0,12);
+  return [...unique].slice(0,TOOL_DEFINITIONS.length);
 }
 
 export function filterDrawingTools(query: string, group?: ToolGroup): ToolDefinition[] {

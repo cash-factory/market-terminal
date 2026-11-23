@@ -19,6 +19,7 @@ import { nearestCrosshairBar } from "./charts/sync";
 import type { Drawing, DrawingTool } from "./drawing/types";
 import { ToolShelf } from "./drawing/ToolShelf";
 import { StudioDrawingRail } from "./drawing/StudioDrawingRail";
+import {FavoriteToolbar} from "./drawing/FavoriteToolbar";
 import type { ToolGroup } from "./drawing/toolDefinitions";
 import { DrawingSettingsDialog } from "./drawing/DrawingSettingsDialog";
 import { validateDrawingSettings } from "./drawing/drawingSettings";
@@ -406,14 +407,16 @@ export default function App() {
   };
   const toggleFavoriteDrawingTool=(selected:DrawingTool)=>{
     const exists=prefs.favoriteDrawingTools.includes(selected);
-    if(!exists&&prefs.favoriteDrawingTools.length>=12){
-      notify("You can pin up to 12 favorite drawing tools.","error");return;
-    }
     update({favoriteDrawingTools:exists
       ?prefs.favoriteDrawingTools.filter(item=>item!==selected)
       :[...prefs.favoriteDrawingTools,selected]});
     notify((exists?"Removed ":"Pinned ")+(TOOL_BY_ID.get(selected)?.label??selected)+
       (exists?" from favorites.":" to your tool favorites."));
+  };
+  const reorderFavoriteTools=(next:DrawingTool[])=>{
+    if(next.length!==prefs.favoriteDrawingTools.length||
+      next.some(tool=>!prefs.favoriteDrawingTools.includes(tool)))return;
+    update({favoriteDrawingTools:next});
   };
   const startReplay=()=>{
     try{
@@ -590,7 +593,7 @@ export default function App() {
       const json: unknown = JSON.parse(await file.text());
       if (!json || typeof json !== "object" || Array.isArray(json) ||
         !("format" in json) || json.format !== "market-terminal-workspace" ||
-        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15 && json.version !== 16 && json.version !== 17 && json.version !== 18 && json.version !== 19 && json.version !== 20 && json.version !== 21 && json.version !== 22 && json.version !== 23 && json.version !== 24 && json.version !== 25) ||
+        !("version" in json) || (json.version !== 1 && json.version !== 2 && json.version !== 3 && json.version !== 4 && json.version !== 5 && json.version !== 6 && json.version !== 7 && json.version !== 8 && json.version !== 9 && json.version !== 10 && json.version !== 11 && json.version !== 12 && json.version !== 13 && json.version !== 14 && json.version !== 15 && json.version !== 16 && json.version !== 17 && json.version !== 18 && json.version !== 19 && json.version !== 20 && json.version !== 21 && json.version !== 22 && json.version !== 23 && json.version !== 24 && json.version !== 25 && json.version !== 26) ||
         !("preferences" in json)) throw new Error("This is not a supported Market Terminal export.");
       const workspace = parseWorkspace(json);
       setReplay(null);
@@ -999,6 +1002,8 @@ export default function App() {
                 canUndo={drawingHistory.current.past.length>0}
                 canRedo={drawingHistory.current.future.length>0}
                 disabled={!currentCandles.length}
+                 favoriteBarVisible={prefs.favoriteBar.visible}
+                 onToggleFavoriteBar={()=>update({favoriteBar:{...prefs.favoriteBar,visible:!prefs.favoriteBar.visible}})}
                 onToggleCategory={toggleToolFamily}
                 onSelect={chooseDrawingTool} onFavorite={toggleFavoriteDrawingTool}
                 onCursor={()=>{setDrawingTool(null);setDrawMode(false);setMoreToolsOpen(false);notify("Cursor ready: select or edit existing chart objects.","info");}}
@@ -1047,6 +1052,12 @@ export default function App() {
               <button title="Redo drawing" aria-label="Redo drawing" disabled={!drawingHistory.current.future.length} className="compact-action" onClick={redoDrawing}><Redo2 size={16}/></button>
               </>}
               </div>
+            {studio&&<FavoriteToolbar favorites={prefs.favoriteDrawingTools}
+              active={drawingTool} disabled={!currentCandles.length}
+              layout={prefs.favoriteBar} onLayout={favoriteBar=>update({favoriteBar})}
+              onSelect={chooseDrawingTool} onUnpin={toggleFavoriteDrawingTool}
+              onReorder={reorderFavoriteTools}
+              onBrowse={()=>{setToolFamily(null);setMoreToolsOpen(true);}}/>}
             <div className="studio-chart-column">
             {!studio && <div className="chart-heading"><div>
               <div className="eyebrow">{replay?"HISTORICAL REPLAY · "+feed.sourceLabel:feed.sourceLabel} <span>•</span> {prefs.frame.toUpperCase()}</div>

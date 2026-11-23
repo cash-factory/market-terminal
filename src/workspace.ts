@@ -3,6 +3,19 @@ import { clampPanelWidth } from "./layout";
 import { isDrawing, type Drawing, type DrawingTool } from "./drawing/types";
 import { DEFAULT_FAVORITE_TOOLS, parseFavoriteTools } from "./drawing/toolDefinitions";
 import {parseToolPresets,type ToolPresets} from "./drawing/toolPresets";
+export type FavoriteBarLayout={visible:boolean;orientation:"horizontal"|"vertical";collapsed:boolean;x:number;y:number};
+export const DEFAULT_FAVORITE_BAR:FavoriteBarLayout={visible:true,orientation:"horizontal",collapsed:false,x:145,y:175};
+export function parseFavoriteBar(value:unknown):FavoriteBarLayout{
+ if(!value||typeof value!=="object"||Array.isArray(value))return {...DEFAULT_FAVORITE_BAR};
+ const raw=value as Record<string,unknown>;
+ return {
+   visible:typeof raw.visible==="boolean"?raw.visible:DEFAULT_FAVORITE_BAR.visible,
+   orientation:raw.orientation==="vertical"?"vertical":"horizontal",
+   collapsed:typeof raw.collapsed==="boolean"?raw.collapsed:DEFAULT_FAVORITE_BAR.collapsed,
+   x:typeof raw.x==="number"&&Number.isFinite(raw.x)&&raw.x>=0&&raw.x<=10000?raw.x:DEFAULT_FAVORITE_BAR.x,
+   y:typeof raw.y==="number"&&Number.isFinite(raw.y)&&raw.y>=0&&raw.y<=10000?raw.y:DEFAULT_FAVORITE_BAR.y
+ };
+}
 import {parseLevel} from "./levels/model";
 import { emptyRiskInputs, parseRiskInputs, type RiskPlannerInputs } from "./analysis/risk";
 import { defaultStudies, parseStudies, type StudySettings } from "./indicators/studies";
@@ -57,6 +70,7 @@ export type Workspace = {
   alerts: PriceAlert[];
   decisions: DecisionRecord[];
   favoriteDrawingTools: DrawingTool[];
+  favoriteBar:FavoriteBarLayout;
   toolPresets:ToolPresets;
 };
 export const defaultWorkspace: Workspace = {
@@ -97,6 +111,7 @@ export const defaultWorkspace: Workspace = {
   alerts: [],
   decisions: [],
   favoriteDrawingTools: [...DEFAULT_FAVORITE_TOOLS],
+  favoriteBar:{...DEFAULT_FAVORITE_BAR},
   toolPresets:{},
 };
 const SYMBOLS = ["EURUSD", "BTCUSDT", "AAPL", "US100"] as const;
@@ -151,6 +166,7 @@ export function parseWorkspace(value: unknown): Workspace {
     alerts: Array.isArray(raw.alerts)?raw.alerts.filter(isPriceAlert):[],
     decisions: parseDecisionRecords(raw.decisions),
     favoriteDrawingTools: parseFavoriteTools(raw.favoriteDrawingTools),
+    favoriteBar:parseFavoriteBar(raw.favoriteBar),
     toolPresets:parseToolPresets(raw.toolPresets),
   };
 }
@@ -163,5 +179,5 @@ export function loadWorkspace(): Workspace {
   }
 }
 export function serializeWorkspace(workspace: Workspace): string {
-  return JSON.stringify({ format: "market-terminal-workspace", version: 25, preferences: workspace }, null, 2);
+  return JSON.stringify({ format: "market-terminal-workspace", version: 26, preferences: workspace }, null, 2);
 }

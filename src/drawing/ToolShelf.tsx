@@ -42,7 +42,8 @@ export function ToolShelf({
  useEffect(()=>{setGroup(initialGroup);setQuery("");setCollapsed([]);},[initialGroup]);
  const visible=useMemo(()=>filterDrawingTools(query,group??undefined),[query,group]);
  const favoriteTools=favorites.map(id=>TOOL_BY_ID.get(id))
-   .filter((tool):tool is ToolDefinition=>Boolean(tool));
+   .filter((tool):tool is ToolDefinition=>Boolean(tool)&&
+     (!query||filterDrawingTools(query).some(item=>item.id===tool!.id)));
  const recentTools=recent.filter(id=>!favorites.includes(id)).slice(0,3)
    .map(id=>TOOL_BY_ID.get(id))
    .filter((tool):tool is ToolDefinition=>Boolean(tool));
@@ -96,7 +97,7 @@ export function ToolShelf({
            <strong>{group?groupLabels[group]:"Tools, organized by purpose"}</strong>
            <p>{group?groupNotes[group]:"Choose a family, then a technique. Hover or focus a tool to inspect how it works."}</p></div>
        </div>
-       {!query&&!group&&<div className="tool-shelf-pinned">
+       {(favoriteTools.length>0||(!query&&!group))&&<div className="tool-shelf-pinned">
          <div className="tool-shelf-section-heading">
            <span><Pin size={12}/> FAVORITES</span><small>{favorites.length} pinned</small></div>
          <div className="tool-shelf-pinned-list">
