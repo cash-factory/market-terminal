@@ -16,11 +16,11 @@ describe("precision tool storage",()=>{
     expect(isDrawing({...base,tool:"javascript:execute"})).toBe(false);
     expect(isDrawing({...base,color:"url(javascript:bad)"})).toBe(false);
   });
-  it("roundtrips one-click drawings and favorite tools using workspace v26",()=>{
+  it("roundtrips one-click drawings and favorite tools using workspace v27",()=>{
     const state={...defaultWorkspace,drawings:[base],
       favoriteDrawingTools:["vertical-line","cross-line"] as typeof defaultWorkspace.favoriteDrawingTools};
     const exported=JSON.parse(serializeWorkspace(state));
-    expect(exported.version).toBe(26);
+    expect(exported.version).toBe(27);
     expect(parseWorkspace(exported)).toEqual(state);
   });
   it("keeps older exports compatible and filters invalid or duplicate favorites",()=>{
