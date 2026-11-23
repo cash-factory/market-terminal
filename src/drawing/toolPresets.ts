@@ -5,7 +5,7 @@ import {multiPointCount,requiresMultiPoint} from "./multiAnchor";
 const FIELDS=[
   "color","strokeWidth","dash","opacity","fillOpacity","showMidline",
   "showLabels","visibleOnFrames","fibLevels","forkLevels","labelMode",
-  "gridDivisions","regressionDeviation","markerDirection","fontSize","showMeasurements","projection"
+  "gridDivisions","regressionDeviation","timeLevels","cycleCount","markerDirection","fontSize","showMeasurements","projection"
 ] as const;
 export type ToolPreset=Partial<Pick<Drawing,typeof FIELDS[number]>>;
 export type ToolPresets=Partial<Record<DrawingTool,ToolPreset>>;
@@ -14,6 +14,7 @@ const clonePreset=(preset:ToolPreset):ToolPreset=>({
   ...preset,
   ...(preset.fibLevels?{fibLevels:preset.fibLevels.map(item=>({...item}))}:{}),
   ...(preset.forkLevels?{forkLevels:[...preset.forkLevels]}:{}),
+  ...(preset.timeLevels?{timeLevels:[...preset.timeLevels]}:{}),
   ...(preset.visibleOnFrames?{visibleOnFrames:[...preset.visibleOnFrames]}:{}),
   ...(preset.showMeasurements?{showMeasurements:{...preset.showMeasurements}}:{})
 });
