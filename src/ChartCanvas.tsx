@@ -43,7 +43,7 @@ interface Props {
   customStudies: CustomStudy[];
   parameters: StudyParameters;
   onAddDrawing: (drawing: Drawing) => void;
-  onUpdateDrawing: (drawing: Drawing,editKind?:"move"|"start"|"end"|"control"|"target"|"vertex") => void;
+  onUpdateDrawing: (drawing: Drawing,editKind?:"move"|"start"|"end"|"control"|"target"|"vertex",groupCandidates?:Drawing[]) => void;
   onDeleteDrawing: (id: string) => void;
   onDeleteDrawings: (ids:string[])=>void;
   selectedDrawingIds:string[];
