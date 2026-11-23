@@ -62,3 +62,31 @@ test("four chart overlays do not compete on one Delete command; one Undo restore
   await expect.poll(async()=>(await savedDrawings(page)).length).toBe(1);
   await expect(page.locator(".chart-grid-cell").nth(2).locator(".drawing-shape")).toHaveCount(1);
 });
+
+test("dragging a grouped pair moves both members as one undoable edit",async({page})=>{
+  await page.goto("/market-terminal/?classic");
+  await drawTrendline(page);
+  await drawTrendline(page);
+  await expect.poll(async()=>(await savedDrawings(page)).length).toBe(2);
+  await page.getByRole("checkbox",{name:"Select drawing 1"}).check();
+  await page.getByRole("checkbox",{name:"Select drawing 2"}).check();
+  await page.getByRole("button",{name:"Group selected drawings",exact:true}).click();
+  const grouped=await savedDrawings(page);
+  expect(grouped[0].groupId).toBe(grouped[1].groupId);
+  const hit=page.locator(".drawing-hit").first();
+  const box=await hit.boundingBox();
+  if(!box)throw new Error("Group hit target unavailable");
+  const x=box.x+box.width/2,y=box.y+box.height/2;
+  await page.mouse.move(x,y);
+  await page.mouse.down();
+  await page.mouse.move(x+31,y+14,{steps:10});
+  await page.mouse.up();
+  await expect.poll(async()=>JSON.stringify(await savedDrawings(page)))
+    .not.toBe(JSON.stringify(grouped));
+  const moved=await savedDrawings(page);
+  expect(moved[0].start.time).not.toBe(grouped[0].start.time);
+  expect(moved[1].start.time).not.toBe(grouped[1].start.time);
+  await page.getByRole("button",{name:"Undo drawing"}).click();
+  await expect.poll(async()=>JSON.stringify(await savedDrawings(page)))
+    .toBe(JSON.stringify(grouped));
+});
