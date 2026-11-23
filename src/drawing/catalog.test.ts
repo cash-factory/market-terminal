@@ -43,6 +43,9 @@ describe("additional drawing types and safe storage",()=>{
     expect(isDrawing({...base,tool:"cyclic-lines",cycleCount:16})).toBe(true);
     expect(isDrawing({...base,tool:"cyclic-lines",cycleCount:25})).toBe(false);
     expect(isDrawing({...base,tool:"fibonacci",timeLevels:[1,2]})).toBe(false);
+    expect(isDrawing({...base,tool:"highlighter",strokeWidth:24,opacity:.4})).toBe(true);
+    expect(isDrawing({...base,tool:"highlighter",strokeWidth:33})).toBe(false);
+    expect(isDrawing({...base,tool:"trendline",strokeWidth:24})).toBe(false);
   });
   it("roundtrips extended drawing objects and keeps legacy workspace data",()=>{
     const docs:Drawing[]=[{...base,tool:"text",text:"Entry zone"},
