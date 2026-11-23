@@ -17,8 +17,8 @@ async function place(page:Page,tool:DrawingTool){
   const pos=([x,y]:XY)=>({x:box.x+x*box.width,y:box.y+y*box.height});
   const click=async(p:XY)=>{const a=pos(p);await page.mouse.click(a.x,a.y);};
   if(ONE_ANCHOR_TOOLS.has(tool)){await click([.38,.42]);return;}
-  const from=pos([.28,tool==="short-position"?.67:.37]);
-  const to=pos([.59,tool==="short-position"?.36:.66]);
+  const from=pos([.28,tool==="short-position" ? .67 : .37]);
+  const to=pos([.59,tool==="short-position" ? .36 : .66]);
   await page.mouse.move(from.x,from.y);
   await page.mouse.down();
   await page.mouse.move(to.x,to.y,{steps:10});
@@ -46,7 +46,7 @@ for(const tool of tools){
     const before=await firstDrawing(page);
     expect(before.tool).toBe(tool);
     await page.getByRole("checkbox",{name:"Select drawing 1"}).check();
-    const handle=page.locator(".drawing-handle").first();
+    const handle=page.locator(".drawing-handle:not(.channel-control-handle):not(.position-target-handle):not(.pattern-vertex-handle)").first();
     await expect(handle).toBeVisible();
     const box=await handle.boundingBox();
     if(!box)throw new Error("Missing edit handle");
