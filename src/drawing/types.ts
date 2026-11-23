@@ -43,6 +43,8 @@ export type Drawing = {
   labelMode?:"ratio"|"price"|"both";
   gridDivisions?:number;
   regressionDeviation?:number;
+  timeLevels?:number[];
+  cycleCount?:number;
   markerDirection?:"up"|"down"|"left"|"right";
   fontSize?:number;
   showMeasurements?:MeasurementParts;
@@ -96,6 +98,12 @@ export function isDrawing(input: unknown): input is Drawing {
     (d.regressionDeviation===undefined || (d.tool==="regression-channel"&&
       typeof d.regressionDeviation==="number"&&Number.isFinite(d.regressionDeviation)&&
       d.regressionDeviation>=0.5&&d.regressionDeviation<=4)) &&
+    (d.timeLevels===undefined || (d.tool==="fib-timezone"&&
+      Array.isArray(d.timeLevels)&&d.timeLevels.length>=1&&d.timeLevels.length<=16&&
+      new Set(d.timeLevels).size===d.timeLevels.length&&
+      d.timeLevels.every(level=>Number.isInteger(level)&&level>=0&&level<=55))) &&
+    (d.cycleCount===undefined || (d.tool==="cyclic-lines"&&
+      Number.isInteger(d.cycleCount)&&d.cycleCount>=2&&d.cycleCount<=24)) &&
     (d.markerDirection===undefined || (d.tool==="arrow-marker"&&
       ["up","down","left","right"].includes(d.markerDirection))) &&
     (d.fontSize===undefined || (["text","callout","price-note"].includes(d.tool as string)&&
