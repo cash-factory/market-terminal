@@ -154,7 +154,7 @@ export function DrawingSettingsDialog({drawing,onSave,onClose,onSaveAsDefault,on
             </select>
           </label>
           <label>Opacity <strong>{Math.round((draft.opacity??1)*100)}%</strong>
-            <input type="range" min=".1" max="1" step=".1" aria-label="Drawing opacity"
+            <input type="range" min=".1" max="1" step=".01" aria-label="Drawing opacity"
               value={draft.opacity??1}
               onChange={e=>setDraft(old=>({...old,opacity:Number(e.target.value)}))}/>
           </label>
