@@ -1,5 +1,5 @@
 import {useMemo,useState} from "react";
-import {Activity,ArrowLeft,BarChart3,CalendarClock,ChartNoAxesCombined,Info,RotateCcw,ShieldAlert} from "lucide-react";
+import {Activity,ArrowLeft,BarChart3,CalendarClock,Info,RotateCcw,ShieldAlert} from "lucide-react";
 import type {CandlestickData,UTCTimestamp} from "lightweight-charts";
 import {symbols,type Frame,type SymbolId} from "../market";
 import {defaultBacktestConfig,runSmaCrossover,validateBacktestConfig,type BacktestConfig} from "./backtest";

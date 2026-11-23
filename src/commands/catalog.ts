@@ -22,6 +22,7 @@ const draw = (id:DrawingTool,label:string,description:string,keywords=""):Termin
 export const TERMINAL_COMMANDS: TerminalCommand[] = [
   page("terminal","Open Chart Studio","Return to the primary chart workstation","charts"),
   page("home","Market Overview","Inspect source-labelled demonstration market snapshots","watchlist home"),
+  page("strategy","Strategy Laboratory","Test a deterministic long-only SMA crossover on chart history","backtest trading simulation"),
   page("screener","Market Screener","Filter source-labelled demonstration instruments and add to watchlists","filters scan sort"),
   page("alerts","Price Alerts","Create and manage browser-local price alerts","notify"),
   page("library","My Workspace","Import, export and manage local chart workspace data","backup"),

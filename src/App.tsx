@@ -10,6 +10,7 @@ import { MarketBoard } from "./charts/MarketBoard";
 import {nearestObservedBar,ohlcCsv,parseUtcChartDate} from "./charts/navigation";
 import { WatchlistPanel } from "./watchlists/WatchlistPanel";
 import { ScreenerPanel } from "./screener/ScreenerPanel";
+import {StrategyLab} from "./strategies/StrategyLab";
 import {activeWatchlist,addSymbol,containsSymbol} from "./watchlists/model";
 import { InstrumentHeader, type CandleInspector } from "./charts/InstrumentHeader";
 import {ChartErrorBoundary} from "./charts/ChartErrorBoundary";
@@ -47,7 +48,7 @@ import {createCustomStudy} from "./indicators/formula";
 import { defaultWorkspace, loadWorkspace, parseWorkspace, serializeWorkspace, type Workspace, type Level } from "./workspace";
 import { CommandPalette } from "./commands/CommandPalette";
 
-type Page = "home" | "terminal" | "screener" | "alerts" | "library" | "settings";
+type Page = "home" | "terminal" | "screener" | "strategy" | "alerts" | "library" | "settings";
 type Notice = { id: number; message: string; kind: "success" | "info" | "error" };
 const frames: Frame[] = ALL_FRAMES;
 const studyKeys=Object.keys(defaultStudies) as (keyof StudySettings)[];
@@ -55,13 +56,14 @@ const menu: { id: Page; label: string; Icon: typeof Home }[] = [
   { id: "home", label: "Overview", Icon: Home },
   { id: "terminal", label: "Terminal", Icon: ChartCandlestick },
   { id: "screener", label: "Screener", Icon: SlidersHorizontal },
+  { id: "strategy", label: "Strategy Lab", Icon: Activity },
   { id: "alerts", label: "Price Alerts", Icon: Bell },
   { id: "library", label: "Workspace", Icon: Layers },
   { id: "settings", label: "Preferences", Icon: Settings2 },
 ];
 const marketList = Object.keys(symbols) as SymbolId[];
 const titles: Record<Page, string> = {
-  home: "Market overview", terminal: "Trading terminal", screener:"Market screener", alerts:"Price alerts", library: "My workspace", settings: "Preferences"
+  home: "Market overview", terminal: "Trading terminal", screener:"Market screener", strategy:"Strategy laboratory", alerts:"Price alerts", library: "My workspace", settings: "Preferences"
 };
 
 const studio = !new URLSearchParams(window.location.search).has("classic");
@@ -1431,6 +1433,9 @@ export default function App() {
               onShowObjects={()=>setPanelTab("objects")}/>}
           </aside>}
         </div>}
+        {page === "strategy" && <StrategyLab symbol={prefs.symbol} frame={prefs.frame}
+          source={prefs.priceSource} status={feed.status} candles={currentCandles}
+          onBack={()=>setPage("terminal")}/>}
         {page === "screener" && <ScreenerPanel frame={prefs.frame}
           activeListName={activeWatchlist(prefs.watchlists).name}
           onOpen={openDemoMarket} onAddToWatchlist={addToActiveWatchlist}/>}
