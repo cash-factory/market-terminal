@@ -118,7 +118,7 @@ export function AdvancedDrawingPrimitives({
     </g>;
   }
   if(tool==="fib-timezone"){
-    const lines=fibTimePositions(a.x,b.x,plot.width,FIB_TIME_SEQUENCE);
+    const lines=fibTimePositions(a.x,b.x,plot.width,drawing.timeLevels??FIB_TIME_SEQUENCE);
     return <g className="drawing-fib-timezone">{lines.map(({level,x})=>
       <g key={level}>
         <line x1={x} x2={x} y1={0} y2={plot.height}
@@ -191,7 +191,7 @@ export function AdvancedDrawingPrimitives({
     </g>;
   }
   if(tool==="cyclic-lines"){
-    const xs=cycleLinePositions(a.x,b.x,plot.width);
+    const xs=cycleLinePositions(a.x,b.x,plot.width).slice(0,drawing.cycleCount??12);
     return <g className="drawing-cyclic-lines">{xs.map((x,i)=><g key={i}>
       <line x1={x} x2={x} y1={0} y2={plot.height}
         stroke="transparent" strokeWidth={11} className="drawing-hit"/>
