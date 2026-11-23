@@ -45,7 +45,7 @@ interface Props {
   color: string;
   magnetEnabled: boolean;
   onAdd: (drawing: Drawing) => void;
-  onUpdate: (drawing: Drawing,editKind?:"move"|"start"|"end"|"control"|"target"|"vertex") => void;
+  onUpdate: (drawing: Drawing,editKind?:"move"|"start"|"end"|"control"|"target"|"vertex",groupCandidates?:Drawing[]) => void;
   onDelete: (id: string) => void;
   onDeleteMany: (ids: string[]) => void;
   selectedIds: string[];
@@ -63,6 +63,12 @@ export function DrawingOverlay({
   const pendingChannelRef=useRef<PendingChannel|null>(null);
   const pendingMultiRef=useRef<{tool:DrawingTool;points:ChartAnchor[];required:number}|null>(null);
   const [draft, setDraftState] = useState<Drawing | null>(null);
+  const [groupDrafts,setGroupDraftState]=useState<Drawing[]>([]);
+  const groupDraftRef=useRef<Drawing[]>([]);
+  const setGroupDrafts=(next:Drawing[])=>{
+    groupDraftRef.current=next;
+    setGroupDraftState(next);
+  };
   const candleTimes=useMemo(()=>candles.map(c=>Number(c.time)),[candles]);
   const [, setRevision] = useState(0);
   const animationFrame = useRef<number | null>(null);
@@ -76,9 +82,9 @@ export function DrawingOverlay({
     const rect = svgRef.current!.getBoundingClientRect();
     return { x: event.clientX - rect.left, y: event.clientY - rect.top };
   };
-  const anchorAt = (point: ChartPoint, allowMagnet=magnetEnabled): ChartAnchor | null => {
+  const anchorAt = (point: ChartPoint, allowMagnet=magnetEnabled, allowOutside=false): ChartAnchor | null => {
     const scale = chart.timeScale();
-    if (!inChartPlot(point, scale.width(), svgRef.current!.clientHeight - scale.height())) return null;
+    if (!allowOutside && !inChartPlot(point, scale.width(), svgRef.current!.clientHeight - scale.height())) return null;
     const logical = scale.coordinateToLogical(point.x);
     const price = series.coordinateToPrice(point.y);
     if (logical === null || price === null || !Number.isFinite(price) || price <= 0) return null;
@@ -140,6 +146,7 @@ export function DrawingOverlay({
     pendingChannelRef.current=null;
     pendingMultiRef.current=null;
     setDraft(null);
+    setGroupDrafts([]);
     if (tool) onSelectionChange([]);
   }, [symbol, tool, frame]);
   useEffect(() => {
@@ -172,6 +179,7 @@ export function DrawingOverlay({
     // Acquire capture only once an actual drag begins.
     gestureRef.current = { kind, origin: pointFromEvent(event), original: drawing,vertexIndex };
     setDraft(null);
+    setGroupDrafts([]);
   };
   const onPointerDown = (event: ReactPointerEvent<SVGSVGElement>) => {
     // The transparent plot hit-surface is an SVG child. Prior versions rejected
@@ -268,10 +276,25 @@ export function DrawingOverlay({
     const dx = point.x - active.origin.x;
     const dy = point.y - active.origin.y;
     if(active.kind==="move"){
-      const moved=translateDrawingOnChart(active.original,{x:dx,y:dy},
-        anchor=>project({...active.original!,start:anchor,end:anchor})?.a??null,
-        position=>anchorAt(position,false));
-      if(moved)setDraft(moved);
+      const members=active.original.groupId?
+        drawings.filter(item=>item.groupId===active.original!.groupId):[active.original];
+      const moved=members.map(item=>translateDrawingOnChart(item,{x:dx,y:dy},
+        anchor=>project({...item,start:anchor,end:anchor})?.a??null,
+        position=>anchorAt(position,false,true)));
+      if(moved.every((item):item is Drawing=>item!==null)){
+        const primary=moved.find(item=>item.id===active.original!.id);
+        if(primary){
+          setDraft(primary);
+          setGroupDrafts(moved.filter(item=>item.id!==primary.id));
+        }
+      }else{
+        // A locked sibling blocks the group; show the attempted movement for
+        // feedback, but the workspace will atomically reject the commit.
+        const primary=translateDrawingOnChart(active.original,{x:dx,y:dy},
+          anchor=>project({...active.original!,start:anchor,end:anchor})?.a??null,
+          position=>anchorAt(position,false,true));
+        if(primary){setDraft(primary);setGroupDrafts([]);}
+      }
       return;
     }
     if(active.kind==="vertex"&&active.original.points&&active.vertexIndex!==undefined){
@@ -377,9 +400,12 @@ export function DrawingOverlay({
       }
     } else {
       const committed = draftRef.current;
+      const groupCandidates=active.original?.groupId&&active.kind==="move"?
+        groupDraftRef.current:undefined;
       setDraft(null);
+      setGroupDrafts([]);
       if (distance >= 2 && committed && active.original) {
-        onUpdate(committed,active.kind);
+        onUpdate(committed,active.kind,groupCandidates);
       }
     }
   };
@@ -389,6 +415,7 @@ export function DrawingOverlay({
     pendingChannelRef.current=null;
     pendingMultiRef.current=null;
     setDraft(null);
+    setGroupDrafts([]);
   };
 
   const renderDrawing = (drawing: Drawing) => {
@@ -754,7 +781,8 @@ export function DrawingOverlay({
     <rect className="drawing-plot-surface" data-drawing-surface="true"
       x={0} y={0} width="100%" height="100%"
       fill="transparent" pointerEvents={tool ? "all" : "none"}/>
-    {drawings.filter(d => d.symbol === symbol && isDrawingVisibleAtFrame(d,frame)).map(d => renderDrawing(draft?.id === d.id ? draft : d))}
+    {drawings.filter(d => d.symbol === symbol && isDrawingVisibleAtFrame(d,frame)).map(d =>
+      renderDrawing(draft?.id===d.id?draft:groupDrafts.find(peer=>peer.id===d.id)??d))}
     {draft?.id === "preview" && renderDrawing(draft)}
     {tool&&pendingMultiRef.current&&<g className="drawing-anchor-progress" pointerEvents="none">
       <rect x={12} y={12} width={188} height={35} rx={6}
