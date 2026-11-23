@@ -26,6 +26,8 @@ import {parseCustomStudies,type CustomStudy} from "./indicators/formula";
 import {parseDecisionRecords,type DecisionRecord} from "./decisions/model";
 import {parseChartDisplayStyle,type ChartDisplayStyle} from "./charts/display";
 import {parseChartProfiles,type ChartProfile} from "./charts/profiles";
+import {parseWatchlist,parseWatchlistFavorites,AVAILABLE_INSTRUMENTS} from "./watchlist/model";
+import {parseReplayStudies,type SavedReplayStudy} from "./replay/simulation";
 
 export type Level = {
   id:string;symbol:SymbolId;price:number;color:string;source?:"demo"|"binance";
@@ -72,6 +74,9 @@ export type Workspace = {
   favoriteDrawingTools: DrawingTool[];
   favoriteBar:FavoriteBarLayout;
   toolPresets:ToolPresets;
+  watchlist:SymbolId[];
+  watchlistFavorites:SymbolId[];
+  replayStudies:SavedReplayStudy[];
 };
 export const defaultWorkspace: Workspace = {
   symbol: "EURUSD",
@@ -113,6 +118,9 @@ export const defaultWorkspace: Workspace = {
   favoriteDrawingTools: [...DEFAULT_FAVORITE_TOOLS],
   favoriteBar:{...DEFAULT_FAVORITE_BAR},
   toolPresets:{},
+  watchlist:[...AVAILABLE_INSTRUMENTS],
+  watchlistFavorites:[],
+  replayStudies:[],
 };
 const SYMBOLS = ["EURUSD", "BTCUSDT", "AAPL", "US100"] as const;
 const FRAMES:readonly Frame[]=ALL_FRAMES;
@@ -127,6 +135,7 @@ export function parseWorkspace(value: unknown): Workspace {
   const symbol = SYMBOLS.includes(raw.symbol as SymbolId) ? raw.symbol as SymbolId : defaultWorkspace.symbol;
   const frame = FRAMES.includes(raw.frame as Frame) ? raw.frame as Frame : defaultWorkspace.frame;
   const accent = ACCENTS.includes(raw.accent as Workspace["accent"]) ? raw.accent as Workspace["accent"] : defaultWorkspace.accent;
+  const watchlist=parseWatchlist(raw.watchlist);
   const levels:Level[]=Array.isArray(raw.levels)?
     raw.levels.flatMap(value=>{const parsed=parseLevel(value);return parsed?[parsed]:[];}):[];
   return {
@@ -168,6 +177,9 @@ export function parseWorkspace(value: unknown): Workspace {
     favoriteDrawingTools: parseFavoriteTools(raw.favoriteDrawingTools),
     favoriteBar:parseFavoriteBar(raw.favoriteBar),
     toolPresets:parseToolPresets(raw.toolPresets),
+    watchlist,
+    watchlistFavorites:parseWatchlistFavorites(raw.watchlistFavorites,watchlist),
+    replayStudies:parseReplayStudies(raw.replayStudies),
   };
 }
 export function loadWorkspace(): Workspace {
@@ -179,5 +191,5 @@ export function loadWorkspace(): Workspace {
   }
 }
 export function serializeWorkspace(workspace: Workspace): string {
-  return JSON.stringify({ format: "market-terminal-workspace", version: 26, preferences: workspace }, null, 2);
+  return JSON.stringify({ format: "market-terminal-workspace", version: 27, preferences: workspace }, null, 2);
 }
