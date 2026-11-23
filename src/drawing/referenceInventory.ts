@@ -7,7 +7,7 @@ import type { ToolGroup } from "./toolDefinitions";
  */
 export const REFERENCE_BACKLOG:Record<ToolGroup,readonly string[]>={
  Lines:[
-  "Trend angle","Regression trend","Flat-top / bottom channel","Disjoint channel",
+  "Flat-top / bottom channel","Disjoint channel",
   "Inside pitchfork","Schiff pitchfork","Modified Schiff pitchfork"
  ],
  Fibonacci:[
@@ -26,7 +26,7 @@ export const REFERENCE_BACKLOG:Record<ToolGroup,readonly string[]>={
  ],
  Shapes:[
   "Rotated rectangle","Path","Polyline","Curve","Double curve",
-  "Arc","Highlighter","Circle","Arrow mark left/right/up/down"
+  "Arc","Circle","Arrow mark left/right/up/down"
  ],
  Annotations:[
   "Anchored note","Pin","Table","Signpost","Comment",
