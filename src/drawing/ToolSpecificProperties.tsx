@@ -1,5 +1,5 @@
 import {useState} from "react";
-import {Plus,RotateCcw,Trash2} from "lucide-react";
+import {Plus,RotateCcw,Trash2,X} from "lucide-react";
 import type {Drawing,ToolLevel,MeasurementParts} from "./types";
 import {TOOL_BY_ID} from "./toolDefinitions";
 import {FORK_RATIOS,MEASUREMENT_DEFAULTS,effectiveLevels} from "./toolProperties";
@@ -15,6 +15,8 @@ const checkbox=(text:string,checked:boolean,update:(checked:boolean)=>void,note:
 export function ToolSpecificProperties({drawing,onChange}:Props){
   const [newRatio,setNewRatio]=useState(".886");
   const [levelError,setLevelError]=useState("");
+  const [newTimeLevel,setNewTimeLevel]=useState("55");
+  const [timeLevelError,setTimeLevelError]=useState("");
   const title=TOOL_BY_ID.get(drawing.tool)?.label??drawing.tool;
   const update=(patch:Partial<Drawing>)=>onChange({...drawing,...patch});
   const isFib=["fibonacci","fib-extension","fib-circles"].includes(drawing.tool);
@@ -74,6 +76,43 @@ export function ToolSpecificProperties({drawing,onChange}:Props){
         onClick={()=>update({fibLevels:undefined,labelMode:undefined})}>
         <RotateCcw size={13}/> Restore this tool’s default levels
       </button>
+    </>}
+    {drawing.tool==="fib-timezone"&&<>
+      <p className="tool-special-explain">Each level multiplies the time spacing between your two anchors, based on chart bar positions. You decide which Fibonacci indices appear; no date or price is predicted.</p>
+      <div className="time-guide-list" aria-label="Fibonacci time guide levels">
+        {(drawing.timeLevels??[0,1,2,3,5,8,13,21,34]).map(level=>
+          <span key={level} className="time-guide-chip">{level}
+            <button type="button" aria-label={"Remove time guide "+level}
+              disabled={(drawing.timeLevels??[0,1,2,3,5,8,13,21,34]).length===1}
+              onClick={()=>update({timeLevels:(drawing.timeLevels??[0,1,2,3,5,8,13,21,34])
+                .filter(value=>value!==level)})}><X size={12}/></button>
+          </span>)}
+      </div>
+      <div className="tool-level-add"><label>Time multiplier (0–55)
+        <input aria-label="New time guide level" type="number" min="0" max="55"
+          step="1" value={newTimeLevel}
+          onChange={e=>{setNewTimeLevel(e.target.value);setTimeLevelError("");}}/>
+      </label><button type="button" aria-label="Add time guide"
+        disabled={(drawing.timeLevels??[0,1,2,3,5,8,13,21,34]).length>=16}
+        onClick={()=>{
+          const level=Number(newTimeLevel),list=drawing.timeLevels??[0,1,2,3,5,8,13,21,34];
+          if(newTimeLevel.trim()===""||!Number.isInteger(level)||level<0||level>55||list.includes(level)){
+            setTimeLevelError("Use a unique whole-number time multiplier between 0 and 55.");return;
+          }
+          update({timeLevels:[...list,level].sort((a,b)=>a-b)});setTimeLevelError("");
+        }}><Plus size={14}/> Add guide</button></div>
+      {timeLevelError&&<p className="tool-level-error" role="alert">{timeLevelError}</p>}
+      <button type="button" className="tool-special-reset"
+        onClick={()=>update({timeLevels:undefined})}><RotateCcw size={13}/> Restore standard Fibonacci time sequence</button>
+    </>}
+    {drawing.tool==="cyclic-lines"&&<>
+      <p className="tool-special-explain">Use the time spacing between the two anchors as a repeating observed-bar hypothesis. Choose how many guide lines to plot; the calculation never creates future candles.</p>
+      <label className="tool-special-field">Maximum cycle markers
+        <select aria-label="Cycle marker count" value={drawing.cycleCount??12}
+          onChange={e=>update({cycleCount:Number(e.target.value)})}>
+          {[2,3,4,6,8,12,16,24].map(count=><option key={count} value={count}>{count} markers</option>)}
+        </select>
+      </label>
     </>}
     {drawing.tool==="pitchfork"&&<>
       <p className="tool-special-explain">Choose outer median-line distances independently. A ratio of 1 follows the two manually placed outer pivots; additional pairs are parallel projections in the current chart scale.</p>
