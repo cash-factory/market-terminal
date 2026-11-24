@@ -1,0 +1,24 @@
+name: Peak asset package for visual review
+
+on:
+  push:
+    branches:
+      - design/peak-asset-library-v1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create visual-asset archive
+        run: zip -q -r "$RUNNER_TEMP/market-terminal-assets.zip" public/assets assets
+      - uses: actions/upload-artifact@v4
+        with:
+          name: market-terminal-visual-assets
+          path: ${{ runner.temp }}/market-terminal-assets.zip
+          if-no-files-found: error
+          retention-days: 7
