@@ -7,7 +7,7 @@ const assets = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../pu
 const read = name => fs.readFileSync(path.join(assets, name));
 const exists = name => fs.existsSync(path.join(assets, name));
 const json = name => JSON.parse(read(name).toString("utf8"));
-const manifest = json("manifest.json"), registry = json("icons/registry.json");
+const manifest = json("manifest.json"), registry = json("icons/registry.json"), reference = json("reference/icon-registry.json");
 const fail = (name, detail) => {throw new Error(`${name}: ${detail}`)};
 
 assert.equal(manifest.name, "Market Terminal — Peak visual asset library");
@@ -15,6 +15,14 @@ assert.equal(registry.icons.length, manifest.counts.icons);
 assert.equal(new Set(registry.icons.map(icon => icon.id)).size, registry.icons.length);
 for(const file of ["gallery.html", "USAGE.md", "brand/favicon.svg", "brand/mark.svg", "brand/lockup-dark.svg","backgrounds/peak-horizon-dark.svg","maps/session-world.svg","icons/terminal-symbols.svg"]){assert.ok(exists(file), `Missing asset ${file}`);}
 for(const category of ["navigation","data","replay","analysis","drawing","actions","status"]){assert.ok(registry.icons.some(icon => icon.category === category), `Missing icon family ${category}`);}
+assert.equal(reference.icons.length, manifest.counts.referenceIcons);
+assert.equal(new Set(reference.icons.map(icon=>icon.id)).size,reference.icons.length);
+for(const icon of reference.icons){
+ assert.ok(exists(icon.path),"Missing reference glyph: "+icon.id);
+ assert.match(icon.id,/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+}
+for(const media of manifest.reference.media)assert.ok(exists(media),"Missing reference media: "+media);
+assert.ok(exists("reference/reference-icons.svg"),"Missing reference icon sprite");
 const sprite = read("icons/terminal-symbols.svg").toString("utf8");
 for(const icon of registry.icons){
  assert.match(icon.id, /^[a-z0-9]+(?:-[a-z0-9]+)*$/);
@@ -66,8 +74,8 @@ function walk(dir){
  }
 }
 walk(assets);
-assert.equal(svgCount,manifest.counts.brand+manifest.counts.backgrounds+manifest.counts.icons+manifest.counts.iconSprite+manifest.counts.illustrations+manifest.counts.sessionMaps);
+assert.equal(svgCount,manifest.counts.brand+manifest.counts.backgrounds+manifest.counts.icons+manifest.counts.iconSprite+manifest.counts.illustrations+manifest.counts.sessionMaps+manifest.counts.referenceIcons+manifest.counts.referenceIconSprite+manifest.counts.referenceMedia);
 const gallery=read("gallery.html").toString("utf8");
 assert.ok(!/<audio[^>]*autoplay/i.test(gallery),"No autoplay sound allowed");
-assert.ok(gallery.includes("icon-search") && gallery.includes("illustration-grid"),"Asset gallery incomplete");
+assert.ok(gallery.includes("icon-search") && gallery.includes("illustration-grid") && gallery.includes("reference-icon-grid"),"Asset gallery incomplete");
 console.log(`Peak asset audit passed: ${svgCount} SVGs, ${manifest.audio.length} WAVs, ${registry.icons.length} icons, ${manifest.illustrations.length} illustrations.`);

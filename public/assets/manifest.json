@@ -1,6 +1,6 @@
 {
   "name": "Market Terminal — Peak visual asset library",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "Source assets only; not integrated into application UI",
   "branch": "design/peak-asset-library-v1",
   "counts": {
@@ -10,7 +10,10 @@
     "iconSprite": 1,
     "illustrations": 23,
     "sessionMaps": 2,
-    "audio": 10
+    "audio": 10,
+    "referenceIcons": 45,
+    "referenceIconSprite": 1,
+    "referenceMedia": 8
   },
   "directories": [
     "brand",
@@ -20,7 +23,8 @@
     "maps",
     "themes",
     "motion",
-    "audio"
+    "audio",
+    "reference"
   ],
   "license": "Original project-created resources; check repository licensing before external redistribution",
   "audio": [
@@ -127,5 +131,25 @@
     "Theme and files not wired into current React layout."
   ],
   "preview": "gallery.html",
-  "notes": "The brand mark was refined against the selected reference, with stacked and inline variants."
+  "notes": "Updated with screenshot-informed monoline icons, cinematic alpine media, red filament ribbon, session imagery and replay transport reference (2026-11-24).",
+  "reference": {
+    "iconRegistry": "reference/icon-registry.json",
+    "media": [
+      "reference/media/alpine-horizon.svg",
+      "reference/media/alpine-overlay-transparent.svg",
+      "reference/media/red-signal-ribbon.svg",
+      "reference/media/glass-reflections.svg",
+      "reference/media/session-map-dots.svg",
+      "reference/media/session-timeline.svg",
+      "reference/media/replay-transport.svg",
+      "reference/media/simulation-ambient-bars.svg"
+    ],
+    "guide": "reference/README.md",
+    "context": "User-supplied Market Terminal cinematic/high-contrast UI concepts",
+    "useRules": [
+      "Decorative only; no obstruction of chart surface",
+      "No broker execution or speculative live-status claims",
+      "Maintain legibility, motion sensitivity, theme contrast and source provenance"
+    ]
+  }
 }
