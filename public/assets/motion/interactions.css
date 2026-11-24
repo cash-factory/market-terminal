@@ -1,0 +1,10 @@
+/* UI motion is intentionally short, optional and nonessential. */
+:root{--mt-motion-fast:100ms;--mt-motion-normal:170ms;--mt-motion-slow:260ms}
+.mt-interactive{transition:background-color var(--mt-motion-normal) ease,border-color var(--mt-motion-normal) ease,transform var(--mt-motion-fast) ease}
+.mt-interactive:active{transform:translateY(1px)}
+.mt-glow-mark{animation:mt-breathe 5.2s ease-in-out infinite alternate}
+@keyframes mt-breathe{from{opacity:.55}to{opacity:.88}}
+@media(prefers-reduced-motion:reduce){
+ :root{--mt-motion-fast:0ms;--mt-motion-normal:0ms;--mt-motion-slow:0ms}
+ .mt-interactive{transition:none}.mt-glow-mark{animation:none}
+}
