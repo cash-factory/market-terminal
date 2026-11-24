@@ -4,7 +4,7 @@
   "status": "Source assets only; not integrated into application UI",
   "branch": "design/peak-asset-library-v1",
   "counts": {
-    "brand": 8,
+    "brand": 11,
     "backgrounds": 5,
     "icons": 97,
     "iconSprite": 1,
@@ -125,5 +125,7 @@
     "Active market hours require dynamic DST-aware source data.",
     "Opt-in UI sounds have not been product-tested for loudness.",
     "Theme and files not wired into current React layout."
-  ]
+  ],
+  "preview": "gallery.html",
+  "notes": "The brand mark was refined against the selected reference, with stacked and inline variants."
 }
