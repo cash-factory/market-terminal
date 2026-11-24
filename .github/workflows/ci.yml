@@ -20,3 +20,14 @@ jobs:
         run: npm test
       - name: Build application
         run: npm run build
+      - name: Bundle static assets for visual review
+        if: github.event_name == 'pull_request'
+        run: zip -q -r "$RUNNER_TEMP/market-terminal-assets.zip" public/assets assets
+      - name: Upload visual asset bundle
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: market-terminal-visual-assets
+          path: ${{ runner.temp }}/market-terminal-assets.zip
+          if-no-files-found: error
+          retention-days: 7
