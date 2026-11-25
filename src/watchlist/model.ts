@@ -1,9 +1,9 @@
-import {symbols, REAL_SPOT_SYMBOLS, ENABLE_TEST_FIXTURES, type SymbolId} from "../market";
+import {availableInstruments, ENABLE_TEST_FIXTURES, type SymbolId} from "../market";
 
-export const AVAILABLE_INSTRUMENTS=Object.keys(symbols) as SymbolId[];
+export const AVAILABLE_INSTRUMENTS=availableInstruments;
 export const DEFAULT_WATCHLIST:SymbolId[]=ENABLE_TEST_FIXTURES
   ? ["EURUSD","BTCUSDT","AAPL","US100"]
-  : [...REAL_SPOT_SYMBOLS];
+  : [...availableInstruments];
 const valid=new Set<string>(AVAILABLE_INSTRUMENTS);
 
 /** An empty list is a valid, intentionally cleared watchlist. */

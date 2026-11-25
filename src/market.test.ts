@@ -36,7 +36,10 @@ describe("market demonstration fixture", () => {
     for (const id of REAL_SPOT_SYMBOLS) {
       expect(symbols[id].market).toContain("BINANCE SPOT");
     }
-    for (const id of ["EURUSD", "XAUUSD", "AAPL", "US100"] as const) {
+    for (const id of ["XAUUSD", "US100"] as const) {
+      expect(symbols[id].market).toContain("EXTERNAL CHARTS");
+    }
+    for (const id of ["EURUSD", "AAPL"] as const) {
       expect(symbols[id].market).toContain("PROVIDER REQUIRED");
     }
   });

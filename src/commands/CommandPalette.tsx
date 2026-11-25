@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { ArrowRight, ChartCandlestick, Command, Compass, Layers3, Search, X } from "lucide-react";
-import { symbols, type SymbolId } from "../market";
+import { availableInstruments, symbols, type SymbolId } from "../market";
 import { filterTerminalCommands } from "./catalog";
 import "./style.css";
 
@@ -14,7 +14,7 @@ type Props = {
   onExecuteCommand: (command: string) => void;
 };
 
-const instrumentIds=Object.keys(symbols) as SymbolId[];
+
 
 export function CommandPalette({onClose,onOpenInstrument,onExecuteCommand}:Props){
   const [query,setQuery]=useState("");
@@ -23,7 +23,7 @@ export function CommandPalette({onClose,onOpenInstrument,onExecuteCommand}:Props
   const oldFocus=useRef<HTMLElement|null>(null);
   const results=useMemo(()=>{
     const q=query.trim().toLowerCase();
-    const instruments:Result[]=instrumentIds.filter(symbol=>
+    const instruments:Result[]=availableInstruments.filter(symbol=>
       [symbol,symbols[symbol].label,symbols[symbol].market].join(" ").toLowerCase().includes(q)
     ).map(symbol=>({kind:"instrument",key:"symbol:"+symbol,symbol}));
     const actions:Result[]=filterTerminalCommands(query).map(item=>({

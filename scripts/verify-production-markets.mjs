@@ -27,15 +27,16 @@ try{
  },null,{timeout:30000});
  await page.screenshot({path:"test-results/production-real/eth-spot.png",animations:"disabled"});
  await page.keyboard.press("Control+k");
- await page.getByRole("combobox",{name:"Search instruments and tools"}).fill("EURUSD");
- await page.getByRole("listbox",{name:"Market instruments and commands"}).getByRole("option",{name:/EUR\s*\/\s*USD/}).click();
- await page.waitForFunction(()=>{
-   const header=document.querySelector(".instrument-header h1");
-   const chart=document.querySelector(".technical-chart-stack");
-   return header?.textContent?.includes("EUR") && chart?.getAttribute("data-visible-candles")==="0";
- },null,{timeout:12000});
- assert.match(await page.locator(".terminal-center").innerText(),/No verified OHLC provider|NO VERIFIED/i);
- await page.screenshot({path:"test-results/production-real/eurusd-no-provider.png",animations:"disabled"});
+ const search=page.getByRole("combobox",{name:"Search instruments and tools"});
+ const options=page.getByRole("listbox",{name:"Market instruments and commands"}).getByRole("option");
+ for(const symbol of ["EURUSD","AAPL"]){
+   await search.fill(symbol);
+   assert.equal(await options.count(),0);
+ }
+ await search.fill("XAUUSD");
+ await options.first().click();
+ await page.locator(".market-source-links summary").click();
+ assert.equal(await page.getByRole("navigation",{name:"External chart providers"}).getByRole("link").count(),3);
  assert.equal(issues.length,0,"Browser runtime errors: "+issues.join(" | "));
- console.log("PRODUCTION MARKET SMOKE PASSED: BTC/USDT and ETH/USDT actual market OHLC loaded; EUR/USD did not invent prices.");
+ console.log("PRODUCTION MARKET SMOKE PASSED: BTC/USDT and ETH/USDT actual market OHLC loaded; unsupported instruments hidden and gold providers available.");
 }finally{await browser.close();}

@@ -27,7 +27,7 @@ import { validateDrawingSettings } from "./drawing/drawingSettings";
 import {applyToolPreset,presetFromDrawing} from "./drawing/toolPresets";
 import { TOOL_BY_ID } from "./drawing/toolDefinitions";
 import {groupDrawings,ungroupDrawings,styleDrawings,moveDrawingLayers,updateDrawingAndGroup,type DrawingStylePatch} from "./drawing/manage";
-import {ALL_FRAMES, frameSeconds, symbols, ENABLE_TEST_FIXTURES, isRealSpotSymbol, type Frame, type SymbolId} from "./market";
+import {availableInstruments, nativeInstruments, ALL_FRAMES, frameSeconds, symbols, ENABLE_TEST_FIXTURES, isRealSpotSymbol, type Frame, type SymbolId} from "./market";
 import { usePriceFeed } from "./data/usePriceFeed";
 import {referenceMarketHours,priceMetadata} from "./data/sessionReference";
 import { panelWidthAfterDrag, panelWidthAfterKey } from "./layout";
@@ -63,7 +63,7 @@ const menu: { id: Page; label: string; Icon: typeof Home }[] = [
   { id: "library", label: "Workspace", Icon: Layers },
   { id: "settings", label: "Preferences", Icon: Settings2 },
 ];
-const marketList = Object.keys(symbols) as SymbolId[];
+
 const titles: Record<Page, string> = {
   home: "Market overview", terminal: "Chart workspace", sizing: "Position sizing", alerts:"Price alerts", library: "My workspace", settings: "Preferences"
 };
@@ -533,7 +533,7 @@ export default function App() {
     if(!selected){notify("Saved chart workspace not found.","error");return;}
     setReplay(null);
     setDrawingTool(null);setDrawMode(false);setSelectedDrawingIds([]);
-    setPrefs(old=>applyChartProfile(old,selected));
+    setPrefs(old=>parseWorkspace(applyChartProfile(old,selected)));
     notify(selected.name+" chart workspace restored.");
   };
   const deleteFullChartProfile=(id:string)=>{
@@ -872,7 +872,7 @@ export default function App() {
         {!studio && page === "home" && <div className="content-page">
           <div className="hero"><div className="eyebrow">YOUR WORKSPACE AT A GLANCE</div><h1>A clear view of your markets.</h1><p>Get straight back to analysis. Your setup is saved on this device and basic tools don't have usage quotas.</p><button className="primary-button" onClick={() => setPage("terminal")}><ChartCandlestick size={17}/> Open trading terminal <ChevronRight size={16}/></button></div>
           <div className="section-head"><div><small>QUICK ACCESS</small><h2>Markets to explore</h2></div><button className="text-button" onClick={() => setSearchOpen(true)}>Browse symbols <ChevronRight size={16}/></button></div>
-          <div className="market-grid">{marketList.map(symbol => <button className="market-tile" key={symbol} onClick={() => openInstrument(symbol)}><span className="market-kind">{symbols[symbol].market}</span><strong>{symbols[symbol].label}</strong><span className="market-tile-bottom">Open chart <ChevronRight size={16}/></span></button>)}</div>
+          <div className="market-grid">{availableInstruments.map(symbol => <button className="market-tile" key={symbol} onClick={() => openInstrument(symbol)}><span className="market-kind">{symbols[symbol].market}</span><strong>{symbols[symbol].label}</strong><span className="market-tile-bottom">Open chart <ChevronRight size={16}/></span></button>)}</div>
           <div className="section-head"><div><small>WORKSPACE HEALTH</small><h2>Your local setup</h2></div></div>
           <div className="summary-grid"><div><span>Current timeframe</span><strong>{prefs.frame.toUpperCase()}</strong></div><div><span>Saved price levels</span><strong>{prefs.levels.length}</strong></div><div><span>Core drawing quota</span><strong>None</strong></div></div>
           <p className="data-caveat"><Activity size={16}/> Supported crypto markets use Binance Spot public exchange candles. Forex, gold, equities and index feeds are not configured; no fictional candles are displayed in the published application.</p>
@@ -951,7 +951,7 @@ export default function App() {
                     notify(symbol?"Comparison overlay selected. Prices are rebased for visual comparison.":"Comparison overlay hidden.");
                   }}>
                   <option value="none">No overlay</option>
-                  {marketList.map(symbol=><option key={symbol} value={symbol}>{symbols[symbol].label}</option>)}
+                  {nativeInstruments.map(symbol=><option key={symbol} value={symbol}>{symbols[symbol].label}</option>)}
                 </select>
               </label>
               {prefs.comparisonOverlaySymbol && isRealSpotSymbol(prefs.comparisonOverlaySymbol)&&
@@ -1265,7 +1265,7 @@ export default function App() {
                           update({[panel.slot]:symbol,
                             [panel.sourceSlot]:isRealSpotSymbol(symbol)?(ENABLE_TEST_FIXTURES?panel.source:"binance"):"demo"});
                         }}>
-                        {marketList.map(symbol=><option key={symbol} value={symbol}>{symbols[symbol].label}</option>)}
+                        {nativeInstruments.map(symbol=><option key={symbol} value={symbol}>{symbols[symbol].label}</option>)}
                       </select>
                     </label>
                     <label className="secondary-symbol-select">Frame
@@ -1282,7 +1282,7 @@ export default function App() {
                       </select>
                     </label>
                     <small>{panel.feed.sourceLabel} · {panel.feed.status.toUpperCase()}</small>
-                    <button className="chart-make-primary"
+                    <button className="chart-make-primary" disabled={!nativeInstruments.includes(prefs.symbol)}
                       aria-label={panel.number===2?"Make comparison chart primary":"Make chart "+panel.number+" primary"}
                       title="Swap this chart into the main workspace for complete object management"
                       onClick={()=>{

@@ -1,4 +1,4 @@
-import { ALL_FRAMES, ENABLE_TEST_FIXTURES, isRealSpotSymbol, symbols, type Frame, type SymbolId } from "./market";
+import { ALL_FRAMES, ENABLE_TEST_FIXTURES, isRealSpotSymbol, availableInstruments, nativeInstruments, type Frame, type SymbolId } from "./market";
 import { clampPanelWidth } from "./layout";
 import { isDrawing, type Drawing, type DrawingTool } from "./drawing/types";
 import { DEFAULT_FAVORITE_TOOLS, parseFavoriteTools } from "./drawing/toolDefinitions";
@@ -126,7 +126,7 @@ export const defaultWorkspace: Workspace = {
   watchlistFavorites:[],
   replayStudies:[],
 };
-const SYMBOLS = Object.keys(symbols) as SymbolId[];
+
 const FRAMES:readonly Frame[]=ALL_FRAMES;
 const ACCENTS = ["violet", "teal", "amber"] as const;
 
@@ -136,8 +136,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export function parseWorkspace(value: unknown): Workspace {
   if (!isRecord(value)) throw new Error("The workspace file must contain an object.");
   const raw = isRecord(value.preferences) ? value.preferences : value;
-  const symbol = SYMBOLS.includes(raw.symbol as SymbolId) ? raw.symbol as SymbolId : defaultWorkspace.symbol;
+  const symbol = availableInstruments.includes(raw.symbol as SymbolId) ? raw.symbol as SymbolId : defaultWorkspace.symbol;
   const frame = FRAMES.includes(raw.frame as Frame) ? raw.frame as Frame : defaultWorkspace.frame;
+  const secondarySymbol = nativeInstruments.includes(raw.secondarySymbol as SymbolId) ? raw.secondarySymbol as SymbolId : defaultWorkspace.secondarySymbol;
+  const tertiarySymbol = nativeInstruments.includes(raw.tertiarySymbol as SymbolId) ? raw.tertiarySymbol as SymbolId : defaultWorkspace.tertiarySymbol;
+  const quaternarySymbol = nativeInstruments.includes(raw.quaternarySymbol as SymbolId) ? raw.quaternarySymbol as SymbolId : defaultWorkspace.quaternarySymbol;
   const accent = ACCENTS.includes(raw.accent as Workspace["accent"]) ? raw.accent as Workspace["accent"] : defaultWorkspace.accent;
   // Upgrade an untouched legacy default watchlist to real available markets.
   // Keep every intentionally customized or pinned watchlist unchanged.
@@ -153,20 +156,20 @@ export function parseWorkspace(value: unknown): Workspace {
     priceSource: isRealSpotSymbol(symbol) && (!ENABLE_TEST_FIXTURES || raw.priceSource === "binance") ? "binance" : "demo",
     chartLayout: raw.chartLayout === "quad" ? "quad" : raw.chartLayout === "dual" ? "dual" : "single",
     chartDisplayStyle: parseChartDisplayStyle(raw.chartDisplayStyle),
-    comparisonOverlaySymbol: SYMBOLS.includes(raw.comparisonOverlaySymbol as SymbolId)
+    comparisonOverlaySymbol: nativeInstruments.includes(raw.comparisonOverlaySymbol as SymbolId)
       ? raw.comparisonOverlaySymbol as SymbolId : null,
     comparisonOverlaySource: isRealSpotSymbol(raw.comparisonOverlaySymbol as SymbolId)&&(!ENABLE_TEST_FIXTURES||raw.comparisonOverlaySource==="binance")
       ? "binance" : "demo",
     chartProfiles: parseChartProfiles(raw.chartProfiles),
-    secondarySymbol: SYMBOLS.includes(raw.secondarySymbol as SymbolId) ? raw.secondarySymbol as SymbolId : "BTCUSDT",
-    tertiarySymbol: SYMBOLS.includes(raw.tertiarySymbol as SymbolId) ? raw.tertiarySymbol as SymbolId : "AAPL",
-    quaternarySymbol: SYMBOLS.includes(raw.quaternarySymbol as SymbolId) ? raw.quaternarySymbol as SymbolId : "US100",
+    secondarySymbol,
+    tertiarySymbol,
+    quaternarySymbol,
     secondaryFrame: FRAMES.includes(raw.secondaryFrame as Frame) ? raw.secondaryFrame as Frame : frame,
     tertiaryFrame: FRAMES.includes(raw.tertiaryFrame as Frame) ? raw.tertiaryFrame as Frame : frame,
     quaternaryFrame: FRAMES.includes(raw.quaternaryFrame as Frame) ? raw.quaternaryFrame as Frame : frame,
-    secondarySource: isRealSpotSymbol(raw.secondarySymbol as SymbolId) && (!ENABLE_TEST_FIXTURES || raw.secondarySource === "binance") ? "binance" : "demo",
-    tertiarySource: isRealSpotSymbol(raw.tertiarySymbol as SymbolId) && (!ENABLE_TEST_FIXTURES || raw.tertiarySource === "binance") ? "binance" : "demo",
-    quaternarySource: isRealSpotSymbol(raw.quaternarySymbol as SymbolId) && (!ENABLE_TEST_FIXTURES || raw.quaternarySource === "binance") ? "binance" : "demo",
+    secondarySource: isRealSpotSymbol(secondarySymbol) && (!ENABLE_TEST_FIXTURES || raw.secondarySource === "binance") ? "binance" : "demo",
+    tertiarySource: isRealSpotSymbol(tertiarySymbol) && (!ENABLE_TEST_FIXTURES || raw.tertiarySource === "binance") ? "binance" : "demo",
+    quaternarySource: isRealSpotSymbol(quaternarySymbol) && (!ENABLE_TEST_FIXTURES || raw.quaternarySource === "binance") ? "binance" : "demo",
     linkCrosshairs: typeof raw.linkCrosshairs === "boolean" ? raw.linkCrosshairs : false,
     linkTimeRanges: typeof raw.linkTimeRanges === "boolean" ? raw.linkTimeRanges : false,
     drawings: Array.isArray(raw.drawings) ? raw.drawings.filter(isDrawing) : [],
