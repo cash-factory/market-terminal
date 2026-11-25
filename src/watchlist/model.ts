@@ -1,11 +1,14 @@
-import {symbols, type SymbolId} from "../market";
+import {symbols, REAL_SPOT_SYMBOLS, ENABLE_TEST_FIXTURES, type SymbolId} from "../market";
 
 export const AVAILABLE_INSTRUMENTS=Object.keys(symbols) as SymbolId[];
+export const DEFAULT_WATCHLIST:SymbolId[]=ENABLE_TEST_FIXTURES
+  ? ["EURUSD","BTCUSDT","AAPL","US100"]
+  : [...REAL_SPOT_SYMBOLS];
 const valid=new Set<string>(AVAILABLE_INSTRUMENTS);
 
 /** An empty list is a valid, intentionally cleared watchlist. */
 export function parseWatchlist(value:unknown):SymbolId[]{
-  if(!Array.isArray(value))return [...AVAILABLE_INSTRUMENTS];
+  if(!Array.isArray(value))return [...DEFAULT_WATCHLIST];
   const result:SymbolId[]=[];
   for(const item of value)if(typeof item==="string"&&valid.has(item)&&!result.includes(item as SymbolId))
     result.push(item as SymbolId);

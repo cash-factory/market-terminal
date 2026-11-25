@@ -1,4 +1,4 @@
-import { ALL_FRAMES, type Frame, type SymbolId } from "./market";
+import { ALL_FRAMES, ENABLE_TEST_FIXTURES, isRealSpotSymbol, symbols, type Frame, type SymbolId } from "./market";
 import { clampPanelWidth } from "./layout";
 import { isDrawing, type Drawing, type DrawingTool } from "./drawing/types";
 import { DEFAULT_FAVORITE_TOOLS, parseFavoriteTools } from "./drawing/toolDefinitions";
@@ -30,7 +30,7 @@ import {parseCustomStudies,type CustomStudy} from "./indicators/formula";
 import {parseDecisionRecords,type DecisionRecord} from "./decisions/model";
 import {parseChartDisplayStyle,type ChartDisplayStyle} from "./charts/display";
 import {parseChartProfiles,type ChartProfile} from "./charts/profiles";
-import {parseWatchlist,parseWatchlistFavorites,AVAILABLE_INSTRUMENTS} from "./watchlist/model";
+import {parseWatchlist,parseWatchlistFavorites,DEFAULT_WATCHLIST} from "./watchlist/model";
 import {parseReplayStudies,type SavedReplayStudy} from "./replay/simulation";
 
 export type Level = {
@@ -83,23 +83,23 @@ export type Workspace = {
   replayStudies:SavedReplayStudy[];
 };
 export const defaultWorkspace: Workspace = {
-  symbol: "EURUSD",
+  symbol: ENABLE_TEST_FIXTURES ? "EURUSD" : "BTCUSDT",
   frame: "1h",
-  priceSource: "demo",
+  priceSource: ENABLE_TEST_FIXTURES ? "demo" : "binance",
   chartLayout: "single",
   chartDisplayStyle: "candles",
   comparisonOverlaySymbol: null,
   comparisonOverlaySource: "demo",
   chartProfiles: [],
-  secondarySymbol: "BTCUSDT",
-  tertiarySymbol: "AAPL",
-  quaternarySymbol: "US100",
+  secondarySymbol: ENABLE_TEST_FIXTURES ? "BTCUSDT" : "ETHUSDT",
+  tertiarySymbol: ENABLE_TEST_FIXTURES ? "AAPL" : "SOLUSDT",
+  quaternarySymbol: ENABLE_TEST_FIXTURES ? "US100" : "XRPUSDT",
   secondaryFrame: "1h",
   tertiaryFrame: "1h",
   quaternaryFrame: "1h",
-  secondarySource: "demo",
-  tertiarySource: "demo",
-  quaternarySource: "demo",
+  secondarySource: ENABLE_TEST_FIXTURES ? "demo" : "binance",
+  tertiarySource: ENABLE_TEST_FIXTURES ? "demo" : "binance",
+  quaternarySource: ENABLE_TEST_FIXTURES ? "demo" : "binance",
   linkCrosshairs: false,
   linkTimeRanges: false,
   dark: true,
@@ -122,11 +122,11 @@ export const defaultWorkspace: Workspace = {
   favoriteDrawingTools: [...DEFAULT_FAVORITE_TOOLS],
   favoriteBar:{...DEFAULT_FAVORITE_BAR},
   toolPresets:{},
-  watchlist:[...AVAILABLE_INSTRUMENTS],
+  watchlist:[...DEFAULT_WATCHLIST],
   watchlistFavorites:[],
   replayStudies:[],
 };
-const SYMBOLS = ["EURUSD", "BTCUSDT", "AAPL", "US100"] as const;
+const SYMBOLS = Object.keys(symbols) as SymbolId[];
 const FRAMES:readonly Frame[]=ALL_FRAMES;
 const ACCENTS = ["violet", "teal", "amber"] as const;
 
@@ -144,12 +144,12 @@ export function parseWorkspace(value: unknown): Workspace {
     raw.levels.flatMap(value=>{const parsed=parseLevel(value);return parsed?[parsed]:[];}):[];
   return {
     symbol, frame, accent, levels,
-    priceSource: symbol === "BTCUSDT" && raw.priceSource === "binance" ? "binance" : "demo",
+    priceSource: isRealSpotSymbol(symbol) && raw.priceSource !== "demo" ? "binance" : "demo",
     chartLayout: raw.chartLayout === "quad" ? "quad" : raw.chartLayout === "dual" ? "dual" : "single",
     chartDisplayStyle: parseChartDisplayStyle(raw.chartDisplayStyle),
     comparisonOverlaySymbol: SYMBOLS.includes(raw.comparisonOverlaySymbol as SymbolId)
       ? raw.comparisonOverlaySymbol as SymbolId : null,
-    comparisonOverlaySource: raw.comparisonOverlaySymbol==="BTCUSDT"&&raw.comparisonOverlaySource==="binance"
+    comparisonOverlaySource: isRealSpotSymbol(raw.comparisonOverlaySymbol as SymbolId)&&raw.comparisonOverlaySource==="binance"
       ? "binance" : "demo",
     chartProfiles: parseChartProfiles(raw.chartProfiles),
     secondarySymbol: SYMBOLS.includes(raw.secondarySymbol as SymbolId) ? raw.secondarySymbol as SymbolId : "BTCUSDT",
@@ -158,9 +158,9 @@ export function parseWorkspace(value: unknown): Workspace {
     secondaryFrame: FRAMES.includes(raw.secondaryFrame as Frame) ? raw.secondaryFrame as Frame : frame,
     tertiaryFrame: FRAMES.includes(raw.tertiaryFrame as Frame) ? raw.tertiaryFrame as Frame : frame,
     quaternaryFrame: FRAMES.includes(raw.quaternaryFrame as Frame) ? raw.quaternaryFrame as Frame : frame,
-    secondarySource: raw.secondarySymbol === "BTCUSDT" && raw.secondarySource === "binance" ? "binance" : "demo",
-    tertiarySource: raw.tertiarySymbol === "BTCUSDT" && raw.tertiarySource === "binance" ? "binance" : "demo",
-    quaternarySource: raw.quaternarySymbol === "BTCUSDT" && raw.quaternarySource === "binance" ? "binance" : "demo",
+    secondarySource: isRealSpotSymbol(raw.secondarySymbol as SymbolId) && raw.secondarySource === "binance" ? "binance" : "demo",
+    tertiarySource: isRealSpotSymbol(raw.tertiarySymbol as SymbolId) && raw.tertiarySource === "binance" ? "binance" : "demo",
+    quaternarySource: isRealSpotSymbol(raw.quaternarySymbol as SymbolId) && raw.quaternarySource === "binance" ? "binance" : "demo",
     linkCrosshairs: typeof raw.linkCrosshairs === "boolean" ? raw.linkCrosshairs : false,
     linkTimeRanges: typeof raw.linkTimeRanges === "boolean" ? raw.linkTimeRanges : false,
     drawings: Array.isArray(raw.drawings) ? raw.drawings.filter(isDrawing) : [],

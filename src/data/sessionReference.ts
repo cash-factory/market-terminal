@@ -1,4 +1,4 @@
-import type {SymbolId} from "../market";
+import {isRealSpotSymbol,type SymbolId,symbols} from "../market";
 import type {PriceSource} from "./usePriceFeed";
 
 /** Calendar annotations are reference information, not a quote-status flag.
@@ -47,11 +47,11 @@ export function easternWallClock(atMs:number):{
 export function referenceMarketHours(
   symbol:SymbolId,source:PriceSource,atMs:number
 ):MarketHoursReference{
-  if(symbol==="BTCUSDT"){
+  if(isRealSpotSymbol(symbol)){
     return {venue:source==="binance"?"Binance Spot":"Crypto reference",
       zone:"UTC",calendarStatus:"continuous-reference",
       summary:"Continuous-market convention",
-      detail:"Crypto trading is commonly available around the clock; maintenance, restrictions and live feed health require provider verification. Demo prices are always illustrative.",
+      detail:"Crypto trading is commonly available around the clock; maintenance, restrictions and live feed health require provider verification. Historical-only snapshots and exchange outages must not be described as live.",
       sourceUrl:null,isExecutionAvailabilityConfirmed:false};
   }
   if(symbol==="AAPL"){
@@ -86,6 +86,12 @@ export function referenceMarketHours(
       detail:"Forex sessions, weekend cutoffs and daylight saving transitions depend on the selected broker, instrument and liquidity provider. No executable market-hours assertion is available for this demonstration feed.",
       sourceUrl:null,isExecutionAvailabilityConfirmed:false};
   }
+  if(symbol==="XAUUSD"){
+    return {venue:"Gold · provider not configured",zone:"Provider-defined",
+      calendarStatus:"unknown",summary:"No verified venue feed",
+      detail:"Gold quotes and session availability vary by the exchange or OTC provider. Historical bars are unavailable until a verified source is attached.",
+      sourceUrl:null,isExecutionAvailabilityConfirmed:false};
+  }
   return {venue:"US100 · unspecified CFD venue",zone:"Broker-defined",
     calendarStatus:"unknown",summary:"Contract hours not configured",
     detail:"Index CFD trading calendars and tick/contract specifications vary by broker. No live exchange or executable-market schedule has been configured for US100.",
@@ -99,9 +105,9 @@ export type PriceMetadata={
 };
 /** Display decimal places are NOT exchange tick sizes or FX pip values. */
 export function priceMetadata(symbol:SymbolId,source:PriceSource):PriceMetadata{
-  const displayDecimals=symbol==="EURUSD"?5:2;
+  const displayDecimals=symbols[symbol].precision;
   return {displayDecimals,tickSize:null,venueVerified:false,
-    note:source==="binance"&&symbol==="BTCUSDT"?
+    note:source==="binance"&&isRealSpotSymbol(symbol)?
       "Display precision only. Obtain current Binance LOT_SIZE/PRICE_FILTER tick size from validated exchangeInfo before quoting execution or sizing.":
-      "Demonstration display precision only. Broker tick size, pip value and contract specifications are not configured."};
+      "No verified market feed configured. Display precision is not a broker tick size or executable price."};
 }
