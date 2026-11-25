@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSPropert
 import {
   Activity, ArrowDownToLine, Bell, BookOpen, ChartCandlestick, Check,
   ChevronLeft, ChevronRight, Command, Compass, Download, Home, Layers,
-  Menu, Moon, MousePointer2, Plus, RotateCcw, Search, Settings2, Sun, Maximize2, Minimize2,
+  Menu, Moon, MousePointer2, Plus, RotateCcw, Search, Settings2, Sun, Maximize2, Minimize2, Volume2, VolumeX,
   Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Film, Magnet, MoveUpRight, ArrowUpRight, Columns2, Grid2X2, Shapes, Pencil, ArrowUp, ArrowDown, Link2, Unlink2
 } from "lucide-react";
 import { ChartCanvas,type ChartSurface,type ChartRange } from "./ChartCanvas";
@@ -46,6 +46,9 @@ import {defaultStudyParameters,studyParameterBounds,studyParameterKeys,updateStu
 import {createCustomStudy} from "./indicators/formula";
 import { defaultWorkspace, loadWorkspace, parseWorkspace, serializeWorkspace, type Workspace, type Level } from "./workspace";
 import { CommandPalette } from "./commands/CommandPalette";
+import { PeakIcon } from "./presentation/PeakIcon";
+import { PeakOverview } from "./presentation/PeakOverview";
+import { PeakSessionPanel } from "./presentation/PeakSessionPanel";
 
 type Page = "home" | "terminal" | "sizing" | "alerts" | "library" | "settings";
 type Notice = { id: number; message: string; kind: "success" | "info" | "error" };
@@ -78,6 +81,21 @@ export default function App() {
     return ()=>window.clearInterval(handle);
   },[]);
   const [page, setPage] = useState<Page>("terminal");
+  const [peakAtmosphere,setPeakAtmosphere]=useState(()=>{
+    try{return window.localStorage.getItem("peak-atmosphere")!=="off"}catch{return true}
+  });
+  const [peakAudio,setPeakAudio]=useState(false);
+  useEffect(()=>{
+    try{window.localStorage.setItem("peak-atmosphere",peakAtmosphere?"on":"off")}catch{/* Private mode */}
+  },[peakAtmosphere]);
+  const peakSound=(name:"replay-start"|"replay-pause"|"replay-step"|"study-saved")=>{
+    if(!peakAudio)return;
+    try{
+      const player=new Audio(import.meta.env.BASE_URL+"assets/audio/"+name+".wav");
+      player.volume=.19;
+      void player.play().catch(()=>{});
+    }catch{/* Audio is not required for interaction */}
+  };
   const [focusMode,setFocusMode]=useState(false);
   const [panelTab,setPanelTab]=useState<"markets"|"objects"|"context">(prefs.drawings.length ? "objects" : "markets");
   useEffect(()=>{
@@ -434,6 +452,7 @@ export default function App() {
   const startReplay=()=>{
     try{
       setReplay(beginReplay(currentCandles,prefs.symbol,prefs.frame,prefs.priceSource));
+      peakSound("replay-start");
       setDrawMode(false);setDrawingTool(null);
       notify("Historical replay started from a frozen chart snapshot.","info");
     }catch(error){notify(error instanceof Error?error.message:"Not enough bars to replay.","error");}
@@ -755,18 +774,23 @@ export default function App() {
     const timer = window.setTimeout(() => setNotice(current => current?.id === notice.id ? null : current), 4200);
     return () => window.clearTimeout(timer);
   }, [notice]);
-  return <div className={"app " + (studio ? "studio " : "") + (prefs.dark ? "dark" : "light") + " accent-" + prefs.accent + (focusMode && page === "terminal" ? " focus-mode" : "")}>
+  return <div className={"app " + (studio ? "studio peak-workstation " : "") + (prefs.dark ? "dark" : "light") + " accent-" + prefs.accent + (focusMode && page === "terminal" ? " focus-mode" : "") + (!peakAtmosphere ? " peak-no-atmosphere" : "")}>
     <header className="topbar">
       <div className="branding">
-        <span className="logo"><ChartCandlestick size={20}/></span>
-        <span><strong>MARKET<span className="brand-suffix">/TERMINAL</span></strong><small>{studio ? "Analysis workstation" : "Independent trading workspace"}</small></span>
+        {studio ? <img className="peak-logo-lockup" src={import.meta.env.BASE_URL + (prefs.dark ? "assets/brand/lockup-compact-dark.svg" : "assets/brand/lockup-compact-light.svg")} alt="Market Terminal" /> : <>
+          <span className="logo"><ChartCandlestick size={20}/></span>
+          <span><strong>MARKET<span className="brand-suffix">/TERMINAL</span></strong><small>Independent trading workspace</small></span>
+        </>}
       </div>
-      {studio && <nav className="studio-destinations" aria-label="Workstation pages">
-        {menu.map(({id,label})=><button key={id} aria-current={id===page?"page":undefined}
-          onClick={()=>{setPage(id);setDrawMode(false);setDrawingTool(null);}}>{label}</button>)}
-        <button aria-label="Search tools and markets" title="Open Tool Atlas" onClick={()=>setSearchOpen(true)}><Search size={16}/></button>
-        <button aria-label="Help and shortcuts" onClick={()=>setHelpOpen(true)}><BookOpen size={16}/></button>
-      </nav>}
+      {studio && <nav className="studio-destinations" aria-label="Primary workspace destinations">
+        <button aria-current={page==="home"?"page":undefined} onClick={()=>setPage("home")}><Home size={15}/> Overview</button>
+        <button aria-current={page==="terminal"&&!replay?"page":undefined} onClick={()=>setPage("terminal")}><ChartCandlestick size={15}/> Workspace</button>
+        <button aria-pressed={Boolean(replay)} onClick={()=>{setPage("terminal");if(!replay)startReplay()}}><Film size={15}/> Replay</button>
+        <button onClick={()=>{setPage("terminal");if(!replay)startReplay()}}><Ruler size={15}/> Study lab</button>
+        <button onClick={()=>{setPage("terminal");setPanelTab("markets")}}><Compass size={15}/> Watchlists</button>
+        <button onClick={()=>{setPage("terminal");setToolFamily(null);setMoreToolsOpen(true)}}><Shapes size={15}/> Tools</button>
+        <button onClick={()=>{setPage("terminal");update({chartLayout:prefs.chartLayout==="quad"?"single":"quad"})}}><Grid2X2 size={15}/> Layout</button>
+      </nav>
       <div className="header-center">
         <button className="search-trigger" onClick={() => setSearchOpen(true)}>
           <Search size={16}/><span>Search markets & tools</span><kbd>Ctrl K</kbd>
@@ -785,6 +809,9 @@ export default function App() {
           <Bell size={18}/>{activeAlertCount>0&&<span className="alert-bell-count">{Math.min(99,activeAlertCount)}</span>}
         </button>
         <button className="icon-button" title="Switch appearance" aria-label="Switch appearance" onClick={() => {update({ dark: !prefs.dark }); notify("Appearance updated.");}}>{prefs.dark ? <Sun size={18}/> : <Moon size={18}/>}</button>
+        <button className="icon-button peak-audio-toggle" aria-label={peakAudio?"Mute optional interface sounds":"Enable optional interface sounds"}
+          aria-pressed={peakAudio} title={peakAudio?"Mute sound feedback":"Enable subtle sound feedback"}
+          onClick={()=>setPeakAudio(value=>!value)}>{peakAudio?<Volume2 size={17}/>:<VolumeX size={17}/>}</button>
         <span className="avatar" title="Local workspace">MT</span>
       </div>
     </header>
