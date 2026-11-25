@@ -860,3 +860,6 @@
 .candle-time {display:block;color:var(--muted);font-size:11px;line-height:1.4;margin-bottom:6px;font-variant-numeric:tabular-nums}
 .instrument-header .candle-reader dl {gap:clamp(9px,1.3vw,19px)}
 @media(max-width:900px){.instrument-header{flex-wrap:wrap}.candle-reader{width:100%}.instrument-header .candle-reader dl{justify-content:space-between;flex-wrap:wrap}}
+.market-source-links nav {display:flex;flex-wrap:wrap;gap:8px 16px}
+.market-source-links label {display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:8px 0}
+.market-source-links input {background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:5px}

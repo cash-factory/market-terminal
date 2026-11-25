@@ -1,3 +1,4 @@
+import {MarketSources} from "./charts/MarketSources";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type PointerEvent as ReactPointerEvent, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import {
   Activity, ArrowDownToLine, Bell, BookOpen, ChartCandlestick, Check,
@@ -1170,6 +1171,7 @@ export default function App() {
               <h1>{studio ? <button aria-label="Choose chart instrument" onClick={()=>setSearchOpen(true)}>{symbols[prefs.symbol].label}<Search size={17}/></button> : symbols[prefs.symbol].label} <span className={"demo-pill feed-pill " + (replay?"historical":feed.status)}>{displaySourceLabel}</span></h1>
               <p>{replay?"Paused historical snapshot · Future candles hidden until you advance":prefs.priceSource === "demo" ? (ENABLE_TEST_FIXTURES?"Synthetic test fixtures":"No verified provider configured") : "Direct Binance Spot data · "+symbols[prefs.symbol].label+" · no broker/CFD quotes"}</p>
             </div><div className="quote"><small>{replay?"REPLAY BAR CLOSE":prefs.priceSource === "demo" ? (ENABLE_TEST_FIXTURES?"TEST FIXTURE":"NO DATA") : "BINANCE SPOT LAST"}</small><strong>{quoteText}</strong></div></div>}
+            <MarketSources key={prefs.symbol} symbol={prefs.symbol}/>
             <details className="market-session-reference">
               <summary>
                 <span>Market hours reference</span>
