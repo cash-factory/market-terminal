@@ -825,7 +825,7 @@ export default function App() {
           <div className="sidebar-caption">{prefs.sidebarOpen ? "WORKSPACES" : "•••"}</div>
           {menu.map(({ id, label }) => <button key={id}
             className={"nav-item " + (page === id ? "active" : "")}
-            title={label} aria-label={id==="home"?"Market overview":label} aria-current={page === id ? "page" : undefined}
+            title={label} aria-label={studio&&id==="home"?"Market overview":label} aria-current={page === id ? "page" : undefined}
             onClick={() => { setPage(id); setDrawMode(false); setDrawingTool(null); }}>
             <PeakIcon name={id==="home"?"workspace-grid":id==="terminal"?"workspace-research":id==="sizing"?"chart-measure":id==="alerts"?"ui-alert":id==="library"?"workspace-stack":"ui-panel-glass"} size={18}/>{prefs.sidebarOpen && <span>{label}</span>}
           </button>)}
