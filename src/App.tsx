@@ -784,7 +784,7 @@ export default function App() {
       </div>
       {studio && <nav className="studio-destinations" aria-label="Primary workspace destinations">
         <button aria-current={page==="home"?"page":undefined} onClick={()=>setPage("home")}><Home size={15}/> Overview</button>
-        <button aria-current={page==="terminal"&&!replay?"page":undefined} onClick={()=>setPage("terminal")}><ChartCandlestick size={15}/> Workspace</button>
+        <button aria-current={page==="terminal"&&!replay?"page":undefined} onClick={()=>setPage("terminal")}><ChartCandlestick size={15}/> Charts</button>
         <button aria-pressed={Boolean(replay)} onClick={()=>{setPage("terminal");if(!replay)startReplay()}}><Film size={15}/> Replay</button>
         <button onClick={()=>{setPage("terminal");if(!replay)startReplay()}}><Ruler size={15}/> Study lab</button>
         <button onClick={()=>{setPage("terminal");setPanelTab("markets")}}><Compass size={15}/> Watchlists</button>
