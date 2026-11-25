@@ -783,7 +783,7 @@ export default function App() {
         </>}
       </div>
       {studio && <nav className="studio-destinations" aria-label="Primary workspace destinations">
-        <button aria-current={page==="home"?"page":undefined} onClick={()=>setPage("home")}><Home size={15}/> Overview</button>
+        <button aria-current={page==="home"?"page":undefined} onClick={()=>setPage("home")}><Home size={15}/> Home</button>
         <button aria-current={page==="terminal"&&!replay?"page":undefined} onClick={()=>setPage("terminal")}><ChartCandlestick size={15}/> Charts</button>
         <button aria-pressed={Boolean(replay)} onClick={()=>{setPage("terminal");if(!replay)startReplay()}}><Film size={15}/> Replay</button>
         <button onClick={()=>{setPage("terminal");if(!replay)startReplay()}}><Ruler size={15}/> Study lab</button>
@@ -809,9 +809,9 @@ export default function App() {
           <Bell size={18}/>{activeAlertCount>0&&<span className="alert-bell-count">{Math.min(99,activeAlertCount)}</span>}
         </button>
         <button className="icon-button" title="Switch appearance" aria-label="Switch appearance" onClick={() => {update({ dark: !prefs.dark }); notify("Appearance updated.");}}>{prefs.dark ? <Sun size={18}/> : <Moon size={18}/>}</button>
-        <button className="icon-button peak-audio-toggle" aria-label={peakAudio?"Mute optional interface sounds":"Enable optional interface sounds"}
+        {studio && <button className="icon-button peak-audio-toggle" aria-label={peakAudio?"Mute optional interface sounds":"Enable optional interface sounds"}
           aria-pressed={peakAudio} title={peakAudio?"Mute sound feedback":"Enable subtle sound feedback"}
-          onClick={()=>setPeakAudio(value=>!value)}>{peakAudio?<Volume2 size={17}/>:<VolumeX size={17}/>}</button>
+          onClick={()=>setPeakAudio(value=>!value)}>{peakAudio?<Volume2 size={17}/>:<VolumeX size={17}/>}</button>}
         <span className="avatar" title="Local workspace">MT</span>
       </div>
     </header>
