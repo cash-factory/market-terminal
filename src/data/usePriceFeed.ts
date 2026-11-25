@@ -37,14 +37,14 @@ const EMPTY_CANDLES: CandlestickData<UTCTimestamp>[] = [];
 const STREAM_URL = "wss://data-stream.binance.vision:443/ws/";
 
 /** Opt-in, browser-side market data: no secrets, no proxy and no synthetic-price fallback. */
-export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSource): PriceFeed {
+export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSource, enabled = true): PriceFeed {
   const demo = useMemo(() => ENABLE_TEST_FIXTURES ? demoCandles(symbol, interval) : EMPTY_CANDLES, [symbol, interval]);
   const [revision, setRevision] = useState(0);
   const key = symbol + ":" + interval + ":" + mode + ":" + revision;
   const [snapshot, setSnapshot] = useState<FeedSnapshot>({
     key: "", candles: [], status: "loading", message: null, asOfMs: null,
   });
-  const active = mode === "binance" && isRealSpotSymbol(symbol);
+  const active = enabled && mode === "binance" && isRealSpotSymbol(symbol);
   const nativeFrame:Frame = isSecondsFrame(interval) ? "1s" : interval;
 
   useEffect(() => {
