@@ -23,11 +23,6 @@
 .peak-workstation .peak-market-tab-dot{width:5px;height:5px;border-radius:50%;background:var(--muted);opacity:.65}
 .peak-workstation .peak-market-tabs>button.active .peak-market-tab-dot{background:var(--accent);opacity:1}
 .peak-workstation .peak-market-tabs>button.peak-market-tab-add{min-width:38px;width:38px;padding:0}
-@media(min-width:961px){
-  .app.studio.peak-workstation:not(.focus-mode) .studio-chart-column .chart-grid-single .chart-surface{
-    height:clamp(418px,calc(100dvh - 249px),980px);
-  }
-}
 @media(max-width:700px){
   .peak-workstation .peak-market-tabs{height:35px;min-height:35px;padding:3px 5px 0}
   .peak-workstation .peak-market-tabs>button{min-width:76px;padding:0 9px;font-size:10px}
@@ -135,7 +130,7 @@
     top:14px;right:1px;
   }
   .app.studio.peak-workstation:not(.focus-mode) .studio-chart-column .chart-grid-single .chart-surface{
-    height:clamp(435px,calc(100dvh - 211px),1000px);
+    height:clamp(400px,calc(100dvh - 264px),1000px);
   }
   .app.studio.peak-workstation .chart-grid-dual .chart-surface{
     height:clamp(395px,calc(100dvh - 222px),850px);
