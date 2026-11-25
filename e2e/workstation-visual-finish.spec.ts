@@ -69,6 +69,14 @@ test("Peak mobile light mode keeps chart visible without horizontal page overflo
   expect(bounds!.x).toBeGreaterThanOrEqual(-2);
   expect(bounds!.x+bounds!.width).toBeLessThanOrEqual(392);
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
+  if(overflow>2){
+    const offenders=await page.evaluate(()=>[...document.querySelectorAll("*")].map(el=>{
+      const box=el.getBoundingClientRect();
+      return {name:el.tagName,classes:String(el.className?.baseVal??el.className).slice(0,95),
+        left:Math.round(box.left),right:Math.round(box.right),width:Math.round(box.width)};
+    }).filter(x=>x.right>innerWidth+2&&x.left<innerWidth).sort((a,b)=>b.right-a.right).slice(0,18));
+    console.log("Peak overflow diagnostics",JSON.stringify({overflow,offenders}));
+  }
   expect(overflow).toBeLessThanOrEqual(2);
   mkdirSync("test-results/review",{recursive:true});
   await page.screenshot({path:"test-results/review/peak-workstation-mobile-light.png",animations:"disabled"});
