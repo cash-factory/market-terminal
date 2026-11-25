@@ -93,15 +93,19 @@ export function ChartCanvas({
       timeScale: { borderColor: dark ? "#293644" : "#dce4eb",timeVisible:true,secondsVisible:isSecondsFrame(frame) },
       rightPriceScale: { borderColor: dark ? "#293644" : "#dce4eb" },
     });
+    // Neutral-up / crimson-down is the selected terminal's visual language.
+    // Price direction remains apparent by candle body/wick shape as well as colour.
+    const up = dark ? "#E7EEF5" : "#253548";
+    const down = dark ? "#E84354" : "#C72F45";
     const s = c.addSeries(CandlestickSeries, {
-      upColor: "#22b98e", downColor: "#e66a77", borderVisible: false,
+      upColor: up, downColor: down, borderVisible: false,
       visible:chartStyle==="candles"||chartStyle==="heikin-ashi",
-      wickUpColor: "#22b98e", wickDownColor: "#e66a77",
+      wickUpColor: up, wickDownColor: down,
       priceFormat: { type: "price", precision: symbols[symbol].precision, minMove: Math.pow(10, -symbols[symbol].precision) },
     });
     displaySeries.current=chartStyle==="ohlc-bars"?
       {style:"ohlc-bars",series:c.addSeries(BarSeries,{
-        upColor:"#22b98e",downColor:"#e66a77",thinBars:true,openVisible:true,
+        upColor:up,downColor:down,thinBars:true,openVisible:true,
         priceFormat:{type:"price",precision:symbols[symbol].precision,
           minMove:Math.pow(10,-symbols[symbol].precision)}
       })}:
