@@ -1,5 +1,19 @@
 import {test,expect} from "@playwright/test";
 
+test("keyboard movement of favorites leaves the replay candle unchanged",async({page})=>{
+ await page.goto("/market-terminal/");
+ await page.getByRole("button",{name:"Start replay"}).click();
+ const cursor=page.getByRole("slider",{name:"Replay position"});
+ const originalCursor=await cursor.inputValue();
+ const grip=page.getByRole("button",{name:"Move favorites toolbar"});
+ const initialPosition=await grip.boundingBox();
+ expect(initialPosition).not.toBeNull();
+ await grip.press("ArrowRight");
+ await expect.poll(async()=>(await grip.boundingBox())?.x).toBe(initialPosition!.x+16);
+ await expect(cursor).toHaveValue(originalCursor);
+ await expect(page.locator(".statusbar")).toContainText("REPLAY · HISTORICAL SNAPSHOT · SYNTHETIC");
+});
+
 test("watchlist favorites, ordering, add/remove and saved state survive reload",async({page})=>{
  await page.goto("/market-terminal/");
  const list=page.getByRole("region",{name:"Saved analyst watchlist"});

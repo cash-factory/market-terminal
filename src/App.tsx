@@ -186,7 +186,7 @@ export default function App() {
     minimumFractionDigits: symbols[prefs.symbol].precision,
     maximumFractionDigits: symbols[prefs.symbol].precision
   }) : "—";
-  const displaySourceLabel=replay?"REPLAY · HISTORICAL SNAPSHOT":sourceStateLabel;
+  const displaySourceLabel=replay ? "REPLAY · HISTORICAL SNAPSHOT · " + (replay.source === "demo" ? "SYNTHETIC" : "BINANCE SPOT") : sourceStateLabel;
   const replayDrawings=useMemo(()=>replay?
     currentDrawings.filter(d=>drawingVisibleInReplay(d,replayTime)):currentDrawings,
     [replay,currentDrawings,replayTime]);
@@ -851,7 +851,7 @@ export default function App() {
         <div className="page-topline"><span>WORKSPACE <span className="breadcrumb-slash">/</span> {titles[page].toUpperCase()}</span><span className="workspace-context"><span className="context-marker"/> {page === "terminal" ? `${symbols[prefs.symbol].label} · ${prefs.frame.toUpperCase()} · ${prefs.chartLayout.toUpperCase()} VIEW` : "BROWSER-LOCAL WORKSPACE"}</span></div>
         {studio && page === "home" && <main className="studio-overview">
           <PeakOverview instrument={symbols[prefs.symbol].label} drawings={prefs.drawings.length}
-            alerts={activeAlertCount} studies={prefs.replayStudies.length}
+            alerts={prefs.alerts.length} studies={prefs.replayStudies.length}
             watchlist={prefs.watchlist.length} source={displaySourceLabel}
             onResume={()=>setPage("terminal")}
             onReplay={()=>{setPage("terminal");if(!replay)startReplay()}}
@@ -1291,7 +1291,7 @@ export default function App() {
                   </ChartErrorBoundary>
                 </section>)}
             </div>
-            <div className="chart-footer"><span><span className="sync-point">●</span> {saveFailed?"Local save failed":"Locally saved"}</span><span>Source: {feed.sourceLabel} · {frameSeconds[prefs.frame] / 60}m candle interval · {replay?"historical replay":feed.status}{feed.lastUpdatedMs ? " · Updated " + new Date(feed.lastUpdatedMs).toLocaleTimeString() : ""}</span></div>
+            <div className="chart-footer"><span><span className="sync-point">●</span> {saveFailed?"Local save failed":"Locally saved"}</span><span>Source: {feed.sourceLabel} · {prefs.frame} candle interval · {replay?"historical replay":feed.status}{!replay && feed.lastUpdatedMs ? " · Updated " + new Date(feed.lastUpdatedMs).toLocaleTimeString() : ""}</span></div>
             </div>
             </div>
           </section>
@@ -1506,7 +1506,7 @@ export default function App() {
         </div>}
       </div>
     </div>
-    <footer className="statusbar"><span><span className="sync-point">●</span> MARKET TERMINAL / LOCAL-FIRST PREVIEW</span><span>Feed: {sourceStateLabel} · {saveFailed?"Local save failed":"Workspace saved locally"}</span></footer>
+    <footer className="statusbar"><span><span className="sync-point">●</span> MARKET TERMINAL / LOCAL-FIRST PREVIEW</span><span>Feed: {replay ? displaySourceLabel : sourceStateLabel} · {saveFailed?"Local save failed":"Workspace saved locally"}</span></footer>
     {notice && <div role="status" className={"toast " + notice.kind} key={notice.id}><span>{notice.kind === "success" ? <Check size={17}/> : <Activity size={17}/>}</span><p>{notice.message}</p><button aria-label="Dismiss notification" onClick={() => setNotice(null)}><X size={16}/></button></div>}
     {levelSettingsId&&prefs.levels.some(level=>level.id===levelSettingsId)&&
       <PriceLevelPropertiesDialog
@@ -1519,6 +1519,6 @@ export default function App() {
        onClose={()=>setDrawingSettingsId(null)}/>}
     {searchOpen && <CommandPalette onClose={()=>setSearchOpen(false)}
        onOpenInstrument={openInstrument} onExecuteCommand={runTerminalCommand}/>}
-     {helpOpen && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setHelpOpen(false); }}><div className="help-dialog" role="dialog" aria-modal="true" aria-label="Help and shortcuts"><button className="dialog-close" aria-label="Close help" onClick={() => setHelpOpen(false)}><X size={18}/></button><Menu size={24}/><h2>Your terminal, your rules.</h2><p>Use the left navigation to switch between overview, charting, saved workspace and preferences. Click <strong>Price level</strong> to place a horizontal level, or drag using the Trendline, Rectangle or Fibonacci tools.</p><div className="shortcut"><span>Open Tool Atlas</span><kbd>Ctrl / ⌘ + K</kbd></div><div className="shortcut"><span>Exit drawing or dismiss dialog</span><kbd>Esc</kbd></div><div className="shortcut"><span>Undo / redo drawings</span><kbd>Ctrl / ⌘ + Z · Shift + Z</kbd></div><div className="shortcut"><span>Replay backward / forward</span><kbd>← / →</kbd></div><div className="shortcut"><span>Replay play / pause</span><kbd>Space</kbd></div><div className="shortcut"><span>Save workspace</span><strong>Automatic</strong></div><div className="shortcut"><span>Drawing properties</span><strong>Select an object → Properties</strong></div><p className="help-warning">Most instruments use synthetic demo candles. BTC/USDT has an opt-in direct Binance Spot feed. This is not a broker, and YoungMoney3 linking is not available.</p><button className="primary-button" onClick={() => setHelpOpen(false)}>Start exploring <ChevronRight size={16}/></button></div></div>}
+     {helpOpen && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setHelpOpen(false); }}><div className="help-dialog" role="dialog" aria-modal="true" aria-label="Help and shortcuts"><button className="dialog-close" aria-label="Close help" onClick={() => setHelpOpen(false)}><X size={18}/></button><Menu size={24}/><h2>Help and keyboard shortcuts</h2><p>Use the left navigation to switch between overview, charting, saved workspace and preferences. Click <strong>Price level</strong> to place a horizontal level, or drag using the Trendline, Rectangle or Fibonacci tools.</p><div className="shortcut"><span>Open Tool Atlas</span><kbd>Ctrl / ⌘ + K</kbd></div><div className="shortcut"><span>Exit drawing or dismiss dialog</span><kbd>Esc</kbd></div><div className="shortcut"><span>Undo / redo drawings</span><kbd>Ctrl / ⌘ + Z · Shift + Z</kbd></div><div className="shortcut"><span>Replay backward / forward</span><kbd>← / →</kbd></div><div className="shortcut"><span>Replay play / pause</span><kbd>Space</kbd></div><div className="shortcut"><span>Save workspace</span><strong>Automatic</strong></div><div className="shortcut"><span>Drawing properties</span><strong>Select an object → Properties</strong></div><p className="help-warning">Most instruments use synthetic demo candles. BTC/USDT has an opt-in direct Binance Spot feed.</p><button className="primary-button" onClick={() => setHelpOpen(false)}>Start exploring <ChevronRight size={16}/></button></div></div>}
   </div>;
 }

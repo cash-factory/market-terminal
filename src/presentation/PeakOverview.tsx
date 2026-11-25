@@ -1,4 +1,4 @@
-import {ArrowRight,BookMarked,ChartCandlestick,Film,Layers,Shapes} from "lucide-react";
+import {ArrowRight,ChartCandlestick,Film} from "lucide-react";
 import {PeakIcon} from "./PeakIcon";
 type Props={
   instrument:string;
@@ -15,17 +15,17 @@ type Props={
 };
 export function PeakOverview({instrument,drawings,alerts,studies,watchlist,source,onResume,onReplay,onDrawings,onAlerts,onLibrary}:Props){
   const actions=[
-    {key:"drawings",Icon:Shapes,label:"Drawing tools",detail:`${drawings} saved objects`,onClick:onDrawings},
-    {key:"replay",Icon:Film,label:"Historical replay",detail:"Reversible candle study",onClick:onReplay},
-    {key:"studies",Icon:BookMarked,label:"Study archive",detail:`${studies} saved studies`,onClick:onLibrary},
-    {key:"alerts",Icon:Layers,label:"Price alerts",detail:`${alerts} configured`,onClick:onAlerts},
+    {key:"drawings",icon:"drawing-sets",label:"Drawing tools",detail:`${drawings} saved objects`,onClick:onDrawings},
+    {key:"replay",icon:"workspace-replay",label:"Historical replay",detail:"Reversible candle study",onClick:onReplay},
+    {key:"studies",icon:"workspace-stack",label:"Study archive",detail:`${studies} saved studies`,onClick:onLibrary},
+    {key:"alerts",icon:"ui-alert",label:"Price alerts",detail:`${alerts} configured`,onClick:onAlerts},
   ];
   return <>
     <section className="peak-home-hero" aria-label="Market Terminal workspace overview">
       <div className="peak-hero-content">
-        <div className="peak-overline"><span className="peak-live-rule"/> YOUR PRIVATE ANALYST DESK</div>
-        <h1>Every chart has<br/><em>a story to test.</em></h1>
-        <p>Study price structure, work through historical decisions and return to the exact setup you saved. Built for investigation—not order execution.</p>
+        <div className="peak-overline"><span className="peak-live-rule"/> CHART WORKSPACE</div>
+        <h1>Resume your<br/><em>{instrument} analysis.</em></h1>
+        <p>Open your chart with its saved drawings, or step through historical candles in replay.</p>
         <div className="peak-hero-actions">
           <button className="peak-hero-primary" onClick={onResume}><ChartCandlestick size={17}/> Resume {instrument} <ArrowRight size={16}/></button>
           <button className="peak-hero-secondary" onClick={onReplay}><Film size={16}/> Open replay</button>
@@ -45,11 +45,11 @@ export function PeakOverview({instrument,drawings,alerts,studies,watchlist,sourc
       <div className="peak-section-kicker">START WHERE YOU LEFT OFF</div>
       <div className="peak-section-heading"><h2>Research workspace</h2><span>Everything here stays in your browser unless exported</span></div>
       <div className="peak-home-actions">
-        {actions.map(({key,Icon,label,detail,onClick})=><button key={key} type="button" onClick={onClick}>
-          <span className="peak-action-glyph"><Icon size={20}/></span><strong>{label}</strong><small>{detail}</small><ArrowRight className="peak-action-arrow" size={16}/>
+        {actions.map(({key,icon,label,detail,onClick})=><button key={key} type="button" onClick={onClick}>
+          <span className="peak-action-glyph"><PeakIcon name={icon} size={20}/></span><strong>{label}</strong><small>{detail}</small><ArrowRight className="peak-action-arrow" size={16}/>
         </button>)}
       </div>
     </section>
-    <section className="peak-home-source-note"><PeakIcon name="ui-panel-glass" size={18}/><p>Demo markets are synthetic unless a supported exchange source has explicitly been selected. Visual examples and research outcomes are not broker fills or verified performance.</p></section>
+    <section className="peak-home-source-note"><PeakIcon name="ui-panel-glass" size={18}/><p>Demo markets are synthetic unless a supported exchange source has explicitly been selected. Replay studies record hypothetical outcomes.</p></section>
   </>;
 }

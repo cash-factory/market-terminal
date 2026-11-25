@@ -23,12 +23,11 @@ export function FavoriteToolbar({favorites,active,disabled,layout,onLayout,onSel
    return {x:Math.max(8,Math.min(x,Math.max(8,window.innerWidth-(rect?.width??250)-8))),
      y:Math.max(8,Math.min(y,Math.max(8,window.innerHeight-(rect?.height??42)-8)))};
  };
- useEffect(()=>setPosition({x:layout.x,y:layout.y}),[layout.x,layout.y]);
  useEffect(()=>{
-   const fit=()=>setPosition(old=>{const next=clamp(old.x,old.y);
+   const fit=()=>setPosition(old=>{const next=clamp(layout.x,layout.y);
      return next.x===old.x&&next.y===old.y?old:next;});
    fit();window.addEventListener("resize",fit);return()=>window.removeEventListener("resize",fit);
- },[layout.orientation,layout.collapsed,favorites.length,editing]);
+ },[layout.x,layout.y,layout.visible,layout.orientation,layout.collapsed,favorites.length,editing]);
  const start=(e:PointerEvent<HTMLButtonElement>)=>{
    if(e.button!==0)return;e.preventDefault();
    drag.current={id:e.pointerId,x:e.clientX,y:e.clientY,origin:position};
@@ -47,6 +46,13 @@ export function FavoriteToolbar({favorites,active,disabled,layout,onLayout,onSel
  };
  const nudge=(dx:number,dy:number)=>{const next=clamp(position.x+dx,position.y+dy);
    setPosition(next);onLayout({...layout,...next});};
+ const cancel=(e:PointerEvent<HTMLButtonElement>)=>{
+   const gesture=drag.current;
+   if(!gesture||gesture.id!==e.pointerId)return;
+   drag.current=null;
+   setMoving(false);
+   setPosition(clamp(gesture.origin.x,gesture.origin.y));
+ };
  const reorder=(from:DrawingTool,to:DrawingTool)=>{
    const next=moveFavorite(favorites,from,to);if(next!==favorites)onReorder(next);
  };
@@ -60,10 +66,10 @@ export function FavoriteToolbar({favorites,active,disabled,layout,onLayout,onSel
    <div className="favorite-toolbar-head">
      <button type="button" className="favorite-toolbar-grip" aria-label="Move favorites toolbar"
        title="Drag to reposition, or use arrow keys; Shift moves faster"
-       onPointerDown={start} onPointerMove={move} onPointerUp={stop} onPointerCancel={stop}
+       onPointerDown={start} onPointerMove={move} onPointerUp={stop} onPointerCancel={cancel}
        onKeyDown={e=>{const step=e.shiftKey?64:16;
          const delta:{[key:string]:[number,number]}={ArrowLeft:[-step,0],ArrowRight:[step,0],ArrowUp:[0,-step],ArrowDown:[0,step]};
-         if(delta[e.key]){e.preventDefault();nudge(...delta[e.key]);}
+         if(delta[e.key]){e.preventDefault();e.stopPropagation();nudge(...delta[e.key]);}
        }}><Grip size={15}/></button>
      <span className="favorite-toolbar-title"><Star size={12} fill="currentColor"/>{favorites.length}</span>
      <button type="button" aria-label={layout.collapsed?"Expand favorites toolbar":"Collapse favorites toolbar"}
