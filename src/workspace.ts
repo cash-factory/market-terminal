@@ -139,7 +139,13 @@ export function parseWorkspace(value: unknown): Workspace {
   const symbol = SYMBOLS.includes(raw.symbol as SymbolId) ? raw.symbol as SymbolId : defaultWorkspace.symbol;
   const frame = FRAMES.includes(raw.frame as Frame) ? raw.frame as Frame : defaultWorkspace.frame;
   const accent = ACCENTS.includes(raw.accent as Workspace["accent"]) ? raw.accent as Workspace["accent"] : defaultWorkspace.accent;
-  const watchlist=parseWatchlist(raw.watchlist);
+  // Upgrade an untouched legacy default watchlist to real available markets.
+  // Keep every intentionally customized or pinned watchlist unchanged.
+  const untouchedLegacyList = Array.isArray(raw.watchlist) &&
+    JSON.stringify(raw.watchlist) === JSON.stringify(["EURUSD","BTCUSDT","AAPL","US100"]) &&
+    (!Array.isArray(raw.watchlistFavorites)||raw.watchlistFavorites.length===0);
+  const watchlist = !ENABLE_TEST_FIXTURES && untouchedLegacyList
+    ? [...DEFAULT_WATCHLIST] : parseWatchlist(raw.watchlist);
   const levels:Level[]=Array.isArray(raw.levels)?
     raw.levels.flatMap(value=>{const parsed=parseLevel(value);return parsed?[parsed]:[];}):[];
   return {
