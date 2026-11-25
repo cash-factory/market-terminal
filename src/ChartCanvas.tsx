@@ -182,7 +182,20 @@ export function ChartCanvas({
       studyLines.current.bb[2].setData(bands.lower);
     }
     if (candles.length > 0 && !fitted.current) {
-      chart.current?.timeScale().fitContent();
+      // A fitted multi-month series makes price action too small to analyse.
+      // Begin with recent candles (TradingView-style), but let the user zoom,
+      // pan, choose 30/90 bars, or explicitly use "Fit all" afterwards.
+      // This is intentionally applied only once, never on incoming data.
+      const chartWidth = host.current?.clientWidth ?? 960;
+      const initialBars = chartWidth < 560 ? 48 : 90;
+      if (candles.length > initialBars) {
+        chart.current?.timeScale().setVisibleRange({
+          from: candles[candles.length - initialBars].time,
+          to: candles[candles.length - 1].time
+        });
+      } else {
+        chart.current?.timeScale().fitContent();
+      }
       fitted.current = true;
     }
   }, [candles, symbol, frame, dark, showSma, source, chartStyle, studies.ema20, studies.bollinger20, parameters]);
