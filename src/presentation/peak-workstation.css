@@ -449,3 +449,91 @@
  .peak-workstation .header-actions .focus-toggle span{display:none}
  .peak-workstation .header-actions .icon-button{width:29px;min-width:29px;padding:0}
 }
+
+/*
+ * Structural repair: legacy Studio @media(min-width:961px) puts navigation in
+ * a horizontal row. Peak owns a VERTICAL sidebar at every desktop breakpoint.
+ * Declare all axes explicitly, not merely display:flex, to avoid inheritance
+ * of the previous workstation's horizontal nav geometry.
+ */
+@media(min-width:701px) {
+ .app.studio.peak-workstation:not(.focus-mode) .primary-sidebar {
+   position:relative;
+   display:flex!important;
+   flex-direction:column;
+   align-items:stretch;
+   justify-content:space-between;
+   gap:14px;
+   height:auto;
+   min-width:0;
+   min-height:0;
+   overflow:visible;
+   border-right:1px solid var(--peak-surface-border);
+   border-bottom:0;
+ }
+ .app.studio.peak-workstation .sidebar-upper {
+   display:flex;
+   flex:1 1 auto;
+   flex-direction:column;
+   align-items:stretch;
+   justify-content:flex-start;
+   gap:2px;
+   padding:0;
+   margin:0;
+   min-width:0;
+   width:100%;
+   border:0;
+ }
+ .app.studio.peak-workstation .sidebar-lower {
+   display:flex;
+   flex:0 0 auto;
+   flex-direction:column;
+   align-items:stretch;
+   justify-content:flex-end;
+   gap:2px;
+   min-width:0;
+   width:100%;
+   margin:0;
+ }
+ .app.studio.peak-workstation .sidebar-upper .nav-item,
+ .app.studio.peak-workstation .sidebar-lower .nav-item {
+   display:flex;
+   flex:0 0 auto;
+   flex-direction:row;
+   align-items:center;
+   justify-content:flex-start;
+   width:100%;
+   min-height:39px;
+   height:39px;
+   padding:0 12px;
+   margin:0 0 4px;
+   border-radius:7px;
+   white-space:nowrap;
+ }
+ .app.studio.peak-workstation .sidebar-caption {
+   display:block;
+   flex:0 0 auto;
+   align-self:stretch;
+ }
+ .app.studio.peak-workstation .nav-item.active::before {
+   content:none;
+ }
+ .app.studio.peak-workstation .sidebar-lower .nav-item.collapse {
+   display:flex;
+   border-top:0;
+ }
+}
+@media(min-width:701px) and (max-width:1240px) {
+ .app.studio.peak-workstation .sidebar-upper .nav-item,
+ .app.studio.peak-workstation .sidebar-lower .nav-item{
+   justify-content:center;
+   padding:0;
+ }
+ .app.studio.peak-workstation .sidebar-caption,
+ .app.studio.peak-workstation .sidebar-upper .nav-item span,
+ .app.studio.peak-workstation .sidebar-lower .nav-item span {display:none}
+ .app.studio.peak-workstation .peak-sidebar-heading {
+   justify-content:center;
+   padding:12px 0;
+ }
+}
