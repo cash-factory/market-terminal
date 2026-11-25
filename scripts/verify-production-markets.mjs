@@ -28,7 +28,7 @@ try{
  await page.screenshot({path:"test-results/production-real/eth-spot.png",animations:"disabled"});
  await page.keyboard.press("Control+k");
  await page.getByRole("combobox",{name:"Search instruments and tools"}).fill("EURUSD");
- await page.getByRole("option",{name:/EUR\s*\/\s*USD/}).click();
+ await page.getByRole("listbox",{name:"Market instruments and commands"}).getByRole("option",{name:/EUR\s*\/\s*USD/}).click();
  await page.waitForFunction(()=>{
    const header=document.querySelector(".instrument-header h1");
    const chart=document.querySelector(".technical-chart-stack");
