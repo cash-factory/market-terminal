@@ -5,8 +5,9 @@ on:
       - "src/market.ts"
       - "src/App.tsx"
       - "src/data/**"
-      - "src/charts/MarketBoard.tsx"
+      - "src/charts/ProviderDesk.tsx"
       - "scripts/verify-production-markets.mjs"
+  workflow_call:
   workflow_dispatch:
 permissions:
   contents: read
@@ -32,7 +33,7 @@ jobs:
           done
           cat /tmp/market-preview.log
           exit 1
-      - name: Verify actual source and explicit no-provider state
+      - name: Verify all four embedded market feeds
         run: node scripts/verify-production-markets.mjs
       - name: Capture actual production screenshots
         if: always()

@@ -1,12 +1,14 @@
 import type { CandlestickData, UTCTimestamp, LineData } from "lightweight-charts";
 export const REAL_SPOT_SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "BNBUSDT"] as const;
 export type RealSpotSymbol = typeof REAL_SPOT_SYMBOLS[number];
-export type SymbolId = "EURUSD" | "AAPL" | "US100" | "XAUUSD" | RealSpotSymbol;
+export type SymbolId = "EURUSD" | "AAPL" | "US100" | "XAUUSD" | "GBPUSD" | "GBPJPY" | RealSpotSymbol;
 /** Synthetic candles exist solely for isolated test builds; production cannot enable them with a URL. */
 export const ENABLE_TEST_FIXTURES = import.meta.env.MODE === "test" || import.meta.env.MODE === "e2e";
 export const isRealSpotSymbol = (symbol:SymbolId):symbol is RealSpotSymbol =>
   REAL_SPOT_SYMBOLS.includes(symbol as RealSpotSymbol);
 export const symbols: Record<SymbolId, {label:string; market:string; base:number; precision:number}> = {
+ GBPUSD:{label:"GBPUSD",market:"FOREX · PROVIDER CHART",base:1.3,precision:5},
+ GBPJPY:{label:"GBPJPY",market:"FOREX · PROVIDER CHART",base:190,precision:3},
  EURUSD:{label:"EUR / USD",market:"FOREX · PROVIDER REQUIRED",base:1.0842,precision:5},
  BTCUSDT:{label:"BTC / USDT",market:"CRYPTO · BINANCE SPOT",base:96250,precision:2},
  ETHUSDT:{label:"ETH / USDT",market:"CRYPTO · BINANCE SPOT",base:3520,precision:2},
@@ -14,10 +16,12 @@ export const symbols: Record<SymbolId, {label:string; market:string; base:number
  XRPUSDT:{label:"XRP / USDT",market:"CRYPTO · BINANCE SPOT",base:2.35,precision:4},
  BNBUSDT:{label:"BNB / USDT",market:"CRYPTO · BINANCE SPOT",base:800,precision:2},
  AAPL:{label:"AAPL",market:"EQUITY · PROVIDER REQUIRED",base:252.4,precision:2},
- XAUUSD:{label:"XAU / USD",market:"GOLD · EXTERNAL CHARTS",base:3400,precision:2},
- US100:{label:"US100",market:"NASDAQ-100 · EXTERNAL CHARTS",base:21400,precision:2}
+ XAUUSD:{label:"XAUUSD",market:"GOLD · EXTERNAL CHARTS",base:3400,precision:2},
+ US100:{label:"NAS100",market:"NASDAQ-100 · EXTERNAL CHARTS",base:21400,precision:2}
 };
 export const externalProviders: Partial<Record<SymbolId, [string, string][]>> = {
+  GBPUSD: [["OANDA","OANDA:GBPUSD"],["FOREX.com","FOREXCOM:GBPUSD"]],
+  GBPJPY: [["OANDA","OANDA:GBPJPY"],["FOREX.com","FOREXCOM:GBPJPY"]],
   XAUUSD: [
     ["OANDA · Gold / USD", "OANDA:XAUUSD"],
     ["Pepperstone · Gold / USD", "PEPPERSTONE:XAUUSD"],
@@ -28,13 +32,11 @@ export const externalProviders: Partial<Record<SymbolId, [string, string][]>> = 
     ["FOREX.com · US 100 CFD", "FOREXCOM:NAS100"],
     ["Pepperstone · US 100 CFD", "PEPPERSTONE:NAS100"],
     ["Capital.com · US 100 CFD", "CAPITALCOM:NAS100"],
-    ["Nasdaq · Nasdaq-100 index", "NASDAQ:NDX"],
-    ["CME · E-mini Nasdaq-100 futures", "CME_MINI:NQ1!"],
   ],
 };
 export const availableInstruments: SymbolId[] = ENABLE_TEST_FIXTURES
   ? Object.keys(symbols) as SymbolId[]
-  : [...REAL_SPOT_SYMBOLS];
+  : ["XAUUSD","US100","GBPUSD","GBPJPY"];
 export const SECOND_FRAMES=["1s","5s","10s","15s","30s","45s"] as const;
 export const MINUTE_FRAMES=["1m","5m","15m","1h","4h","1d"] as const;
 export type Frame=typeof SECOND_FRAMES[number]|typeof MINUTE_FRAMES[number];

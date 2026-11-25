@@ -4,6 +4,8 @@ import {demoCandles,ENABLE_TEST_FIXTURES,REAL_SPOT_SYMBOLS,symbols,type Frame,ty
 import {fetchBinanceSpotCandles} from "../data/binance";
 
 const names:Record<SymbolId,string>={
+  GBPUSD:"British pound / US dollar",
+  GBPJPY:"British pound / Japanese yen",
   EURUSD:"Euro / US Dollar · provider required",
   BTCUSDT:"Bitcoin / Tether · Binance Spot",
   ETHUSDT:"Ethereum / Tether · Binance Spot",

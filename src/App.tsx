@@ -1,3 +1,4 @@
+import {ProviderDesk} from "./charts/ProviderDesk";
 import {MarketSources} from "./charts/MarketSources";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type PointerEvent as ReactPointerEvent, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import {
@@ -177,7 +178,7 @@ export default function App() {
   };
   const currentLevels = useMemo(() => prefs.levels.filter(level => level.symbol === prefs.symbol && (level.source ?? "demo") === prefs.priceSource), [prefs.levels, prefs.symbol, prefs.priceSource]);
   const currentDrawings = useMemo(() => prefs.drawings.filter(drawing => drawing.symbol === prefs.symbol && (drawing.source ?? "demo") === prefs.priceSource), [prefs.drawings, prefs.symbol, prefs.priceSource]);
-  const sourceStateLabel = prefs.priceSource === "demo" ? (ENABLE_TEST_FIXTURES ? "SYNTHETIC DATA" : "NO VERIFIED DATA") : ({
+  const sourceStateLabel = !ENABLE_TEST_FIXTURES ? "PROVIDER CHART" : prefs.priceSource === "demo" ? (ENABLE_TEST_FIXTURES ? "SYNTHETIC DATA" : "NO VERIFIED DATA") : ({
     loading: "LOADING BINANCE", connecting: "CONNECTING", historical: "HISTORICAL",
     live: "LIVE · BINANCE SPOT", stale: "STALE FEED", error: "FEED UNAVAILABLE", synthetic: "SYNTHETIC DATA"
   })[feed.status];
@@ -790,15 +791,15 @@ export default function App() {
       {studio && <nav className="studio-destinations" aria-label="Primary workspace destinations">
         <button aria-current={page==="home"?"page":undefined} onClick={()=>setPage("home")}><Home size={15}/> Overview</button>
         <button aria-current={page==="terminal"&&!replay?"page":undefined} onClick={()=>setPage("terminal")}><ChartCandlestick size={15}/> Charts</button>
-        <button aria-pressed={Boolean(replay)} onClick={()=>{setPage("terminal");if(!replay)startReplay()}}><Film size={15}/> Replay</button>
+        {ENABLE_TEST_FIXTURES && <><button aria-pressed={Boolean(replay)} onClick={()=>{setPage("terminal");if(!replay)startReplay()}}><Film size={15}/> Replay</button>
         <button onClick={()=>{setPage("terminal");if(!replay)startReplay()}}><Ruler size={15}/> Study lab</button>
         <button onClick={()=>{setPage("terminal");setPanelTab("markets");update({rightPanelOpen:true})}}><Compass size={15}/> Watchlists</button>
         <button onClick={()=>{setPage("terminal");setToolFamily(null);setMoreToolsOpen(true)}}><Shapes size={15}/> Tools</button>
-        <button onClick={()=>{setPage("terminal");setSetupOpen(true)}}><Grid2X2 size={15}/> Layout</button>
+        <button onClick={()=>{setPage("terminal");setSetupOpen(true)}}><Grid2X2 size={15}/> Layout</button></>}
       </nav>}
       <div className="header-center">
         <button className="search-trigger" onClick={() => setSearchOpen(true)}>
-          <Search size={16}/><span>Search markets & tools</span><kbd>Ctrl K</kbd>
+          <Search size={16}/><span>Search markets</span><kbd>Ctrl K</kbd>
         </button>
       </div>
       <div className="header-actions">
@@ -835,13 +836,15 @@ export default function App() {
             <PeakIcon name={id==="home"?"workspace-grid":id==="terminal"?"workspace-research":id==="sizing"?"chart-measure":id==="alerts"?"ui-alert":id==="library"?"workspace-stack":"ui-panel-glass"} size={18}/>{prefs.sidebarOpen && <span>{label}</span>}
           </button>)}
           <div className="peak-sidebar-divider"/>
-          <div className="sidebar-caption">{prefs.sidebarOpen?"RESEARCH TOOLS":"·"}</div>
+          <div className="sidebar-caption">{prefs.sidebarOpen?(ENABLE_TEST_FIXTURES?"RESEARCH TOOLS":"INSTRUMENTS"):"·"}</div>
+          {!ENABLE_TEST_FIXTURES && availableInstruments.map(id=><button className="nav-item" key={id} title={symbols[id].label} onClick={()=>openInstrument(id)}><ChartCandlestick size={16}/>{prefs.sidebarOpen && <span>{symbols[id].label}</span>}</button>)}
+          {ENABLE_TEST_FIXTURES && <>
           <button className={"nav-item "+(replay?"active":"")} title="Historical replay"
             onClick={()=>{setPage("terminal");if(!replay)startReplay()}}><PeakIcon name="workspace-replay"/>{prefs.sidebarOpen&&<span>Historical replay</span>}</button>
           <button className="nav-item" title="Drawing library"
             onClick={()=>{setPage("terminal");setToolFamily(null);setMoreToolsOpen(true)}}><PeakIcon name="drawing-sets"/>{prefs.sidebarOpen&&<span>Drawing library</span>}</button>
           <button className="nav-item" title="Watchlist"
-            onClick={()=>{setPage("terminal");setPanelTab("markets");update({rightPanelOpen:true})}}><PeakIcon name="favorites-star"/>{prefs.sidebarOpen&&<span>Watchlists</span>}</button>
+            onClick={()=>{setPage("terminal");setPanelTab("markets");update({rightPanelOpen:true})}}><PeakIcon name="favorites-star"/>{prefs.sidebarOpen&&<span>Watchlists</span>}</button></>}
         </div>
         <div className="sidebar-lower">
           <button className="nav-item" onClick={() => setHelpOpen(true)} title="Help and shortcuts"><BookOpen size={18}/>{prefs.sidebarOpen && <span>Help & shortcuts</span>}</button>
@@ -853,20 +856,20 @@ export default function App() {
         </div>
       </aside>
       <div className="main-area">
-        <div className="page-topline"><span>WORKSPACE <span className="breadcrumb-slash">/</span> {titles[page].toUpperCase()}</span><span className="workspace-context"><span className="context-marker"/> {page === "terminal" ? `${symbols[prefs.symbol].label} · ${prefs.frame.toUpperCase()} · ${prefs.chartLayout.toUpperCase()} VIEW` : "BROWSER-LOCAL WORKSPACE"}</span></div>
+        <div className="page-topline"><span>WORKSPACE <span className="breadcrumb-slash">/</span> {titles[page].toUpperCase()}</span><span className="workspace-context"><span className="context-marker"/> {page === "terminal" ? `${symbols[prefs.symbol].label} · ${ENABLE_TEST_FIXTURES ? prefs.frame.toUpperCase() : "PROVIDER CHART"}` : "BROWSER-LOCAL WORKSPACE"}</span></div>
         {studio && page === "home" && <main className="studio-overview">
-          <PeakOverview instrument={symbols[prefs.symbol].label} drawings={prefs.drawings.length}
+          {ENABLE_TEST_FIXTURES && <PeakOverview instrument={symbols[prefs.symbol].label} drawings={prefs.drawings.length}
             alerts={prefs.alerts.length} studies={prefs.replayStudies.length}
             watchlist={prefs.watchlist.length} source={displaySourceLabel}
             onResume={()=>setPage("terminal")}
             onReplay={()=>{setPage("terminal");if(!replay)startReplay()}}
             onDrawings={()=>{setPage("terminal");setPanelTab("objects");update({rightPanelOpen:true})}}
             onAlerts={()=>setPage("alerts")}
-            onLibrary={()=>setPage("library")}/>
+            onLibrary={()=>setPage("library")}/>}
           <section className="peak-market-board">
             <div className="peak-section-kicker">OBSERVE, THEN INVESTIGATE</div>
             <div className="peak-section-heading"><h2>Market board</h2><span>Data sources identified for each instrument</span></div>
-            <MarketBoard frame={prefs.frame} selected={prefs.symbol} onOpen={openDemoMarket}/>
+            {ENABLE_TEST_FIXTURES ? <MarketBoard frame={prefs.frame} selected={prefs.symbol} onOpen={openDemoMarket}/> : <div className="market-grid">{availableInstruments.map(id=><button className="market-tile" key={id} onClick={()=>openInstrument(id)}><strong>{symbols[id].label}</strong><span>Open provider chart</span></button>)}</div>}
           </section>
         </main>}
         {!studio && page === "home" && <div className="content-page">
@@ -875,13 +878,14 @@ export default function App() {
           <div className="market-grid">{availableInstruments.map(symbol => <button className="market-tile" key={symbol} onClick={() => openInstrument(symbol)}><span className="market-kind">{symbols[symbol].market}</span><strong>{symbols[symbol].label}</strong><span className="market-tile-bottom">Open chart <ChevronRight size={16}/></span></button>)}</div>
           <div className="section-head"><div><small>WORKSPACE HEALTH</small><h2>Your local setup</h2></div></div>
           <div className="summary-grid"><div><span>Current timeframe</span><strong>{prefs.frame.toUpperCase()}</strong></div><div><span>Saved price levels</span><strong>{prefs.levels.length}</strong></div><div><span>Core drawing quota</span><strong>None</strong></div></div>
-          <p className="data-caveat"><Activity size={16}/> Supported crypto markets use Binance Spot public exchange candles. Forex, gold, equities and index feeds are not configured; no fictional candles are displayed in the published application.</p>
+          <p className="data-caveat"><Activity size={16}/> Gold, NAS100 and sterling pairs use provider charts hosted by TradingView.</p>
         </div>}
         {page === "sizing" && <RiskPlanner value={prefs.riskPlanner}
           onChange={riskPlanner=>update({riskPlanner})} symbol={prefs.symbol}
           quotePrice={viewedLast} sourceLabel={displaySourceLabel}
           selectedPosition={selectedObject&&currentDrawings.some(d=>d.id===selectedObject.id)?selectedObject:undefined}/>}
-        {page === "terminal" && <div className={"terminal-layout " + (prefs.rightPanelOpen ? "" : "panel-closed")}
+        {page === "terminal" && !ENABLE_TEST_FIXTURES && <ProviderDesk symbol={prefs.symbol} dark={prefs.dark} onSelect={openInstrument}/>}
+        {page === "terminal" && ENABLE_TEST_FIXTURES && <div className={"terminal-layout " + (prefs.rightPanelOpen ? "" : "panel-closed")}
           style={{"--right-panel-width": prefs.rightPanelWidth + "px"} as CSSProperties}>
           <section className="terminal-center">
             {studio && <nav className="peak-market-tabs" aria-label="Quick chart markets">
@@ -1542,6 +1546,6 @@ export default function App() {
        onClose={()=>setDrawingSettingsId(null)}/>}
     {searchOpen && <CommandPalette onClose={()=>setSearchOpen(false)}
        onOpenInstrument={openInstrument} onExecuteCommand={runTerminalCommand}/>}
-     {helpOpen && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setHelpOpen(false); }}><div className="help-dialog" role="dialog" aria-modal="true" aria-label="Help and shortcuts"><button className="dialog-close" aria-label="Close help" onClick={() => setHelpOpen(false)}><X size={18}/></button><Menu size={24}/><h2>Help and keyboard shortcuts</h2><p>Use the left navigation to switch between overview, charting, saved workspace and preferences. Click <strong>Price level</strong> to place a horizontal level, or drag using the Trendline, Rectangle or Fibonacci tools.</p><div className="shortcut"><span>Open Tool Atlas</span><kbd>Ctrl / ⌘ + K</kbd></div><div className="shortcut"><span>Exit drawing or dismiss dialog</span><kbd>Esc</kbd></div><div className="shortcut"><span>Undo / redo drawings</span><kbd>Ctrl / ⌘ + Z · Shift + Z</kbd></div><div className="shortcut"><span>Replay backward / forward</span><kbd>← / →</kbd></div><div className="shortcut"><span>Replay play / pause</span><kbd>Space</kbd></div><div className="shortcut"><span>Save workspace</span><strong>Automatic</strong></div><div className="shortcut"><span>Drawing properties</span><strong>Select an object → Properties</strong></div><p className="help-warning">Supported crypto pairs use Binance Spot candles. The chart shows its feed status. Markets without a configured provider have no quotes.</p><button className="primary-button" onClick={() => setHelpOpen(false)}>Start exploring <ChevronRight size={16}/></button></div></div>}
+     {helpOpen && <div className="modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setHelpOpen(false); }}><div className="help-dialog" role="dialog" aria-modal="true" aria-label="Help and shortcuts"><button className="dialog-close" aria-label="Close help" onClick={() => setHelpOpen(false)}><X size={18}/></button><Menu size={24}/><h2>Help and keyboard shortcuts</h2><p>Use the left navigation to switch between overview, charting, saved workspace and preferences. Click <strong>Price level</strong> to place a horizontal level, or drag using the Trendline, Rectangle or Fibonacci tools.</p><div className="shortcut"><span>Open Tool Atlas</span><kbd>Ctrl / ⌘ + K</kbd></div><div className="shortcut"><span>Exit drawing or dismiss dialog</span><kbd>Esc</kbd></div><div className="shortcut"><span>Undo / redo drawings</span><kbd>Ctrl / ⌘ + Z · Shift + Z</kbd></div><div className="shortcut"><span>Replay backward / forward</span><kbd>← / →</kbd></div><div className="shortcut"><span>Replay play / pause</span><kbd>Space</kbd></div><div className="shortcut"><span>Save workspace</span><strong>Automatic</strong></div><div className="shortcut"><span>Drawing properties</span><strong>Select an object → Properties</strong></div><p className="help-warning">Provider prices, chart tools and feed status appear inside the TradingView chart. Local price alerts and replay require a native feed.</p><button className="primary-button" onClick={() => setHelpOpen(false)}>Start exploring <ChevronRight size={16}/></button></div></div>}
   </div>;
 }

@@ -1,3 +1,4 @@
+import {ENABLE_TEST_FIXTURES} from "../market";
 import { useState, type FormEvent } from "react";
 import { Activity, Bell, Check, ChevronRight, Plus, Radar, Target, Trash2, WifiOff } from "lucide-react";
 import { createPriceAlert, type PriceAlert } from "./engine";
@@ -55,7 +56,7 @@ export function AlertsCenter({
         </div>
         <div className={"alert-feed-status "+(online?"connected":"disconnected")}>
           {online?<Activity size={15}/>:<WifiOff size={15}/>}
-          <span>{source==="demo"?
+          <span>{!ENABLE_TEST_FIXTURES ? "TradingView hosts the chart prices. Local price alert monitoring is unavailable for these feeds." : source==="demo"?
             "Synthetic demonstration candles: not a continuously updating live feed.":
             status==="live"?
               "Binance Spot updates available while this tab stays open.":

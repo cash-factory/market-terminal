@@ -44,7 +44,7 @@ export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSourc
   const [snapshot, setSnapshot] = useState<FeedSnapshot>({
     key: "", candles: [], status: "loading", message: null, asOfMs: null,
   });
-  const active = enabled && mode === "binance" && isRealSpotSymbol(symbol);
+  const active = ENABLE_TEST_FIXTURES && enabled && mode === "binance" && isRealSpotSymbol(symbol);
   const nativeFrame:Frame = isSecondsFrame(interval) ? "1s" : interval;
 
   useEffect(() => {

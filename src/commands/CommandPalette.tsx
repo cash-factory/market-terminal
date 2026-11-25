@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { ArrowRight, ChartCandlestick, Command, Compass, Layers3, Search, X } from "lucide-react";
-import { availableInstruments, symbols, type SymbolId } from "../market";
+import { ENABLE_TEST_FIXTURES, availableInstruments, symbols, type SymbolId } from "../market";
 import { filterTerminalCommands } from "./catalog";
 import "./style.css";
 
@@ -26,7 +26,7 @@ export function CommandPalette({onClose,onOpenInstrument,onExecuteCommand}:Props
     const instruments:Result[]=availableInstruments.filter(symbol=>
       [symbol,symbols[symbol].label,symbols[symbol].market].join(" ").toLowerCase().includes(q)
     ).map(symbol=>({kind:"instrument",key:"symbol:"+symbol,symbol}));
-    const actions:Result[]=filterTerminalCommands(query).map(item=>({
+    const actions:Result[]=(ENABLE_TEST_FIXTURES?filterTerminalCommands(query):[]).map(item=>({
       kind:"command",key:item.id,id:item.id,label:item.label,
       description:item.description,category:item.category,
     }));
@@ -81,7 +81,7 @@ export function CommandPalette({onClose,onOpenInstrument,onExecuteCommand}:Props
               result.category==="Draw"?<Compass size={17}/>:<Layers3 size={17}/>}</span>
           <span className="atlas-result-main">
             <strong>{result.kind==="instrument"?symbols[result.symbol].label:result.label}</strong>
-            <small>{result.kind==="instrument"?symbols[result.symbol].market+(symbols[result.symbol].market.includes("PROVIDER REQUIRED")?" · No actual OHLC data configured":" · Direct public spot candles"):result.description}</small>
+            <small>{result.kind==="instrument"?symbols[result.symbol].market:result.description}</small>
           </span>
           <span className="atlas-result-type">{result.kind==="instrument"?"INSTRUMENT":result.category.toUpperCase()}</span>
           <ArrowRight size={15} className="atlas-result-arrow"/>

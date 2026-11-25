@@ -863,3 +863,11 @@
 .market-source-links nav {display:flex;flex-wrap:wrap;gap:8px 16px}
 .market-source-links label {display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:8px 0}
 .market-source-links input {background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:5px}
+.provider-desk{display:flex;flex-direction:column;min-width:0;padding:12px;gap:10px}
+.provider-desk nav,.provider-desk header{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.provider-desk header{justify-content:space-between}.provider-desk h1{font-size:22px;margin:0}
+.provider-desk button,.provider-desk select{background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:7px 10px}
+.provider-desk button[aria-pressed=true]{border-color:var(--accent);color:var(--accent)}
+.provider-chart{height:clamp(390px,calc(100dvh - 238px),1100px);min-width:0}
+.provider-chart .tradingview-widget-container,.provider-chart .tradingview-widget-container__widget{height:100%;width:100%}
+.provider-credit{color:var(--accent);align-self:flex-start}
