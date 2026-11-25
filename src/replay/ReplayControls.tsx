@@ -1,5 +1,7 @@
-import { Film, Pause, Play, SkipBack, SkipForward, X } from "lucide-react";
+import { X } from "lucide-react";
 import type { ReplaySpeed,ReplayState } from "./model";
+
+import {PeakIcon} from "../presentation/PeakIcon";
 
 type Props={
   replay:ReplayState;
@@ -14,19 +16,19 @@ export function ReplayControls({replay,onTogglePlay,onStep,onStepBack,onSeek,onS
   const current=replay.snapshot[replay.cursor];
   const finished=replay.cursor>=replay.snapshot.length-1;
   return <section className="replay-controls" aria-label="Historical candle replay">
-    <div className="replay-title"><div className="replay-icon"><Film size={18}/></div>
+    <div className="replay-title"><div className="replay-icon"><PeakIcon name="workspace-replay"/></div>
       <div><strong>Historical replay</strong><small>Frozen snapshot · No future candles shown</small></div>
     </div>
     <div className="replay-actions">
       <button className="replay-play" aria-label={replay.playing?"Pause replay":"Play replay"}
         onClick={onTogglePlay} disabled={finished}>
-        {replay.playing?<Pause size={17}/>:<Play size={17}/>}
+        <PeakIcon name={replay.playing?"replay-control-pause":"replay-control-play"}/>
         <span>{replay.playing?"Pause":"Play"}</span>
       </button>
       <button className="replay-step" aria-label="Step backward" title="Previous historical candle · Arrow Left"
-        onClick={onStepBack} disabled={replay.cursor===0}><SkipBack size={17}/></button>
+        onClick={onStepBack} disabled={replay.cursor===0}><PeakIcon name="replay-control-back"/></button>
       <button className="replay-step" aria-label="Step forward" title="Next historical candle · Arrow Right"
-        onClick={onStep} disabled={finished}><SkipForward size={17}/></button>
+        onClick={onStep} disabled={finished}><PeakIcon name="replay-control-forward"/></button>
       <label className="replay-speed">Speed
         <select value={replay.speed} aria-label="Replay playback speed"
           onChange={event=>onSpeed(Number(event.target.value) as ReplaySpeed)}>

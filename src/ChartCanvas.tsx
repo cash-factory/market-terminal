@@ -270,6 +270,16 @@ export function ChartCanvas({
       onOpenSettings={onOpenDrawingSettings}
     />}
   </div>
+  <div className="chart-range-strip" role="group" aria-label={symbols[symbol].label + " chart range"}>
+    <span>Visible bars</span>
+    {[30, 90].map(count=><button key={count} type="button" disabled={candles.length<count}
+      aria-label={"Show latest " + count + " bars"}
+      onClick={()=>chart.current?.timeScale().setVisibleRange({
+        from:candles[candles.length-count].time, to:candles[candles.length-1].time
+      })}>{count}</button>)}
+    <button type="button" disabled={!candles.length} onClick={()=>chart.current?.timeScale().fitContent()}>Fit all</button>
+    <time title="Latest visible-source candle in UTC">{candles.length ? new Date(Number(candles[candles.length-1].time)*1000).toISOString().slice(11,16)+" UTC" : "—"}</time>
+  </div>
   {comparisonLabel&&<div className="chart-comparison-attribution" role="status">
     <strong>{comparisonLabel}</strong> · relative comparison rebased to the primary chart's
     first matching closing price; not the comparison instrument's executable quote.

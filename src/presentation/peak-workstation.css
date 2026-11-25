@@ -538,8 +538,7 @@
  }
 }
 
-/* Mobile regression: inherited tab-strip negative margins extended the document by 5px. */
-@media(max-width:700px) {
+/* Stacked inspector tabs stay within the panel at tablet and phone widths. */ @media(max-width:960px) {
  .app.studio.peak-workstation .right-panel .workspace-rail-tabs.context-tabs {
    margin:0 0 12px!important;
    padding:0!important;
