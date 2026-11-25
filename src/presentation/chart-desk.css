@@ -55,8 +55,11 @@
     grid-template-columns:58px minmax(0,1fr)!important;
     grid-template-rows:minmax(0,1fr)!important;
   }
-  .app.studio.peak-workstation .main-area{
+  .app.studio.peak-workstation:not(.focus-mode) .main-area{
     grid-column:2;grid-row:1;min-width:0;
+  }
+  .app.studio.peak-workstation.focus-mode .main-area{
+    grid-column:1;grid-row:1;min-width:0;
   }
   .app.studio.peak-workstation:not(.focus-mode) .primary-sidebar{
     grid-column:1;grid-row:1;z-index:7;
