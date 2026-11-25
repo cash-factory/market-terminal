@@ -1,0 +1,15 @@
+.mt-theme-peak-glass{
+ --mt-bg:#0B1017;--mt-surface:rgba(19,27,38,.84);
+ --mt-panel:rgba(29,39,52,.76);--mt-raised:rgba(50,64,80,.55);
+ --mt-border:rgba(207,222,240,.17);--mt-text:#F1F5F9;
+ --mt-muted:#A3B0BE;--mt-accent:#E33347;
+ --mt-shadow:0 14px 42px rgba(0,0,0,.21);
+}
+.mt-theme-peak-glass .mt-glass{
+ background:var(--mt-surface);border:1px solid var(--mt-border);
+ box-shadow:var(--mt-shadow);backdrop-filter:blur(15px) saturate(116%);
+ -webkit-backdrop-filter:blur(15px) saturate(116%);
+}
+@supports not (backdrop-filter:blur(1px)){
+ .mt-theme-peak-glass .mt-glass{background:#18222E}
+}

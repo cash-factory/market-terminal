@@ -1,0 +1,591 @@
+{
+  "version": "1.0.0",
+  "unit": 24,
+  "strokeWidth": 1.65,
+  "style": "round caps and joins; currentColor",
+  "usage": "Prefer lucide-react for generic actions. For Market Terminal glyphs use /assets/icons/terminal-symbols.svg#ID with inline SVG <use>, and title/aria-label in the React wrapper.",
+  "icons": [
+    {
+      "id": "workspace",
+      "category": "navigation",
+      "individual": "icons/individual/workspace.svg",
+      "symbol": "icons/terminal-symbols.svg#workspace"
+    },
+    {
+      "id": "home",
+      "category": "navigation",
+      "individual": "icons/individual/home.svg",
+      "symbol": "icons/terminal-symbols.svg#home"
+    },
+    {
+      "id": "chart",
+      "category": "navigation",
+      "individual": "icons/individual/chart.svg",
+      "symbol": "icons/terminal-symbols.svg#chart"
+    },
+    {
+      "id": "watchlist",
+      "category": "navigation",
+      "individual": "icons/individual/watchlist.svg",
+      "symbol": "icons/terminal-symbols.svg#watchlist"
+    },
+    {
+      "id": "favorites",
+      "category": "navigation",
+      "individual": "icons/individual/favorites.svg",
+      "symbol": "icons/terminal-symbols.svg#favorites"
+    },
+    {
+      "id": "replay",
+      "category": "navigation",
+      "individual": "icons/individual/replay.svg",
+      "symbol": "icons/terminal-symbols.svg#replay"
+    },
+    {
+      "id": "simulation",
+      "category": "navigation",
+      "individual": "icons/individual/simulation.svg",
+      "symbol": "icons/terminal-symbols.svg#simulation"
+    },
+    {
+      "id": "strategy-research",
+      "category": "navigation",
+      "individual": "icons/individual/strategy-research.svg",
+      "symbol": "icons/terminal-symbols.svg#strategy-research"
+    },
+    {
+      "id": "tool-library",
+      "category": "navigation",
+      "individual": "icons/individual/tool-library.svg",
+      "symbol": "icons/terminal-symbols.svg#tool-library"
+    },
+    {
+      "id": "templates",
+      "category": "navigation",
+      "individual": "icons/individual/templates.svg",
+      "symbol": "icons/terminal-symbols.svg#templates"
+    },
+    {
+      "id": "notes",
+      "category": "navigation",
+      "individual": "icons/individual/notes.svg",
+      "symbol": "icons/terminal-symbols.svg#notes"
+    },
+    {
+      "id": "layers",
+      "category": "navigation",
+      "individual": "icons/individual/layers.svg",
+      "symbol": "icons/terminal-symbols.svg#layers"
+    },
+    {
+      "id": "layouts",
+      "category": "navigation",
+      "individual": "icons/individual/layouts.svg",
+      "symbol": "icons/terminal-symbols.svg#layouts"
+    },
+    {
+      "id": "settings",
+      "category": "navigation",
+      "individual": "icons/individual/settings.svg",
+      "symbol": "icons/terminal-symbols.svg#settings"
+    },
+    {
+      "id": "search",
+      "category": "navigation",
+      "individual": "icons/individual/search.svg",
+      "symbol": "icons/terminal-symbols.svg#search"
+    },
+    {
+      "id": "command",
+      "category": "navigation",
+      "individual": "icons/individual/command.svg",
+      "symbol": "icons/terminal-symbols.svg#command"
+    },
+    {
+      "id": "keyboard",
+      "category": "navigation",
+      "individual": "icons/individual/keyboard.svg",
+      "symbol": "icons/terminal-symbols.svg#keyboard"
+    },
+    {
+      "id": "alerts",
+      "category": "navigation",
+      "individual": "icons/individual/alerts.svg",
+      "symbol": "icons/terminal-symbols.svg#alerts"
+    },
+    {
+      "id": "source",
+      "category": "data",
+      "individual": "icons/individual/source.svg",
+      "symbol": "icons/terminal-symbols.svg#source"
+    },
+    {
+      "id": "source-live",
+      "category": "data",
+      "individual": "icons/individual/source-live.svg",
+      "symbol": "icons/terminal-symbols.svg#source-live"
+    },
+    {
+      "id": "source-demo",
+      "category": "data",
+      "individual": "icons/individual/source-demo.svg",
+      "symbol": "icons/terminal-symbols.svg#source-demo"
+    },
+    {
+      "id": "source-stale",
+      "category": "data",
+      "individual": "icons/individual/source-stale.svg",
+      "symbol": "icons/terminal-symbols.svg#source-stale"
+    },
+    {
+      "id": "source-offline",
+      "category": "data",
+      "individual": "icons/individual/source-offline.svg",
+      "symbol": "icons/terminal-symbols.svg#source-offline"
+    },
+    {
+      "id": "data-provenance",
+      "category": "data",
+      "individual": "icons/individual/data-provenance.svg",
+      "symbol": "icons/terminal-symbols.svg#data-provenance"
+    },
+    {
+      "id": "calendar",
+      "category": "data",
+      "individual": "icons/individual/calendar.svg",
+      "symbol": "icons/terminal-symbols.svg#calendar"
+    },
+    {
+      "id": "market-session",
+      "category": "data",
+      "individual": "icons/individual/market-session.svg",
+      "symbol": "icons/terminal-symbols.svg#market-session"
+    },
+    {
+      "id": "session-map",
+      "category": "data",
+      "individual": "icons/individual/session-map.svg",
+      "symbol": "icons/terminal-symbols.svg#session-map"
+    },
+    {
+      "id": "clock",
+      "category": "data",
+      "individual": "icons/individual/clock.svg",
+      "symbol": "icons/terminal-symbols.svg#clock"
+    },
+    {
+      "id": "play",
+      "category": "replay",
+      "individual": "icons/individual/play.svg",
+      "symbol": "icons/terminal-symbols.svg#play"
+    },
+    {
+      "id": "pause",
+      "category": "replay",
+      "individual": "icons/individual/pause.svg",
+      "symbol": "icons/terminal-symbols.svg#pause"
+    },
+    {
+      "id": "step-forward",
+      "category": "replay",
+      "individual": "icons/individual/step-forward.svg",
+      "symbol": "icons/terminal-symbols.svg#step-forward"
+    },
+    {
+      "id": "step-back",
+      "category": "replay",
+      "individual": "icons/individual/step-back.svg",
+      "symbol": "icons/terminal-symbols.svg#step-back"
+    },
+    {
+      "id": "skip-forward",
+      "category": "replay",
+      "individual": "icons/individual/skip-forward.svg",
+      "symbol": "icons/terminal-symbols.svg#skip-forward"
+    },
+    {
+      "id": "skip-back",
+      "category": "replay",
+      "individual": "icons/individual/skip-back.svg",
+      "symbol": "icons/terminal-symbols.svg#skip-back"
+    },
+    {
+      "id": "timeline",
+      "category": "replay",
+      "individual": "icons/individual/timeline.svg",
+      "symbol": "icons/terminal-symbols.svg#timeline"
+    },
+    {
+      "id": "replay-range",
+      "category": "replay",
+      "individual": "icons/individual/replay-range.svg",
+      "symbol": "icons/terminal-symbols.svg#replay-range"
+    },
+    {
+      "id": "no-lookahead",
+      "category": "replay",
+      "individual": "icons/individual/no-lookahead.svg",
+      "symbol": "icons/terminal-symbols.svg#no-lookahead"
+    },
+    {
+      "id": "replay-speed",
+      "category": "replay",
+      "individual": "icons/individual/replay-speed.svg",
+      "symbol": "icons/terminal-symbols.svg#replay-speed"
+    },
+    {
+      "id": "replay-archive",
+      "category": "replay",
+      "individual": "icons/individual/replay-archive.svg",
+      "symbol": "icons/terminal-symbols.svg#replay-archive"
+    },
+    {
+      "id": "study",
+      "category": "replay",
+      "individual": "icons/individual/study.svg",
+      "symbol": "icons/terminal-symbols.svg#study"
+    },
+    {
+      "id": "scenario",
+      "category": "replay",
+      "individual": "icons/individual/scenario.svg",
+      "symbol": "icons/terminal-symbols.svg#scenario"
+    },
+    {
+      "id": "long-position",
+      "category": "analysis",
+      "individual": "icons/individual/long-position.svg",
+      "symbol": "icons/terminal-symbols.svg#long-position"
+    },
+    {
+      "id": "short-position",
+      "category": "analysis",
+      "individual": "icons/individual/short-position.svg",
+      "symbol": "icons/terminal-symbols.svg#short-position"
+    },
+    {
+      "id": "target",
+      "category": "analysis",
+      "individual": "icons/individual/target.svg",
+      "symbol": "icons/terminal-symbols.svg#target"
+    },
+    {
+      "id": "stop",
+      "category": "analysis",
+      "individual": "icons/individual/stop.svg",
+      "symbol": "icons/terminal-symbols.svg#stop"
+    },
+    {
+      "id": "risk-reward",
+      "category": "analysis",
+      "individual": "icons/individual/risk-reward.svg",
+      "symbol": "icons/terminal-symbols.svg#risk-reward"
+    },
+    {
+      "id": "measure",
+      "category": "drawing",
+      "individual": "icons/individual/measure.svg",
+      "symbol": "icons/terminal-symbols.svg#measure"
+    },
+    {
+      "id": "crosshair",
+      "category": "drawing",
+      "individual": "icons/individual/crosshair.svg",
+      "symbol": "icons/terminal-symbols.svg#crosshair"
+    },
+    {
+      "id": "pointer",
+      "category": "drawing",
+      "individual": "icons/individual/pointer.svg",
+      "symbol": "icons/terminal-symbols.svg#pointer"
+    },
+    {
+      "id": "trendline",
+      "category": "drawing",
+      "individual": "icons/individual/trendline.svg",
+      "symbol": "icons/terminal-symbols.svg#trendline"
+    },
+    {
+      "id": "horizontal-line",
+      "category": "drawing",
+      "individual": "icons/individual/horizontal-line.svg",
+      "symbol": "icons/terminal-symbols.svg#horizontal-line"
+    },
+    {
+      "id": "vertical-line",
+      "category": "drawing",
+      "individual": "icons/individual/vertical-line.svg",
+      "symbol": "icons/terminal-symbols.svg#vertical-line"
+    },
+    {
+      "id": "ray",
+      "category": "drawing",
+      "individual": "icons/individual/ray.svg",
+      "symbol": "icons/terminal-symbols.svg#ray"
+    },
+    {
+      "id": "parallel-channel",
+      "category": "drawing",
+      "individual": "icons/individual/parallel-channel.svg",
+      "symbol": "icons/terminal-symbols.svg#parallel-channel"
+    },
+    {
+      "id": "regression-channel",
+      "category": "drawing",
+      "individual": "icons/individual/regression-channel.svg",
+      "symbol": "icons/terminal-symbols.svg#regression-channel"
+    },
+    {
+      "id": "fib-retracement",
+      "category": "drawing",
+      "individual": "icons/individual/fib-retracement.svg",
+      "symbol": "icons/terminal-symbols.svg#fib-retracement"
+    },
+    {
+      "id": "fib-extension",
+      "category": "drawing",
+      "individual": "icons/individual/fib-extension.svg",
+      "symbol": "icons/terminal-symbols.svg#fib-extension"
+    },
+    {
+      "id": "fib-time",
+      "category": "drawing",
+      "individual": "icons/individual/fib-time.svg",
+      "symbol": "icons/terminal-symbols.svg#fib-time"
+    },
+    {
+      "id": "pitchfork",
+      "category": "drawing",
+      "individual": "icons/individual/pitchfork.svg",
+      "symbol": "icons/terminal-symbols.svg#pitchfork"
+    },
+    {
+      "id": "gann-grid",
+      "category": "drawing",
+      "individual": "icons/individual/gann-grid.svg",
+      "symbol": "icons/terminal-symbols.svg#gann-grid"
+    },
+    {
+      "id": "rectangle",
+      "category": "drawing",
+      "individual": "icons/individual/rectangle.svg",
+      "symbol": "icons/terminal-symbols.svg#rectangle"
+    },
+    {
+      "id": "ellipse",
+      "category": "drawing",
+      "individual": "icons/individual/ellipse.svg",
+      "symbol": "icons/terminal-symbols.svg#ellipse"
+    },
+    {
+      "id": "polygon",
+      "category": "drawing",
+      "individual": "icons/individual/polygon.svg",
+      "symbol": "icons/terminal-symbols.svg#polygon"
+    },
+    {
+      "id": "brush",
+      "category": "drawing",
+      "individual": "icons/individual/brush.svg",
+      "symbol": "icons/terminal-symbols.svg#brush"
+    },
+    {
+      "id": "text",
+      "category": "drawing",
+      "individual": "icons/individual/text.svg",
+      "symbol": "icons/terminal-symbols.svg#text"
+    },
+    {
+      "id": "callout",
+      "category": "drawing",
+      "individual": "icons/individual/callout.svg",
+      "symbol": "icons/terminal-symbols.svg#callout"
+    },
+    {
+      "id": "annotation",
+      "category": "drawing",
+      "individual": "icons/individual/annotation.svg",
+      "symbol": "icons/terminal-symbols.svg#annotation"
+    },
+    {
+      "id": "arrow",
+      "category": "drawing",
+      "individual": "icons/individual/arrow.svg",
+      "symbol": "icons/terminal-symbols.svg#arrow"
+    },
+    {
+      "id": "magnet",
+      "category": "drawing",
+      "individual": "icons/individual/magnet.svg",
+      "symbol": "icons/terminal-symbols.svg#magnet"
+    },
+    {
+      "id": "lock",
+      "category": "actions",
+      "individual": "icons/individual/lock.svg",
+      "symbol": "icons/terminal-symbols.svg#lock"
+    },
+    {
+      "id": "unlock",
+      "category": "actions",
+      "individual": "icons/individual/unlock.svg",
+      "symbol": "icons/terminal-symbols.svg#unlock"
+    },
+    {
+      "id": "show",
+      "category": "actions",
+      "individual": "icons/individual/show.svg",
+      "symbol": "icons/terminal-symbols.svg#show"
+    },
+    {
+      "id": "hide",
+      "category": "actions",
+      "individual": "icons/individual/hide.svg",
+      "symbol": "icons/terminal-symbols.svg#hide"
+    },
+    {
+      "id": "group",
+      "category": "actions",
+      "individual": "icons/individual/group.svg",
+      "symbol": "icons/terminal-symbols.svg#group"
+    },
+    {
+      "id": "ungroup",
+      "category": "actions",
+      "individual": "icons/individual/ungroup.svg",
+      "symbol": "icons/terminal-symbols.svg#ungroup"
+    },
+    {
+      "id": "undo",
+      "category": "actions",
+      "individual": "icons/individual/undo.svg",
+      "symbol": "icons/terminal-symbols.svg#undo"
+    },
+    {
+      "id": "redo",
+      "category": "actions",
+      "individual": "icons/individual/redo.svg",
+      "symbol": "icons/terminal-symbols.svg#redo"
+    },
+    {
+      "id": "save",
+      "category": "actions",
+      "individual": "icons/individual/save.svg",
+      "symbol": "icons/terminal-symbols.svg#save"
+    },
+    {
+      "id": "import",
+      "category": "actions",
+      "individual": "icons/individual/import.svg",
+      "symbol": "icons/terminal-symbols.svg#import"
+    },
+    {
+      "id": "export",
+      "category": "actions",
+      "individual": "icons/individual/export.svg",
+      "symbol": "icons/terminal-symbols.svg#export"
+    },
+    {
+      "id": "delete",
+      "category": "actions",
+      "individual": "icons/individual/delete.svg",
+      "symbol": "icons/terminal-symbols.svg#delete"
+    },
+    {
+      "id": "properties",
+      "category": "actions",
+      "individual": "icons/individual/properties.svg",
+      "symbol": "icons/terminal-symbols.svg#properties"
+    },
+    {
+      "id": "link",
+      "category": "actions",
+      "individual": "icons/individual/link.svg",
+      "symbol": "icons/terminal-symbols.svg#link"
+    },
+    {
+      "id": "expand",
+      "category": "actions",
+      "individual": "icons/individual/expand.svg",
+      "symbol": "icons/terminal-symbols.svg#expand"
+    },
+    {
+      "id": "focus",
+      "category": "actions",
+      "individual": "icons/individual/focus.svg",
+      "symbol": "icons/terminal-symbols.svg#focus"
+    },
+    {
+      "id": "snapshot",
+      "category": "actions",
+      "individual": "icons/individual/snapshot.svg",
+      "symbol": "icons/terminal-symbols.svg#snapshot"
+    },
+    {
+      "id": "compare",
+      "category": "actions",
+      "individual": "icons/individual/compare.svg",
+      "symbol": "icons/terminal-symbols.svg#compare"
+    },
+    {
+      "id": "alert",
+      "category": "actions",
+      "individual": "icons/individual/alert.svg",
+      "symbol": "icons/terminal-symbols.svg#alert"
+    },
+    {
+      "id": "check",
+      "category": "status",
+      "individual": "icons/individual/check.svg",
+      "symbol": "icons/terminal-symbols.svg#check"
+    },
+    {
+      "id": "warning",
+      "category": "status",
+      "individual": "icons/individual/warning.svg",
+      "symbol": "icons/terminal-symbols.svg#warning"
+    },
+    {
+      "id": "error",
+      "category": "status",
+      "individual": "icons/individual/error.svg",
+      "symbol": "icons/terminal-symbols.svg#error"
+    },
+    {
+      "id": "info",
+      "category": "status",
+      "individual": "icons/individual/info.svg",
+      "symbol": "icons/terminal-symbols.svg#info"
+    },
+    {
+      "id": "success",
+      "category": "status",
+      "individual": "icons/individual/success.svg",
+      "symbol": "icons/terminal-symbols.svg#success"
+    },
+    {
+      "id": "offline",
+      "category": "status",
+      "individual": "icons/individual/offline.svg",
+      "symbol": "icons/terminal-symbols.svg#offline"
+    },
+    {
+      "id": "loading",
+      "category": "status",
+      "individual": "icons/individual/loading.svg",
+      "symbol": "icons/terminal-symbols.svg#loading"
+    },
+    {
+      "id": "help",
+      "category": "status",
+      "individual": "icons/individual/help.svg",
+      "symbol": "icons/terminal-symbols.svg#help"
+    },
+    {
+      "id": "accessibility",
+      "category": "status",
+      "individual": "icons/individual/accessibility.svg",
+      "symbol": "icons/terminal-symbols.svg#accessibility"
+    }
+  ]
+}

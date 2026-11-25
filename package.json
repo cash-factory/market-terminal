@@ -7,8 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test": "node scripts/verify-assets.mjs && vitest run",
+    "test:e2e": "playwright test",
+    "verify:assets": "node scripts/verify-assets.mjs"
   },
   "dependencies": {
     "lightweight-charts": "^5.0.0",

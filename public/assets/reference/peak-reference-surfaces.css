@@ -1,0 +1,51 @@
+/* Source-led glass composition: low contrast decorative art, never over charts. */
+.mt-reference-shell{
+ --mt-ref-accent:#E63747;
+ --mt-ref-base:#0C121A;
+ --mt-ref-panel:rgba(19,27,37,.86);
+ --mt-ref-glass:rgba(27,38,51,.77);
+ --mt-ref-outline:rgba(191,211,227,.18);
+ color:#EDF2F6;
+ background-color:var(--mt-ref-base);
+ background-image:linear-gradient(180deg,rgba(11,17,25,.25),rgba(11,17,25,.73)),url("../reference/media/alpine-horizon.svg");
+ background-size:cover;
+ background-position:center bottom;
+}
+.mt-reference-shell .mt-reference-glass{
+ background:var(--mt-ref-glass);
+ border:1px solid var(--mt-ref-outline);
+ box-shadow:0 13px 30px rgba(0,0,0,.22);
+ backdrop-filter:blur(15px) saturate(110%);
+ -webkit-backdrop-filter:blur(15px) saturate(110%);
+}
+.mt-reference-shell .mt-reference-selected{
+ background:rgba(127,32,46,.73);
+ border:1px solid rgba(227,55,71,.36);
+ color:#FFF;
+}
+.mt-reference-shell .mt-reference-chart{
+ background:#0E151F;
+ box-shadow:none;
+ backdrop-filter:none;
+}
+.mt-reference-shell .mt-reference-replay-primary{
+ min-width:44px;min-height:44px;border:1px solid rgba(241,121,134,.26);
+ border-radius:50%;background:#BB283D;color:white;
+ display:grid;place-items:center;cursor:pointer;
+}
+.mt-reference-shell .mt-reference-ribbon{
+ background:url("../reference/media/red-signal-ribbon.svg") center/contain no-repeat;
+}
+@supports not (backdrop-filter:blur(1px)){
+ .mt-reference-shell .mt-reference-glass{background:#202B38}
+}
+@media(prefers-contrast:more){
+ .mt-reference-shell .mt-reference-glass{background:#121A24;border-color:#B0BFCC}
+ .mt-reference-shell .mt-reference-selected{background:#9A172E;border-color:#FFF}
+}
+@media(prefers-reduced-transparency:reduce){
+ .mt-reference-shell .mt-reference-glass{background:#18232F;backdrop-filter:none;-webkit-backdrop-filter:none}
+}
+@media(prefers-reduced-motion:reduce){
+ .mt-reference-shell .mt-reference-replay-primary{transition:none;animation:none}
+}

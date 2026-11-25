@@ -1,0 +1,233 @@
+{
+  "version": "1.0.0",
+  "source": "User-supplied visual direction screenshots (reference-derived, original SVG construction)",
+  "unit": 24,
+  "stroke": 1.65,
+  "icons": [
+    {
+      "id": "workspace-grid",
+      "category": "navigation",
+      "path": "reference/icons/workspace-grid.svg"
+    },
+    {
+      "id": "workspace-stack",
+      "category": "navigation",
+      "path": "reference/icons/workspace-stack.svg"
+    },
+    {
+      "id": "workspace-research",
+      "category": "navigation",
+      "path": "reference/icons/workspace-research.svg"
+    },
+    {
+      "id": "workspace-replay",
+      "category": "navigation",
+      "path": "reference/icons/workspace-replay.svg"
+    },
+    {
+      "id": "workspace-simulation",
+      "category": "navigation",
+      "path": "reference/icons/workspace-simulation.svg"
+    },
+    {
+      "id": "workspace-markets",
+      "category": "navigation",
+      "path": "reference/icons/workspace-markets.svg"
+    },
+    {
+      "id": "favorites-star",
+      "category": "resources",
+      "path": "reference/icons/favorites-star.svg"
+    },
+    {
+      "id": "template-board",
+      "category": "resources",
+      "path": "reference/icons/template-board.svg"
+    },
+    {
+      "id": "indicators-curve",
+      "category": "resources",
+      "path": "reference/icons/indicators-curve.svg"
+    },
+    {
+      "id": "drawing-sets",
+      "category": "resources",
+      "path": "reference/icons/drawing-sets.svg"
+    },
+    {
+      "id": "layout-split",
+      "category": "resources",
+      "path": "reference/icons/layout-split.svg"
+    },
+    {
+      "id": "calendar-detail",
+      "category": "market-tools",
+      "path": "reference/icons/calendar-detail.svg"
+    },
+    {
+      "id": "news-page",
+      "category": "market-tools",
+      "path": "reference/icons/news-page.svg"
+    },
+    {
+      "id": "heatmap-tiles",
+      "category": "market-tools",
+      "path": "reference/icons/heatmap-tiles.svg"
+    },
+    {
+      "id": "session-globe",
+      "category": "market-tools",
+      "path": "reference/icons/session-globe.svg"
+    },
+    {
+      "id": "chart-cursor",
+      "category": "drawing-tools",
+      "path": "reference/icons/chart-cursor.svg"
+    },
+    {
+      "id": "chart-crosshair",
+      "category": "drawing-tools",
+      "path": "reference/icons/chart-crosshair.svg"
+    },
+    {
+      "id": "chart-trendline",
+      "category": "drawing-tools",
+      "path": "reference/icons/chart-trendline.svg"
+    },
+    {
+      "id": "chart-horizontal-ray",
+      "category": "drawing-tools",
+      "path": "reference/icons/chart-horizontal-ray.svg"
+    },
+    {
+      "id": "chart-parallel",
+      "category": "drawing-tools",
+      "path": "reference/icons/chart-parallel.svg"
+    },
+    {
+      "id": "chart-fibonacci",
+      "category": "drawing-tools",
+      "path": "reference/icons/chart-fibonacci.svg"
+    },
+    {
+      "id": "chart-pitchfork",
+      "category": "drawing-tools",
+      "path": "reference/icons/chart-pitchfork.svg"
+    },
+    {
+      "id": "chart-brush",
+      "category": "drawing-tools",
+      "path": "reference/icons/chart-brush.svg"
+    },
+    {
+      "id": "chart-text",
+      "category": "drawing-tools",
+      "path": "reference/icons/chart-text.svg"
+    },
+    {
+      "id": "chart-rectangle",
+      "category": "drawing-tools",
+      "path": "reference/icons/chart-rectangle.svg"
+    },
+    {
+      "id": "chart-measure",
+      "category": "drawing-tools",
+      "path": "reference/icons/chart-measure.svg"
+    },
+    {
+      "id": "chart-magnet",
+      "category": "drawing-tools",
+      "path": "reference/icons/chart-magnet.svg"
+    },
+    {
+      "id": "chart-visibility",
+      "category": "drawing-tools",
+      "path": "reference/icons/chart-visibility.svg"
+    },
+    {
+      "id": "chart-lock",
+      "category": "drawing-tools",
+      "path": "reference/icons/chart-lock.svg"
+    },
+    {
+      "id": "chart-delete",
+      "category": "drawing-tools",
+      "path": "reference/icons/chart-delete.svg"
+    },
+    {
+      "id": "replay-control-start",
+      "category": "replay-transport",
+      "path": "reference/icons/replay-control-start.svg"
+    },
+    {
+      "id": "replay-control-back",
+      "category": "replay-transport",
+      "path": "reference/icons/replay-control-back.svg"
+    },
+    {
+      "id": "replay-control-play",
+      "category": "replay-transport",
+      "path": "reference/icons/replay-control-play.svg"
+    },
+    {
+      "id": "replay-control-pause",
+      "category": "replay-transport",
+      "path": "reference/icons/replay-control-pause.svg"
+    },
+    {
+      "id": "replay-control-forward",
+      "category": "replay-transport",
+      "path": "reference/icons/replay-control-forward.svg"
+    },
+    {
+      "id": "replay-control-end",
+      "category": "replay-transport",
+      "path": "reference/icons/replay-control-end.svg"
+    },
+    {
+      "id": "replay-control-speed",
+      "category": "replay-transport",
+      "path": "reference/icons/replay-control-speed.svg"
+    },
+    {
+      "id": "replay-control-settings",
+      "category": "replay-transport",
+      "path": "reference/icons/replay-control-settings.svg"
+    },
+    {
+      "id": "replay-control-loop",
+      "category": "replay-transport",
+      "path": "reference/icons/replay-control-loop.svg"
+    },
+    {
+      "id": "ui-sessions",
+      "category": "context",
+      "path": "reference/icons/ui-sessions.svg"
+    },
+    {
+      "id": "ui-note",
+      "category": "context",
+      "path": "reference/icons/ui-note.svg"
+    },
+    {
+      "id": "ui-panel-glass",
+      "category": "context",
+      "path": "reference/icons/ui-panel-glass.svg"
+    },
+    {
+      "id": "ui-market-gold",
+      "category": "context",
+      "path": "reference/icons/ui-market-gold.svg"
+    },
+    {
+      "id": "ui-alert",
+      "category": "context",
+      "path": "reference/icons/ui-alert.svg"
+    },
+    {
+      "id": "ui-favorite",
+      "category": "context",
+      "path": "reference/icons/ui-favorite.svg"
+    }
+  ]
+}

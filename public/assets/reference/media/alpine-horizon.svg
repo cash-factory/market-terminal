@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080" role="img" aria-label="Dark alpine mountain atmosphere for Market Terminal application shell"><title>Dark alpine mountain atmosphere for Market Terminal application shell</title><defs>
+<linearGradient id="night" x1="0" y1="0" x2=".1" y2="1"><stop stop-color="#111B28"/><stop offset=".64" stop-color="#1C2835"/><stop offset="1" stop-color="#0B111B"/></linearGradient>
+<linearGradient id="mountain" x1=".5" y1="0" x2=".5" y2="1"><stop stop-color="#3C4B59"/><stop offset=".40" stop-color="#253444"/><stop offset="1" stop-color="#080E16"/></linearGradient>
+<radialGradient id="rust" cx=".55" cy=".62" r=".56"><stop stop-color="#A92A3B" stop-opacity=".43"/><stop offset=".44" stop-color="#713142" stop-opacity=".11"/><stop offset="1" stop-color="#B43249" stop-opacity="0"/></radialGradient>
+<linearGradient id="frost" x1="0" y1="0" x2="1" y2=".7"><stop stop-color="#BBCAD7" stop-opacity=".65"/><stop offset=".65" stop-color="#849DB5" stop-opacity=".18"/><stop offset="1" stop-color="#7B94AC" stop-opacity=".04"/></linearGradient>
+<radialGradient id="halo"><stop stop-color="#F04F68" stop-opacity=".26"/><stop offset="1" stop-color="#8A263D" stop-opacity="0"/></radialGradient>
+<filter id="blur"><feGaussianBlur stdDeviation="49"/></filter></defs><rect width="1920" height="1080" fill="url(#night)"/><path d="M0 80h1920M0 280h1920M0 480h1920M0 680h1920M0 880h1920" stroke="#CBD8E6" stroke-opacity=".019"/><ellipse cx="930" cy="800" rx="820" ry="420" fill="url(#rust)"/><ellipse cx="1508" cy="924" rx="310" ry="102" fill="url(#halo)" filter="url(#blur)"/><path d="M0 990 134 794 256 852 436 610 562 760 715 511 922 784 1118 575 1328 810 1485 624 1660 809 1800 574 1920 768V1080H0Z" fill="#202F3F" opacity=".55"/>
+<path d="M0 1060 186 787 283 903 489 512 612 768 768 669 915 867 1053 619 1224 885 1392 681 1549 878 1778 610 1920 895v185H0Z" fill="url(#mountain)"/>
+<path d="m384 658 105-146 79 156-59-55-22 16-20-20-20 53-21-34Z" fill="url(#frost)"/>
+<path d="m995 689 58-70 72 97-47-27-22 9-15-20-14 17Z" fill="url(#frost)" opacity=".76"/>
+<path d="m1720 677 58-67 69 96-45-30-20 18-20-23Z" fill="url(#frost)" opacity=".85"/>
+<g fill="none" stroke="#AFBECD" stroke-opacity=".17" stroke-width="2"><path d="m489 512 70 222-46-62-35-33-78 184m653-204 117 199-43-90-49-39-50 160m760-239 45 132-18-42-22-7"/></g>
+<path d="M0 1080 185 915l90 65 265-226 135 187 151-144 211 190 270-244 191 217 197-146 225 162v104Z" fill="#09121C" opacity=".9"/><path d="M0 1010Q245 950 528 1020T1230 1005Q1570 951 1920 1022V1080H0Z" fill="#080E16" opacity=".55"/></svg>
