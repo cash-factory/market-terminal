@@ -1,10 +1,21 @@
 import type { CandlestickData, UTCTimestamp, LineData } from "lightweight-charts";
-export type SymbolId = "EURUSD" | "BTCUSDT" | "AAPL" | "US100";
+export const REAL_SPOT_SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "BNBUSDT"] as const;
+export type RealSpotSymbol = typeof REAL_SPOT_SYMBOLS[number];
+export type SymbolId = "EURUSD" | "AAPL" | "US100" | "XAUUSD" | RealSpotSymbol;
+/** Synthetic candles exist solely for isolated test builds; production cannot enable them with a URL. */
+export const ENABLE_TEST_FIXTURES = import.meta.env.MODE === "test" || import.meta.env.MODE === "e2e";
+export const isRealSpotSymbol = (symbol:SymbolId):symbol is RealSpotSymbol =>
+  REAL_SPOT_SYMBOLS.includes(symbol as RealSpotSymbol);
 export const symbols: Record<SymbolId, {label:string; market:string; base:number; precision:number}> = {
- EURUSD:{label:"EUR / USD",market:"FOREX · DEMO",base:1.0842,precision:5},
- BTCUSDT:{label:"BTC / USDT",market:"CRYPTO · DEMO",base:96250,precision:2},
- AAPL:{label:"AAPL",market:"STOCKS · DEMO",base:252.4,precision:2},
- US100:{label:"US100",market:"INDICES · DEMO",base:21400,precision:2}
+ EURUSD:{label:"EUR / USD",market:"FOREX · PROVIDER REQUIRED",base:1.0842,precision:5},
+ BTCUSDT:{label:"BTC / USDT",market:"CRYPTO · BINANCE SPOT",base:96250,precision:2},
+ ETHUSDT:{label:"ETH / USDT",market:"CRYPTO · BINANCE SPOT",base:3520,precision:2},
+ SOLUSDT:{label:"SOL / USDT",market:"CRYPTO · BINANCE SPOT",base:150,precision:3},
+ XRPUSDT:{label:"XRP / USDT",market:"CRYPTO · BINANCE SPOT",base:2.35,precision:4},
+ BNBUSDT:{label:"BNB / USDT",market:"CRYPTO · BINANCE SPOT",base:800,precision:2},
+ AAPL:{label:"AAPL",market:"EQUITY · PROVIDER REQUIRED",base:252.4,precision:2},
+ XAUUSD:{label:"XAU / USD",market:"GOLD · PROVIDER REQUIRED",base:3400,precision:2},
+ US100:{label:"US100",market:"INDEX CFD · PROVIDER REQUIRED",base:21400,precision:2}
 };
 export const SECOND_FRAMES=["1s","5s","10s","15s","30s","45s"] as const;
 export const MINUTE_FRAMES=["1m","5m","15m","1h","4h","1d"] as const;

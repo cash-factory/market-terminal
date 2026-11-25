@@ -1,4 +1,5 @@
 import type { Candle, MarketInterval } from "./contracts";
+import type { RealSpotSymbol } from "../market";
 import { normalizeCandles } from "./contracts";
 
 type RecordLike = Record<string, unknown>;
@@ -6,12 +7,12 @@ const asRecord = (value: unknown): RecordLike | null =>
   value !== null && typeof value === "object" && !Array.isArray(value) ? value as RecordLike : null;
 
 /** Accept only Binance Spot's BTCUSDT kline payload for the exact requested UTC interval. */
-export function parseBinanceStreamCandle(message: unknown, interval: MarketInterval): Candle | null {
+export function parseBinanceStreamCandle(message: unknown, interval: MarketInterval, expectedSymbol:RealSpotSymbol="BTCUSDT"): Candle | null {
   const envelope = asRecord(message);
   const body = asRecord(envelope?.data) ?? envelope;
-  if (!body || body.e !== "kline" || body.s !== "BTCUSDT") return null;
+  if (!body || body.e !== "kline" || body.s !== expectedSymbol) return null;
   const kline = asRecord(body.k);
-  if (!kline || kline.s !== "BTCUSDT" || kline.i !== interval || typeof kline.t !== "number" ||
+  if (!kline || kline.s !== expectedSymbol || kline.i !== interval || typeof kline.t !== "number" ||
       typeof kline.T !== "number" || typeof kline.x !== "boolean") return null;
   if (!["o","h","l","c","v"].every(key => typeof kline[key] === "string")) return null;
   const candidate: Candle = {
