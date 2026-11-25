@@ -1,6 +1,20 @@
 import {expect,test} from "@playwright/test";
 import {mkdirSync} from "node:fs";
 
+test("chart range shortcuts change the viewport without changing the candle series",async({page})=>{
+  await page.goto("/market-terminal/");
+  const chart=page.locator(".technical-chart-stack").first();
+  const range=chart.getByRole("group",{name:/chart range/});
+  const count=await chart.getAttribute("data-visible-candles");
+  await range.getByRole("button",{name:"Fit all"}).click();
+  const surface=chart.locator(".chart-surface");
+  const overview=await surface.screenshot();
+  await range.getByRole("button",{name:"Show latest 30 bars"}).click();
+  await expect.poll(async()=>(await surface.screenshot()).equals(overview)).toBe(false);
+  await expect(chart).toHaveAttribute("data-visible-candles",count!);
+  await expect(range.locator("time")).toHaveText(/\d\d:\d\d UTC/);
+});
+
 test("Peak workstation preserves opaque chart and functional chart drawing access",async({page})=>{
   await page.setViewportSize({width:1366,height:768});
   await page.goto("/market-terminal/");
