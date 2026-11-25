@@ -1,7 +1,7 @@
-import {ALL_FRAMES,type Frame,type SymbolId} from "../market";
+import {ALL_FRAMES,symbols,type Frame,type SymbolId} from "../market";
 import type {Level} from "../workspace";
 
-const SYMBOLS=["EURUSD","BTCUSDT","AAPL","US100"] as const;
+const SYMBOLS=Object.keys(symbols) as SymbolId[];
 export const LEVEL_LINE_STYLES=[
   {value:0,label:"Solid"},{value:1,label:"Dotted"},
   {value:2,label:"Dashed"},{value:3,label:"Long dashes"}
