@@ -1,6 +1,6 @@
 
 /* Tool Atlas: an intentional action menu, not a second permanent toolbar. */
-.atlas-backdrop{padding-top:clamp(45px,10vh,135px);backdrop-filter:blur(6px)}
+.modal-backdrop.atlas-backdrop{z-index:100;padding-top:clamp(45px,10vh,135px);backdrop-filter:blur(6px)}
 .atlas-dialog{width:min(680px,100%);border-color:var(--accent-border);border-radius:10px;overflow:hidden}
 .atlas-input{padding:19px 21px;gap:15px}
 .atlas-input>svg{color:var(--accent);flex-shrink:0}
