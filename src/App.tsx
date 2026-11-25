@@ -790,7 +790,7 @@ export default function App() {
         <button onClick={()=>{setPage("terminal");setPanelTab("markets")}}><Compass size={15}/> Watchlists</button>
         <button onClick={()=>{setPage("terminal");setToolFamily(null);setMoreToolsOpen(true)}}><Shapes size={15}/> Tools</button>
         <button onClick={()=>{setPage("terminal");update({chartLayout:prefs.chartLayout==="quad"?"single":"quad"})}}><Grid2X2 size={15}/> Layout</button>
-      </nav>
+      </nav>}
       <div className="header-center">
         <button className="search-trigger" onClick={() => setSearchOpen(true)}>
           <Search size={16}/><span>Search markets & tools</span><kbd>Ctrl K</kbd>
