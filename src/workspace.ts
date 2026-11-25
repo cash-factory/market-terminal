@@ -144,12 +144,12 @@ export function parseWorkspace(value: unknown): Workspace {
     raw.levels.flatMap(value=>{const parsed=parseLevel(value);return parsed?[parsed]:[];}):[];
   return {
     symbol, frame, accent, levels,
-    priceSource: isRealSpotSymbol(symbol) && raw.priceSource !== "demo" ? "binance" : "demo",
+    priceSource: isRealSpotSymbol(symbol) && (!ENABLE_TEST_FIXTURES || raw.priceSource === "binance") ? "binance" : "demo",
     chartLayout: raw.chartLayout === "quad" ? "quad" : raw.chartLayout === "dual" ? "dual" : "single",
     chartDisplayStyle: parseChartDisplayStyle(raw.chartDisplayStyle),
     comparisonOverlaySymbol: SYMBOLS.includes(raw.comparisonOverlaySymbol as SymbolId)
       ? raw.comparisonOverlaySymbol as SymbolId : null,
-    comparisonOverlaySource: isRealSpotSymbol(raw.comparisonOverlaySymbol as SymbolId)&&raw.comparisonOverlaySource==="binance"
+    comparisonOverlaySource: isRealSpotSymbol(raw.comparisonOverlaySymbol as SymbolId)&&(!ENABLE_TEST_FIXTURES||raw.comparisonOverlaySource==="binance")
       ? "binance" : "demo",
     chartProfiles: parseChartProfiles(raw.chartProfiles),
     secondarySymbol: SYMBOLS.includes(raw.secondarySymbol as SymbolId) ? raw.secondarySymbol as SymbolId : "BTCUSDT",
@@ -158,9 +158,9 @@ export function parseWorkspace(value: unknown): Workspace {
     secondaryFrame: FRAMES.includes(raw.secondaryFrame as Frame) ? raw.secondaryFrame as Frame : frame,
     tertiaryFrame: FRAMES.includes(raw.tertiaryFrame as Frame) ? raw.tertiaryFrame as Frame : frame,
     quaternaryFrame: FRAMES.includes(raw.quaternaryFrame as Frame) ? raw.quaternaryFrame as Frame : frame,
-    secondarySource: isRealSpotSymbol(raw.secondarySymbol as SymbolId) && raw.secondarySource === "binance" ? "binance" : "demo",
-    tertiarySource: isRealSpotSymbol(raw.tertiarySymbol as SymbolId) && raw.tertiarySource === "binance" ? "binance" : "demo",
-    quaternarySource: isRealSpotSymbol(raw.quaternarySymbol as SymbolId) && raw.quaternarySource === "binance" ? "binance" : "demo",
+    secondarySource: isRealSpotSymbol(raw.secondarySymbol as SymbolId) && (!ENABLE_TEST_FIXTURES || raw.secondarySource === "binance") ? "binance" : "demo",
+    tertiarySource: isRealSpotSymbol(raw.tertiarySymbol as SymbolId) && (!ENABLE_TEST_FIXTURES || raw.tertiarySource === "binance") ? "binance" : "demo",
+    quaternarySource: isRealSpotSymbol(raw.quaternarySymbol as SymbolId) && (!ENABLE_TEST_FIXTURES || raw.quaternarySource === "binance") ? "binance" : "demo",
     linkCrosshairs: typeof raw.linkCrosshairs === "boolean" ? raw.linkCrosshairs : false,
     linkTimeRanges: typeof raw.linkTimeRanges === "boolean" ? raw.linkTimeRanges : false,
     drawings: Array.isArray(raw.drawings) ? raw.drawings.filter(isDrawing) : [],
