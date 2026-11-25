@@ -42,8 +42,8 @@ test("drawing library remains bounded alongside price action",async({page})=>{
   const box=await library.boundingBox();
   expect(box).not.toBeNull();
   expect(box!.width).toBeLessThan(450);
-  expect(box!.right ?? box!.x+box!.width).toBeLessThan(600);
-  await page.getByRole("button",{name:"Close drawing tools"}).first().click().catch(async()=>{await page.keyboard.press("Escape")});
+  expect(box!.x+box!.width).toBeLessThan(600);
+  await page.getByRole("button",{name:"Close tool library"}).click();
   await expect(page.locator(".chart-surface").first()).toBeVisible();
 });
 
