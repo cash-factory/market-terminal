@@ -1,3 +1,4 @@
+import {InstrumentIcon} from "../presentation/InstrumentIcon";
 import { forwardRef, useImperativeHandle, useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import type { CandlestickData, UTCTimestamp } from "lightweight-charts";
@@ -27,7 +28,7 @@ export const InstrumentHeader = forwardRef<CandleInspector,Props>(function Instr
   const format=(value?:number)=>value===undefined ? "—" : value.toFixed(instrument.precision);
   return <header className="instrument-header">
     <div><div className="instrument-meta">{instrument.market.split(" · ")[0]} <span> / </span> {frame.toUpperCase()}</div>
-      <h1><button onClick={onSearch} aria-label="Choose chart instrument">{instrument.label}<ChevronDown size={18}/></button></h1>
+      <h1><button onClick={onSearch} aria-label="Choose chart instrument"><InstrumentIcon symbol={symbol} size={22}/>{instrument.label}<ChevronDown size={18}/></button></h1>
     </div>
     <div className="instrument-quote"><small>{source}</small><strong>{format(candles.at(-1)?.close)}</strong></div>
     <div className="candle-reader">

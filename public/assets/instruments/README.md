@@ -1,0 +1,1 @@
+The BTC, ETH, SOL, XRP and BNB SVGs are the unmodified color icons from [Cryptocurrency Icons 0.18.1](https://www.npmjs.com/package/cryptocurrency-icons/v/0.18.1), distributed under [CC0](LICENSE.md). They identify base assets of Binance Spot USDT pairs.

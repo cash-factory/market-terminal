@@ -1,7 +1,7 @@
 {
   "name": "Market Terminal — Peak visual asset library",
-  "version": "1.1.0",
-  "status": "Source assets only; not integrated into application UI",
+  "version": "1.2.0",
+  "status": "Includes assets used by the application and design references",
   "branch": "design/peak-asset-library-v1",
   "counts": {
     "brand": 11,
@@ -13,9 +13,11 @@
     "audio": 10,
     "referenceIcons": 45,
     "referenceIconSprite": 1,
-    "referenceMedia": 8
+    "referenceMedia": 8,
+    "instruments": 5
   },
   "directories": [
+    "instruments",
     "brand",
     "backgrounds",
     "icons",
@@ -26,7 +28,7 @@
     "audio",
     "reference"
   ],
-  "license": "Original project-created resources; check repository licensing before external redistribution",
+  "license": "Instrument icons: CC0 (instruments/LICENSE.md). Other resources are project-created; check repository licensing before external redistribution",
   "audio": [
     {
       "id": "click",

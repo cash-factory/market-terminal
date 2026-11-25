@@ -50,6 +50,6 @@ export function PeakOverview({instrument,drawings,alerts,studies,watchlist,sourc
         </button>)}
       </div>
     </section>
-    <section className="peak-home-source-note"><PeakIcon name="ui-panel-glass" size={18}/><p>Demo markets are synthetic unless a supported exchange source has explicitly been selected. Replay studies record hypothetical outcomes.</p></section>
+    <section className="peak-home-source-note"><PeakIcon name="ui-panel-glass" size={18}/><p>Crypto charts identify their exchange feed and connection status. Markets without a configured provider show no prices. Replay results are hypothetical.</p></section>
   </>;
 }

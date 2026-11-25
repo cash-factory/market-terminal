@@ -1,3 +1,4 @@
+import {InstrumentIcon} from "../presentation/InstrumentIcon";
 import {useEffect,useMemo,useState} from "react";
 import {demoCandles,ENABLE_TEST_FIXTURES,REAL_SPOT_SYMBOLS,symbols,type Frame,type SymbolId} from "../market";
 import {fetchBinanceSpotCandles} from "../data/binance";
@@ -45,7 +46,7 @@ export function MarketBoard({frame,selected,onOpen,compact=false}:Props){
         try{
           // Fixed historical resolution. No claim that these are 24h live change statistics.
           const batch=await fetchBinanceSpotCandles({symbol:id,interval:"1h",limit:48,signal:abort.signal});
-          const row=display(batch.candles.slice(-24),id);
+          const row=display(batch.candles.filter(bar=>bar.isFinal).slice(-24),id);
           if(!row)throw new Error("No validated recent 1h candles");
           return {id,row,error:null as string|null};
         }catch(e){return {id,row:null,error:e instanceof Error?e.message:"Source unavailable"};}
@@ -77,7 +78,8 @@ export function MarketBoard({frame,selected,onOpen,compact=false}:Props){
       const point=byId.get(id);
       return <button key={id} className={"board-row"+(selected===id?" current":"")}
         onClick={()=>onOpen(id)} aria-label={"Open "+(ENABLE_TEST_FIXTURES?"synthetic ":"")+symbols[id].label}>
-        <span className="board-symbol"><strong>{symbols[id].label}</strong><small>{names[id]}</small></span>
+        <span className="board-symbol"><strong className="board-instrument"><InstrumentIcon symbol={id} size={18}/>{symbols[id].label}</strong><small>{names[id]}</small>
+          {point && !ENABLE_TEST_FIXTURES && <small>Bar start · {new Date(point.asOf).toISOString().slice(0,16).replace("T"," ")} UTC</small>}</span>
         {point?<svg aria-hidden="true" viewBox="0 0 100 30" preserveAspectRatio="none" className={point.change>=0?"gain":"loss"}>
           <polyline points={point.points} fill="none" stroke="currentColor" strokeWidth="1.8" vectorEffect="non-scaling-stroke"/>
         </svg>:<span aria-label={errors[id]?"Provider unavailable":"Loading exchange candles"}>—</span>}
@@ -87,7 +89,7 @@ export function MarketBoard({frame,selected,onOpen,compact=false}:Props){
       </button>;
     })}
     {!ENABLE_TEST_FIXTURES&&<p className="peak-watchlist-caveat">
-      Venue: Binance Spot. Change is between the first and last observed 1h closes, not a live ticker return.
+      Venue: Binance Spot. Change compares the first and last closes across up to 24 completed hourly candles.
       {lastRefresh&&" Checked "+new Date(lastRefresh).toLocaleTimeString()+"."}
       Failed requests show no invented quotes. No broker CFDs, forex or US index prices are implied.
     </p>}

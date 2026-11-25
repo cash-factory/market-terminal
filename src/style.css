@@ -839,6 +839,7 @@
 .board-row.current {box-shadow:inset 2px 0 var(--accent);background:var(--accent-dim)}
 .board-row:hover {background:var(--raised)}
 .board-symbol,.board-quote {min-width:0;flex-direction:column;gap:4px}
+.board-instrument {display:flex;align-items:center;gap:6px}
 .board-symbol strong {font-size:16px;letter-spacing:-.025em}
 .board-symbol small,.board-quote small {font-size:12px;color:var(--muted)}
 .board-quote {font-variant-numeric:tabular-nums}

@@ -74,7 +74,8 @@ function walk(dir){
  }
 }
 walk(assets);
-assert.equal(svgCount,manifest.counts.brand+manifest.counts.backgrounds+manifest.counts.icons+manifest.counts.iconSprite+manifest.counts.illustrations+manifest.counts.sessionMaps+manifest.counts.referenceIcons+manifest.counts.referenceIconSprite+manifest.counts.referenceMedia);
+for(const asset of ["btc","eth","sol","xrp","bnb"])assert.ok(exists("instruments/"+asset+".svg"),"Missing instrument icon: "+asset);
+assert.equal(svgCount,manifest.counts.brand+manifest.counts.backgrounds+manifest.counts.icons+manifest.counts.iconSprite+manifest.counts.illustrations+manifest.counts.sessionMaps+manifest.counts.referenceIcons+manifest.counts.referenceIconSprite+manifest.counts.referenceMedia+manifest.counts.instruments);
 const gallery=read("gallery.html").toString("utf8");
 assert.ok(!/<audio[^>]*autoplay/i.test(gallery),"No autoplay sound allowed");
 assert.ok(gallery.includes("icon-search") && gallery.includes("illustration-grid") && gallery.includes("reference-icon-grid"),"Asset gallery incomplete");
