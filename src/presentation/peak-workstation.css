@@ -537,3 +537,23 @@
    padding:12px 0;
  }
 }
+
+/* Mobile regression: inherited tab-strip negative margins extended the document by 5px. */
+@media(max-width:700px) {
+ .app.studio.peak-workstation .right-panel .workspace-rail-tabs.context-tabs {
+   margin:0 0 12px!important;
+   padding:0!important;
+   width:100%!important;
+   min-width:0;
+   max-width:100%;
+   box-sizing:border-box;
+   overflow-x:auto;
+   overscroll-behavior-inline:contain;
+   -webkit-overflow-scrolling:touch;
+ }
+ .app.studio.peak-workstation .right-panel .workspace-rail-tabs.context-tabs button {
+   min-width:0;
+   flex:1 0 auto;
+   padding:0 9px;
+ }
+}
