@@ -81,7 +81,7 @@ export function CommandPalette({onClose,onOpenInstrument,onExecuteCommand}:Props
               result.category==="Draw"?<Compass size={17}/>:<Layers3 size={17}/>}</span>
           <span className="atlas-result-main">
             <strong>{result.kind==="instrument"?symbols[result.symbol].label:result.label}</strong>
-            <small>{result.kind==="instrument"?symbols[result.symbol].market+" · Select source in chart setup":result.description}</small>
+            <small>{result.kind==="instrument"?symbols[result.symbol].market+(symbols[result.symbol].market.includes("PROVIDER REQUIRED")?" · No actual OHLC data configured":" · Direct public spot candles"):result.description}</small>
           </span>
           <span className="atlas-result-type">{result.kind==="instrument"?"INSTRUMENT":result.category.toUpperCase()}</span>
           <ArrowRight size={15} className="atlas-result-arrow"/>

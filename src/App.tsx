@@ -26,7 +26,7 @@ import { validateDrawingSettings } from "./drawing/drawingSettings";
 import {applyToolPreset,presetFromDrawing} from "./drawing/toolPresets";
 import { TOOL_BY_ID } from "./drawing/toolDefinitions";
 import {groupDrawings,ungroupDrawings,styleDrawings,moveDrawingLayers,updateDrawingAndGroup,type DrawingStylePatch} from "./drawing/manage";
-import {ALL_FRAMES, frameSeconds, symbols, type Frame, type SymbolId} from "./market";
+import {ALL_FRAMES, frameSeconds, symbols, ENABLE_TEST_FIXTURES, isRealSpotSymbol, type Frame, type SymbolId} from "./market";
 import { usePriceFeed } from "./data/usePriceFeed";
 import {referenceMarketHours,priceMetadata} from "./data/sessionReference";
 import { panelWidthAfterDrag, panelWidthAfterKey } from "./layout";
@@ -144,8 +144,7 @@ export default function App() {
   const feed = usePriceFeed(prefs.symbol, prefs.frame, prefs.priceSource);
   const sessionReference=referenceMarketHours(prefs.symbol,prefs.priceSource,marketClock);
   const instrumentPrecision=priceMetadata(prefs.symbol,prefs.priceSource);
-  // Secondary panels are explicitly synthetic until licensed additional feeds
-  // can be attached to each pane independently.
+  // Secondary panes require their own verified source. Production does not substitute demo data.
   const comparisonFeed = usePriceFeed(prefs.secondarySymbol,prefs.secondaryFrame,prefs.secondarySource);
   const thirdFeed = usePriceFeed(prefs.tertiarySymbol,prefs.tertiaryFrame,prefs.tertiarySource);
   const fourthFeed = usePriceFeed(prefs.quaternarySymbol,prefs.quaternaryFrame,prefs.quaternarySource);
@@ -172,7 +171,7 @@ export default function App() {
   };
   const currentLevels = useMemo(() => prefs.levels.filter(level => level.symbol === prefs.symbol && (level.source ?? "demo") === prefs.priceSource), [prefs.levels, prefs.symbol, prefs.priceSource]);
   const currentDrawings = useMemo(() => prefs.drawings.filter(drawing => drawing.symbol === prefs.symbol && (drawing.source ?? "demo") === prefs.priceSource), [prefs.drawings, prefs.symbol, prefs.priceSource]);
-  const sourceStateLabel = prefs.priceSource === "demo" ? "SYNTHETIC DATA" : ({
+  const sourceStateLabel = prefs.priceSource === "demo" ? (ENABLE_TEST_FIXTURES ? "TEST FIXTURE · SYNTHETIC" : "NO VERIFIED DATA") : ({
     loading: "LOADING BINANCE", connecting: "CONNECTING", historical: "HISTORICAL",
     live: "LIVE · BINANCE SPOT", stale: "STALE FEED", error: "FEED UNAVAILABLE", synthetic: "SYNTHETIC DATA"
   })[feed.status];
@@ -186,7 +185,7 @@ export default function App() {
     minimumFractionDigits: symbols[prefs.symbol].precision,
     maximumFractionDigits: symbols[prefs.symbol].precision
   }) : "—";
-  const displaySourceLabel=replay ? "REPLAY · HISTORICAL SNAPSHOT · " + (replay.source === "demo" ? "SYNTHETIC" : "BINANCE SPOT") : sourceStateLabel;
+  const displaySourceLabel=replay ? "REPLAY · HISTORICAL SNAPSHOT · " + (replay.source === "demo" ? "TEST FIXTURE" : "BINANCE SPOT") : sourceStateLabel;
   const replayDrawings=useMemo(()=>replay?
     currentDrawings.filter(d=>drawingVisibleInReplay(d,replayTime)):currentDrawings,
     [replay,currentDrawings,replayTime]);
@@ -231,7 +230,7 @@ export default function App() {
   const notify = (message: string, kind: Notice["kind"] = "success") =>
     setNotice({ id: Date.now(), message, kind });
   const openInstrument = (symbol: SymbolId) => {
-    update({ symbol, priceSource: symbol === "BTCUSDT" ? prefs.priceSource : "demo" });
+    update({ symbol, priceSource: ENABLE_TEST_FIXTURES ? (symbol === "BTCUSDT" ? prefs.priceSource : "demo") : isRealSpotSymbol(symbol) ? "binance" : "demo" });
     setPage("terminal");
     setSearchOpen(false);
     setDrawMode(false);
@@ -240,7 +239,7 @@ export default function App() {
   };
   const openDemoMarket = (symbol:SymbolId) => {
     openInstrument(symbol);
-    update({priceSource:"demo"});
+    if(ENABLE_TEST_FIXTURES)update({priceSource:"demo"});
     setReplay(null);
   };
   const addLevel = (price: number) => {
@@ -870,7 +869,7 @@ export default function App() {
           <div className="market-grid">{marketList.map(symbol => <button className="market-tile" key={symbol} onClick={() => openInstrument(symbol)}><span className="market-kind">{symbols[symbol].market}</span><strong>{symbols[symbol].label}</strong><span className="market-tile-bottom">Open chart <ChevronRight size={16}/></span></button>)}</div>
           <div className="section-head"><div><small>WORKSPACE HEALTH</small><h2>Your local setup</h2></div></div>
           <div className="summary-grid"><div><span>Current timeframe</span><strong>{prefs.frame.toUpperCase()}</strong></div><div><span>Saved price levels</span><strong>{prefs.levels.length}</strong></div><div><span>Core drawing quota</span><strong>None</strong></div></div>
-          <p className="data-caveat"><Activity size={16}/> Demo instruments use synthetic prices. Opt-in Binance Spot BTC/USDT is available in the terminal; forex, equities and indices are not connected to live feeds.</p>
+          <p className="data-caveat"><Activity size={16}/> Supported crypto markets use Binance Spot public exchange candles. Forex, gold, equities and index feeds are not configured; no fictional candles are displayed in the published application.</p>
         </div>}
         {page === "sizing" && <RiskPlanner value={prefs.riskPlanner}
           onChange={riskPlanner=>update({riskPlanner})} symbol={prefs.symbol}
@@ -913,14 +912,14 @@ export default function App() {
               </button>}
               <div id="chart-configuration" className={studio ? "studio-configuration" : "configuration-inline"} hidden={studio && !setupOpen}>
               <div className="source-switch" role="group" aria-label="Chart price source">
-                <button className={prefs.priceSource === "demo" ? "active" : ""}
+                {ENABLE_TEST_FIXTURES&&<button className={prefs.priceSource === "demo" ? "active" : ""}
                   aria-pressed={prefs.priceSource === "demo"}
-                  onClick={() => { update({priceSource:"demo"}); setDrawingTool(null); setDrawMode(false); notify("Switched to synthetic demonstration prices.", "info"); }}>Demo</button>
-                <button className={prefs.priceSource === "binance" ? "active" : ""}
-                  disabled={prefs.symbol !== "BTCUSDT"}
-                  title={prefs.symbol === "BTCUSDT" ? "Load public BTC/USDT Spot candles directly from Binance" : "Binance Spot is currently available only for BTC/USDT"}
+                  onClick={() => { update({priceSource:"demo"}); setDrawingTool(null); setDrawMode(false); notify("TEST FIXTURE: synthetic demonstration prices.", "info"); }}>Test data</button>}
+                {isRealSpotSymbol(prefs.symbol)?<button className={prefs.priceSource === "binance" ? "active" : ""}
                   aria-pressed={prefs.priceSource === "binance"}
-                  onClick={() => { update({priceSource:"binance"}); setDrawingTool(null); setDrawMode(false); notify("Connecting to Binance Spot BTC/USDT…", "info"); }}>Binance Spot</button>
+                  title={"Load actual "+symbols[prefs.symbol].label+" exchange candles from Binance Spot"}
+                  onClick={() => { update({priceSource:"binance"}); setDrawingTool(null); setDrawMode(false); notify("Loading actual Binance Spot "+symbols[prefs.symbol].label+" prices…", "info"); }}>Binance Spot · real market</button>
+                :<span role="status">No verified OHLC feed · select a supported market</span>}
               </div>
               <button className={"compact-action chart-layout-toggle "+(prefs.chartLayout==="dual"?"active":"")}
                 aria-label="Toggle dual-chart layout" aria-pressed={prefs.chartLayout==="dual"}
@@ -942,20 +941,20 @@ export default function App() {
                   onChange={e=>{
                     const symbol=e.target.value==="none"?null:e.target.value as SymbolId;
                     update({comparisonOverlaySymbol:symbol,
-                      comparisonOverlaySource:symbol==="BTCUSDT"?prefs.comparisonOverlaySource:"demo"});
+                      comparisonOverlaySource:symbol && isRealSpotSymbol(symbol)?(ENABLE_TEST_FIXTURES?prefs.comparisonOverlaySource:"binance"):"demo"});
                     notify(symbol?"Comparison overlay selected. Prices are rebased for visual comparison.":"Comparison overlay hidden.");
                   }}>
                   <option value="none">No overlay</option>
                   {marketList.map(symbol=><option key={symbol} value={symbol}>{symbols[symbol].label}</option>)}
                 </select>
               </label>
-              {prefs.comparisonOverlaySymbol==="BTCUSDT"&&
+              {prefs.comparisonOverlaySymbol && isRealSpotSymbol(prefs.comparisonOverlaySymbol)&&
                 <label className="chart-style-switch">Compare source
                   <select aria-label="Comparison overlay price source"
                     value={prefs.comparisonOverlaySource}
                     onChange={e=>update({comparisonOverlaySource:e.target.value as "demo"|"binance"})}>
-                    <option value="demo">Demo</option>
-                    <option value="binance">Binance Spot</option>
+                    <option value="demo" disabled={!ENABLE_TEST_FIXTURES}>{ENABLE_TEST_FIXTURES?"Test data":"No verified feed"}</option>
+                    <option value="binance">Binance Spot · real</option>
                   </select>
                 </label>}
               <ChartProfileMenu profiles={prefs.chartProfiles}
@@ -1164,8 +1163,8 @@ export default function App() {
             {!studio && <div className="chart-heading"><div>
               <div className="eyebrow">{replay?"HISTORICAL REPLAY · "+feed.sourceLabel:feed.sourceLabel} <span>•</span> {prefs.frame.toUpperCase()}</div>
               <h1>{studio ? <button aria-label="Choose chart instrument" onClick={()=>setSearchOpen(true)}>{symbols[prefs.symbol].label}<Search size={17}/></button> : symbols[prefs.symbol].label} <span className={"demo-pill feed-pill " + (replay?"historical":feed.status)}>{displaySourceLabel}</span></h1>
-              <p>{replay?"Paused historical snapshot · Future candles hidden until you advance":prefs.priceSource === "demo" ? "Illustrative candles, not executable quotes" : "Direct Binance public Spot data · BTC/USDT, not broker CFD prices"}</p>
-            </div><div className="quote"><small>{replay?"REPLAY BAR CLOSE":prefs.priceSource === "demo" ? "SIMULATED LAST" : "BINANCE SPOT LAST"}</small><strong>{quoteText}</strong></div></div>}
+              <p>{replay?"Paused historical snapshot · Future candles hidden until you advance":prefs.priceSource === "demo" ? (ENABLE_TEST_FIXTURES?"Synthetic test fixtures":"No verified provider configured") : "Direct Binance Spot data · "+symbols[prefs.symbol].label+" · no broker/CFD quotes"}</p>
+            </div><div className="quote"><small>{replay?"REPLAY BAR CLOSE":prefs.priceSource === "demo" ? (ENABLE_TEST_FIXTURES?"TEST FIXTURE":"NO DATA") : "BINANCE SPOT LAST"}</small><strong>{quoteText}</strong></div></div>}
             <details className="market-session-reference">
               <summary>
                 <span>Market hours reference</span>
@@ -1177,10 +1176,14 @@ export default function App() {
               {sessionReference.sourceUrl&&<a href={sessionReference.sourceUrl} target="_blank"
                 rel="noopener noreferrer">View official Nasdaq calendar</a>}
             </details>
-            {prefs.priceSource === "binance" && feed.status !== "live" && <div className={"feed-message " + feed.status} role="status">
+            {feed.status !== "live" && feed.status !== "synthetic" && <div className={"feed-message " + feed.status} role="status">
               <WifiOff size={16}/><span>{feed.message ?? "Connecting to the exchange…"}</span>
               <button onClick={feed.retry}><RefreshCw size={14}/> Retry</button>
-              <button onClick={() => update({priceSource:"demo"})}>Use demo</button>
+              {isRealSpotSymbol(prefs.symbol) && prefs.priceSource !== "binance" &&
+                <button onClick={() => update({priceSource:"binance"})}>Load real Binance data</button>}
+              {!isRealSpotSymbol(prefs.symbol) &&
+                <button onClick={() => setSearchOpen(true)}>Choose supported market</button>}
+              {ENABLE_TEST_FIXTURES && <button onClick={() => update({priceSource:"demo"})}>Use test data</button>}
             </div>}
             {prefs.chartDisplayStyle==="heikin-ashi"&&
               <div className="chart-display-notice" role="status">
@@ -1253,7 +1256,7 @@ export default function App() {
                         onChange={e=>{
                           const symbol=e.target.value as SymbolId;
                           update({[panel.slot]:symbol,
-                            [panel.sourceSlot]:symbol==="BTCUSDT"?panel.source:"demo"});
+                            [panel.sourceSlot]:isRealSpotSymbol(symbol)?(ENABLE_TEST_FIXTURES?panel.source:"binance"):"demo"});
                         }}>
                         {marketList.map(symbol=><option key={symbol} value={symbol}>{symbols[symbol].label}</option>)}
                       </select>
@@ -1267,8 +1270,8 @@ export default function App() {
                     <label className="secondary-symbol-select">Source
                       <select aria-label={"Chart "+panel.number+" price source"} value={panel.source}
                         onChange={e=>update({[panel.sourceSlot]:e.target.value as "demo"|"binance"})}>
-                        <option value="demo">Demo</option>
-                        <option value="binance" disabled={panel.symbol!=="BTCUSDT"}>Binance Spot</option>
+                        <option value="demo" disabled={!ENABLE_TEST_FIXTURES}>{ENABLE_TEST_FIXTURES?"Test data":"No verified feed"}</option>
+                        <option value="binance" disabled={!isRealSpotSymbol(panel.symbol)}>Binance Spot · real</option>
                       </select>
                     </label>
                     <small>{panel.feed.sourceLabel} · {panel.feed.status.toUpperCase()}</small>

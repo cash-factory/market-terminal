@@ -1,5 +1,5 @@
 import {useEffect,useMemo,useState} from "react";
-import {demoCandles,ENABLE_TEST_FIXTURES,REAL_SPOT_SYMBOLS,symbols,type Frame,type SymbolId,type RealSpotSymbol} from "../market";
+import {demoCandles,ENABLE_TEST_FIXTURES,REAL_SPOT_SYMBOLS,symbols,type Frame,type SymbolId} from "../market";
 import {fetchBinanceSpotCandles} from "../data/binance";
 
 const names:Record<SymbolId,string>={

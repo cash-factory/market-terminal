@@ -58,7 +58,7 @@ export function TimeframePicker({value,source,onSelect}:Props){
           <p className="interval-no-match">No interval found. Choose an available resolution.</p>}
       </div>
       <footer><span className="interval-feed-dot"/>
-        {source==="binance"?"Binance Spot BTC/USDT: seconds assembled from native 1s candles; gaps are never filled.":"Seconds on synthetic markets are demonstration candles, not live price updates."}
+        {source==="binance"?"Binance Spot: seconds assembled from observed native 1s candles; missing seconds are never interpolated.": "No production price feed selected. Synthetic prices exist only in automated test fixtures."}
       </footer>
     </section>}
   </div>;
