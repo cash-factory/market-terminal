@@ -28,7 +28,7 @@ test("Peak overview works with assets and returns to the same chart",async({page
   await page.setViewportSize({width:1440,height:900});
   await page.goto("/market-terminal/");
   const symbol=await page.locator(".instrument-header h1").innerText();
-  await page.locator(".studio-destinations").getByRole("button",{name:"Home"}).click();
+  await page.locator(".studio-destinations").getByRole("button",{name:"Overview"}).click();
   await expect(page.locator(".peak-home-hero")).toBeVisible();
   await expect(page.locator(".peak-home-metrics > div")).toHaveCount(4);
   await expect(page.locator(".peak-home-source-note")).toContainText("synthetic");
