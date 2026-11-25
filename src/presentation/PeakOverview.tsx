@@ -50,6 +50,6 @@ export function PeakOverview({instrument,drawings,alerts,studies,watchlist,sourc
         </button>)}
       </div>
     </section>
-    <section className="peak-home-source-note"><PeakIcon name="source-demo" size={18}/><p>Demo markets are synthetic unless a supported exchange source has explicitly been selected. Visual examples and research outcomes are not broker fills or verified performance.</p></section>
+    <section className="peak-home-source-note"><PeakIcon name="ui-panel-glass" size={18}/><p>Demo markets are synthetic unless a supported exchange source has explicitly been selected. Visual examples and research outcomes are not broker fills or verified performance.</p></section>
   </>;
 }
