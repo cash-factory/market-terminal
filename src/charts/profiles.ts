@@ -1,5 +1,5 @@
 import type { Workspace } from "../workspace";
-import { ALL_FRAMES, type Frame, type SymbolId } from "../market";
+import { ALL_FRAMES, symbols, isRealSpotSymbol, type Frame, type SymbolId } from "../market";
 import { parseChartDisplayStyle } from "./display";
 import { parseStudies } from "../indicators/studies";
 import { parseStudyParameters } from "../indicators/parameters";
@@ -19,7 +19,7 @@ export type ChartProfile = {
   createdAtMs: number;
   settings: ProfileSettings;
 };
-const symbolIds: readonly SymbolId[]=["EURUSD","BTCUSDT","AAPL","US100"];
+const symbolIds: readonly SymbolId[]=Object.keys(symbols) as SymbolId[];
 const frames: readonly Frame[]=ALL_FRAMES;
 function record(value:unknown):value is Record<string,unknown>{
   return value!==null && typeof value==="object"&&!Array.isArray(value);
@@ -31,7 +31,7 @@ function frame(value:unknown):Frame|null{
   return frames.includes(value as Frame)?value as Frame:null;
 }
 function source(value:unknown,symbol:SymbolId):"demo"|"binance"{
-  return value==="binance"&&symbol==="BTCUSDT"?"binance":"demo";
+  return value==="binance"&&isRealSpotSymbol(symbol)?"binance":"demo";
 }
 
 /** Profile data is separately validated and cannot write arbitrary workspace fields. */
@@ -50,7 +50,7 @@ export function parseProfileSettings(value:unknown):ProfileSettings|null{
     chartLayout:value.chartLayout,
     chartDisplayStyle:parseChartDisplayStyle(value.chartDisplayStyle),
     comparisonOverlaySymbol:sym(value.comparisonOverlaySymbol),
-    comparisonOverlaySource:value.comparisonOverlaySymbol==="BTCUSDT"&&value.comparisonOverlaySource==="binance"?"binance":"demo",
+    comparisonOverlaySource:isRealSpotSymbol(value.comparisonOverlaySymbol as SymbolId)&&value.comparisonOverlaySource==="binance"?"binance":"demo",
     secondarySymbol:secondary,tertiarySymbol:tertiary,quaternarySymbol:fourth,
     secondaryFrame:secondFrame,tertiaryFrame:thirdFrame,quaternaryFrame:fourthFrame,
     secondarySource:source(value.secondarySource,secondary),
