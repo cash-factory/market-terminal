@@ -818,13 +818,25 @@ export default function App() {
     <div className={"app-body " + (!prefs.sidebarOpen ? "compact" : "")}>
       <aside className="primary-sidebar" aria-label="Main navigation">
         <div className="sidebar-upper">
-          <div className="sidebar-caption">{prefs.sidebarOpen ? "WORKSPACE" : "•••"}</div>
-          {menu.map(({ id, label, Icon }) => <button key={id}
+          <div className="peak-sidebar-heading">
+            <PeakIcon name="workspace-stack" size={17}/>
+            {prefs.sidebarOpen&&<span>Peak Workspace</span>}
+          </div>
+          <div className="sidebar-caption">{prefs.sidebarOpen ? "WORKSPACES" : "•••"}</div>
+          {menu.map(({ id, label }) => <button key={id}
             className={"nav-item " + (page === id ? "active" : "")}
             title={label} aria-label={label} aria-current={page === id ? "page" : undefined}
             onClick={() => { setPage(id); setDrawMode(false); setDrawingTool(null); }}>
-            <Icon size={18}/>{prefs.sidebarOpen && <span>{label}</span>}
+            <PeakIcon name={id==="home"?"workspace-grid":id==="terminal"?"workspace-research":id==="sizing"?"chart-measure":id==="alerts"?"ui-alert":id==="library"?"workspace-stack":"ui-panel-glass"} size={18}/>{prefs.sidebarOpen && <span>{label}</span>}
           </button>)}
+          <div className="peak-sidebar-divider"/>
+          <div className="sidebar-caption">{prefs.sidebarOpen?"RESEARCH TOOLS":"·"}</div>
+          <button className={"nav-item "+(replay?"active":"")} title="Historical replay"
+            onClick={()=>{setPage("terminal");if(!replay)startReplay()}}><PeakIcon name="workspace-replay"/>{prefs.sidebarOpen&&<span>Historical replay</span>}</button>
+          <button className="nav-item" title="Drawing library"
+            onClick={()=>{setPage("terminal");setToolFamily(null);setMoreToolsOpen(true)}}><PeakIcon name="drawing-sets"/>{prefs.sidebarOpen&&<span>Drawing library</span>}</button>
+          <button className="nav-item" title="Watchlist"
+            onClick={()=>{setPage("terminal");setPanelTab("markets")}}><PeakIcon name="favorites-star"/>{prefs.sidebarOpen&&<span>Watchlists</span>}</button>
         </div>
         <div className="sidebar-lower">
           <button className="nav-item" onClick={() => setHelpOpen(true)} title="Help and shortcuts"><BookOpen size={18}/>{prefs.sidebarOpen && <span>Help & shortcuts</span>}</button>
@@ -838,14 +850,19 @@ export default function App() {
       <div className="main-area">
         <div className="page-topline"><span>WORKSPACE <span className="breadcrumb-slash">/</span> {titles[page].toUpperCase()}</span><span className="workspace-context"><span className="context-marker"/> {page === "terminal" ? `${symbols[prefs.symbol].label} · ${prefs.frame.toUpperCase()} · ${prefs.chartLayout.toUpperCase()} VIEW` : "BROWSER-LOCAL WORKSPACE"}</span></div>
         {studio && page === "home" && <main className="studio-overview">
-          <div className="overview-heading"><div><span>Workspace</span><h1>Markets</h1></div>
-            <button className="primary-button" onClick={()=>setPage("terminal")}>Resume {symbols[prefs.symbol].label}<ChevronRight size={16}/></button></div>
-          <MarketBoard frame={prefs.frame} selected={prefs.symbol} onOpen={openDemoMarket}/>
-          <div className="overview-links">
-            <button onClick={()=>{setPage("terminal");setPanelTab("objects");}}><Shapes size={20}/><strong>Drawing tools</strong><span>{prefs.drawings.length} objects</span></button>
-            <button onClick={()=>setPage("alerts")}><Bell size={20}/><strong>Price alerts</strong><span>{activeAlertCount} armed</span></button>
-            <button onClick={()=>setPage("library")}><Layers size={20}/><strong>Workspace</strong><span>{prefs.drawings.length} drawings</span></button>
-          </div>
+          <PeakOverview instrument={symbols[prefs.symbol].label} drawings={prefs.drawings.length}
+            alerts={activeAlertCount} studies={prefs.replayStudies.length}
+            watchlist={prefs.watchlist.length} source={displaySourceLabel}
+            onResume={()=>setPage("terminal")}
+            onReplay={()=>{setPage("terminal");if(!replay)startReplay()}}
+            onDrawings={()=>{setPage("terminal");setPanelTab("objects")}}
+            onAlerts={()=>setPage("alerts")}
+            onLibrary={()=>setPage("library")}/>
+          <section className="peak-market-board">
+            <div className="peak-section-kicker">OBSERVE, THEN INVESTIGATE</div>
+            <div className="peak-section-heading"><h2>Market board</h2><span>Data sources identified for each instrument</span></div>
+            <MarketBoard frame={prefs.frame} selected={prefs.symbol} onOpen={openDemoMarket}/>
+          </section>
         </main>}
         {!studio && page === "home" && <div className="content-page">
           <div className="hero"><div className="eyebrow">YOUR WORKSPACE AT A GLANCE</div><h1>A clear view of your markets.</h1><p>Get straight back to analysis. Your setup is saved on this device and basic tools don't have usage quotas.</p><button className="primary-button" onClick={() => setPage("terminal")}><ChartCandlestick size={17}/> Open trading terminal <ChevronRight size={16}/></button></div>
@@ -1158,9 +1175,9 @@ export default function App() {
                 Drawings and alerts still use the underlying observed OHLC, not the transformed chart values.
               </div>}
             {replay && <ReplayControls replay={replay}
-              onTogglePlay={()=>setReplay(s=>s?toggleReplayPlayback(s):s)}
-              onStep={()=>setReplay(s=>s?stepReplay({...s,playing:false}):s)}
-              onStepBack={()=>setReplay(s=>s?stepReplay({...s,playing:false},-1):s)}
+              onTogglePlay={()=>{peakSound(replay.playing?"replay-pause":"replay-start");setReplay(s=>s?toggleReplayPlayback(s):s)}}
+              onStep={()=>{peakSound("replay-step");setReplay(s=>s?stepReplay({...s,playing:false}):s)}}
+              onStepBack={()=>{peakSound("replay-step");setReplay(s=>s?stepReplay({...s,playing:false},-1):s)}}
               onSeek={index=>setReplay(s=>s?seekReplay(s,index):s)}
               onSpeed={(speed:ReplaySpeed)=>setReplay(s=>s?setReplaySpeed(s,speed):s)}
               onExit={exitReplay}
@@ -1168,6 +1185,7 @@ export default function App() {
             {replay && <ReplayLab key={[replay.symbol,replay.frame,replay.source,replay.snapshot[0]?.time].join(":")}
               replay={replay} onSave={study=>{
                 setPrefs(old=>({...old,replayStudies:[study,...old.replayStudies.filter(item=>item.id!==study.id)].slice(0,200)}));
+                peakSound("study-saved");
                 notify("Replay study saved to your local workspace.");
               }}/>}
             {studio && <div className="studio-tool-state" role="status">
@@ -1300,6 +1318,7 @@ export default function App() {
               onOpen={openInstrument} onChange={(watchlist,watchlistFavorites)=>{
                 update({watchlist,watchlistFavorites});notify("Watchlist saved locally.");
               }}/>
+            {studio && <PeakSessionPanel/>}
             <div className="panel-head separated"><strong>Price levels</strong><span className="count">{currentLevels.length}</span></div>
             <div className="price-form"><input type="number" min="0" step="any" aria-label="Level price" placeholder={last.toFixed(symbols[prefs.symbol].precision)} value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === "Enter") addLevel(draft.trim() ? Number(draft) : last); }}/><button aria-label="Add price level" title="Add price level" onClick={() => addLevel(draft.trim() ? Number(draft) : last)}><Plus size={17}/></button></div>
             <div className="level-list">{currentLevels.map(level =>
@@ -1472,6 +1491,17 @@ export default function App() {
           <div className="section-head first"><div><small>PERSONALIZE</small><h1>Workspace preferences</h1><p>Make the experience yours. Changes are saved automatically in this browser.</p></div></div>
           <div className="setting-section"><h2>Appearance</h2><p>Choose how Market Terminal looks and feels.</p><div className="choice-row"><button className={prefs.dark ? "chosen" : ""} onClick={() => { update({ dark: true }); notify("Dark appearance selected."); }}><Moon size={18}/> Dark {prefs.dark && <Check size={15}/>}</button><button className={!prefs.dark ? "chosen" : ""} onClick={() => { update({ dark: false }); notify("Light appearance selected."); }}><Sun size={18}/> Light {!prefs.dark && <Check size={15}/>}</button></div></div>
           <div className="setting-section"><h2>Accent color</h2><p>Three carefully balanced palettes for the workstation.</p><div className="choice-row">{(["violet","teal","amber"] as const).map(accent => <button key={accent} className={prefs.accent === accent ? "chosen" : ""} onClick={() => { update({ accent }); notify("Accent color set to " + accent + "."); }}><span className={"accent-dot " + accent}/>{accent[0].toUpperCase() + accent.slice(1)} {prefs.accent === accent && <Check size={15}/>}</button>)}</div></div>
+          {studio && <div className="setting-section peak-appearance-options">
+            <h2>Atmosphere & feedback</h2>
+            <p>The cinematic background is optional. The chart remains solid and contrast-safe.</p>
+            <div className="choice-row">
+              <button className={peakAtmosphere?"chosen":""} aria-pressed={peakAtmosphere}
+                onClick={()=>setPeakAtmosphere(v=>!v)}><Layers size={17}/> Scenic background {peakAtmosphere?<Check size={14}/>:null}</button>
+              <button className={peakAudio?"chosen":""} aria-pressed={peakAudio}
+                onClick={()=>setPeakAudio(v=>!v)}>{peakAudio?<Volume2 size={17}/>:<VolumeX size={17}/>} Quiet sound cues {peakAudio?<Check size={14}/>:null}</button>
+            </div>
+            <small>Audio is off by default and responds only to deliberate replay/study actions. Motion honors reduced-motion preferences.</small>
+          </div>}
           <div className="setting-section"><h2>Workspace data</h2><p>Reset all browser-local preferences, drawings and saved data. Export before resetting.</p><button className="danger-button" onClick={() => { if (window.confirm("Permanently reset this browser workspace, including saved drawings and all locally retained data?")) { setPrefs(defaultWorkspace); drawingHistory.current = { past: [], future: [] }; setHistoryVersion(v => v + 1); setDrawMode(false); setDrawingTool(null); notify("Local workspace reset."); } }}><RotateCcw size={16}/> Reset local workspace</button></div>
         </div>}
       </div>
