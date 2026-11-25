@@ -21,7 +21,13 @@ export function PeakSessionPanel(){
   },[]);
   return <section className="peak-session-panel" aria-label="Market centre clocks">
     <div className="peak-panel-title"><PeakIcon name="session-globe" size={17}/><strong>Session map</strong><span>Reference</span></div>
-    <img className="peak-session-map" loading="lazy" src={import.meta.env.BASE_URL+"assets/reference/media/session-map-dots.svg"} alt=""/>
+    <div className="peak-session-visual" aria-hidden="true">
+      <img className="peak-session-map" loading="lazy" src={import.meta.env.BASE_URL+"assets/reference/media/session-map-dots.svg"} alt=""/>
+      <span className="peak-map-label peak-map-newyork">New York</span>
+      <span className="peak-map-label peak-map-london">London</span>
+      <span className="peak-map-label peak-map-tokyo">Tokyo</span>
+      <span className="peak-map-label peak-map-sydney">Sydney</span>
+    </div>
     <div className="peak-session-clocks">
       {centers.map(c=><div key={c.zone}><span>{c.label}</span><time>{clock(now,c.zone)}</time></div>)}
     </div>
