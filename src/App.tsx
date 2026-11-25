@@ -787,9 +787,9 @@ export default function App() {
         <button aria-current={page==="terminal"&&!replay?"page":undefined} onClick={()=>setPage("terminal")}><ChartCandlestick size={15}/> Charts</button>
         <button aria-pressed={Boolean(replay)} onClick={()=>{setPage("terminal");if(!replay)startReplay()}}><Film size={15}/> Replay</button>
         <button onClick={()=>{setPage("terminal");if(!replay)startReplay()}}><Ruler size={15}/> Study lab</button>
-        <button onClick={()=>{setPage("terminal");setPanelTab("markets")}}><Compass size={15}/> Watchlists</button>
+        <button onClick={()=>{setPage("terminal");setPanelTab("markets");update({rightPanelOpen:true})}}><Compass size={15}/> Watchlists</button>
         <button onClick={()=>{setPage("terminal");setToolFamily(null);setMoreToolsOpen(true)}}><Shapes size={15}/> Tools</button>
-        <button onClick={()=>{setPage("terminal");update({chartLayout:prefs.chartLayout==="quad"?"single":"quad"})}}><Grid2X2 size={15}/> Layout</button>
+        <button onClick={()=>{setPage("terminal");setSetupOpen(true)}}><Grid2X2 size={15}/> Layout</button>
       </nav>}
       <div className="header-center">
         <button className="search-trigger" onClick={() => setSearchOpen(true)}>
@@ -836,7 +836,7 @@ export default function App() {
           <button className="nav-item" title="Drawing library"
             onClick={()=>{setPage("terminal");setToolFamily(null);setMoreToolsOpen(true)}}><PeakIcon name="drawing-sets"/>{prefs.sidebarOpen&&<span>Drawing library</span>}</button>
           <button className="nav-item" title="Watchlist"
-            onClick={()=>{setPage("terminal");setPanelTab("markets")}}><PeakIcon name="favorites-star"/>{prefs.sidebarOpen&&<span>Watchlists</span>}</button>
+            onClick={()=>{setPage("terminal");setPanelTab("markets");update({rightPanelOpen:true})}}><PeakIcon name="favorites-star"/>{prefs.sidebarOpen&&<span>Watchlists</span>}</button>
         </div>
         <div className="sidebar-lower">
           <button className="nav-item" onClick={() => setHelpOpen(true)} title="Help and shortcuts"><BookOpen size={18}/>{prefs.sidebarOpen && <span>Help & shortcuts</span>}</button>
@@ -855,7 +855,7 @@ export default function App() {
             watchlist={prefs.watchlist.length} source={displaySourceLabel}
             onResume={()=>setPage("terminal")}
             onReplay={()=>{setPage("terminal");if(!replay)startReplay()}}
-            onDrawings={()=>{setPage("terminal");setPanelTab("objects")}}
+            onDrawings={()=>{setPage("terminal");setPanelTab("objects");update({rightPanelOpen:true})}}
             onAlerts={()=>setPage("alerts")}
             onLibrary={()=>setPage("library")}/>
           <section className="peak-market-board">
