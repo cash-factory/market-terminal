@@ -70,7 +70,7 @@ export function MarketBoard({frame,selected,onOpen,compact=false}:Props){
     aria-label={ENABLE_TEST_FIXTURES?"Synthetic market snapshots":"Verified market snapshots"}>
     <div className="board-caption">
       <strong>{compact?"Watchlist":"Market overview"}</strong>
-      <span>{ENABLE_TEST_FIXTURES?"TEST FIXTURE · synthetic": "Binance Spot · observed 1h candles"}</span>
+      <span>{ENABLE_TEST_FIXTURES?"Synthetic · "+frame+" bars": "Binance Spot · observed 1h candles"}</span>
     </div>
     <div className="board-labels"><span>Instrument</span><span>Observed bars</span><span>Historical change</span></div>
     {ids.map(id=>{

@@ -152,7 +152,7 @@ export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSourc
       snapshot.candles), [snapshot.candles,interval]);
   if (!active) return ENABLE_TEST_FIXTURES && mode === "demo" ? {
     candles: demo, status: "synthetic",
-    sourceLabel: "TEST FIXTURE · synthetic candles", message: null,
+    sourceLabel: "Synthetic demonstration candles", message: null,
     lastUpdatedMs: null, retry: () => setRevision(value => value + 1),
   } : {
     candles: EMPTY_CANDLES, status: "error",

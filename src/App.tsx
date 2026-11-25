@@ -176,7 +176,7 @@ export default function App() {
   };
   const currentLevels = useMemo(() => prefs.levels.filter(level => level.symbol === prefs.symbol && (level.source ?? "demo") === prefs.priceSource), [prefs.levels, prefs.symbol, prefs.priceSource]);
   const currentDrawings = useMemo(() => prefs.drawings.filter(drawing => drawing.symbol === prefs.symbol && (drawing.source ?? "demo") === prefs.priceSource), [prefs.drawings, prefs.symbol, prefs.priceSource]);
-  const sourceStateLabel = prefs.priceSource === "demo" ? (ENABLE_TEST_FIXTURES ? "TEST FIXTURE · SYNTHETIC" : "NO VERIFIED DATA") : ({
+  const sourceStateLabel = prefs.priceSource === "demo" ? (ENABLE_TEST_FIXTURES ? "SYNTHETIC DATA" : "NO VERIFIED DATA") : ({
     loading: "LOADING BINANCE", connecting: "CONNECTING", historical: "HISTORICAL",
     live: "LIVE · BINANCE SPOT", stale: "STALE FEED", error: "FEED UNAVAILABLE", synthetic: "SYNTHETIC DATA"
   })[feed.status];
@@ -190,7 +190,7 @@ export default function App() {
     minimumFractionDigits: symbols[prefs.symbol].precision,
     maximumFractionDigits: symbols[prefs.symbol].precision
   }) : "—";
-  const displaySourceLabel=replay ? "REPLAY · HISTORICAL SNAPSHOT · " + (replay.source === "demo" ? "TEST FIXTURE" : "BINANCE SPOT") : sourceStateLabel;
+  const displaySourceLabel=replay ? "REPLAY · HISTORICAL SNAPSHOT · " + (replay.source === "demo" ? "SYNTHETIC" : "BINANCE SPOT") : sourceStateLabel;
   const replayDrawings=useMemo(()=>replay?
     currentDrawings.filter(d=>drawingVisibleInReplay(d,replayTime)):currentDrawings,
     [replay,currentDrawings,replayTime]);
@@ -919,11 +919,11 @@ export default function App() {
               <div className="source-switch" role="group" aria-label="Chart price source">
                 {ENABLE_TEST_FIXTURES&&<button className={prefs.priceSource === "demo" ? "active" : ""}
                   aria-pressed={prefs.priceSource === "demo"}
-                  onClick={() => { update({priceSource:"demo"}); setDrawingTool(null); setDrawMode(false); notify("TEST FIXTURE: synthetic demonstration prices.", "info"); }}>Test data</button>}
+                  onClick={() => { update({priceSource:"demo"}); setDrawingTool(null); setDrawMode(false); notify("TEST FIXTURE: synthetic demonstration prices.", "info"); }}>Demo</button>}
                 {isRealSpotSymbol(prefs.symbol)?<button className={prefs.priceSource === "binance" ? "active" : ""}
                   aria-pressed={prefs.priceSource === "binance"}
                   title={"Load actual "+symbols[prefs.symbol].label+" exchange candles from Binance Spot"}
-                  onClick={() => { update({priceSource:"binance"}); setDrawingTool(null); setDrawMode(false); notify("Loading actual Binance Spot "+symbols[prefs.symbol].label+" prices…", "info"); }}>Binance Spot · real market</button>
+                  onClick={() => { update({priceSource:"binance"}); setDrawingTool(null); setDrawMode(false); notify("Loading actual Binance Spot "+symbols[prefs.symbol].label+" prices…", "info"); }}>Binance Spot</button>
                 :<span role="status">No verified OHLC feed · select a supported market</span>}
               </div>
               <button className={"compact-action chart-layout-toggle "+(prefs.chartLayout==="dual"?"active":"")}
@@ -958,8 +958,8 @@ export default function App() {
                   <select aria-label="Comparison overlay price source"
                     value={prefs.comparisonOverlaySource}
                     onChange={e=>update({comparisonOverlaySource:e.target.value as "demo"|"binance"})}>
-                    <option value="demo" disabled={!ENABLE_TEST_FIXTURES}>{ENABLE_TEST_FIXTURES?"Test data":"No verified feed"}</option>
-                    <option value="binance">Binance Spot · real</option>
+                    <option value="demo" disabled={!ENABLE_TEST_FIXTURES}>{ENABLE_TEST_FIXTURES?"Demo":"No verified feed"}</option>
+                    <option value="binance">Binance Spot</option>
                   </select>
                 </label>}
               <ChartProfileMenu profiles={prefs.chartProfiles}
@@ -1275,7 +1275,7 @@ export default function App() {
                     <label className="secondary-symbol-select">Source
                       <select aria-label={"Chart "+panel.number+" price source"} value={panel.source}
                         onChange={e=>update({[panel.sourceSlot]:e.target.value as "demo"|"binance"})}>
-                        <option value="demo" disabled={!ENABLE_TEST_FIXTURES}>{ENABLE_TEST_FIXTURES?"Test data":"No verified feed"}</option>
+                        <option value="demo" disabled={!ENABLE_TEST_FIXTURES}>{ENABLE_TEST_FIXTURES?"Demo":"No verified feed"}</option>
                         <option value="binance" disabled={!isRealSpotSymbol(panel.symbol)}>Binance Spot · real</option>
                       </select>
                     </label>

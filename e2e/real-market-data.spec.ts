@@ -18,7 +18,7 @@ test("a verified non-BTC spot instrument renders provider OHLC, never a demo fal
  await page.getByRole("combobox",{name:"Search instruments and tools"}).fill("ETHUSDT");
  await page.getByRole("listbox",{name:"Market instruments and commands"}).getByRole("option",{name:/ETH \/ USDT/}).click();
  await page.getByRole("button",{name:"Chart setup"}).click();
- await page.getByRole("button",{name:/Binance Spot.*real market/}).click();
+ await page.getByRole("button",{name:"Binance Spot"}).click();
  await expect(page.locator(".instrument-header")).toContainText("ETH / USDT");
  await expect(page.locator(".technical-chart-stack").first()).toHaveAttribute("data-visible-candles","75");
  expect(observed).toContain("ETHUSDT");
