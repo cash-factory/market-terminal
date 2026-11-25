@@ -557,3 +557,56 @@
    padding:0 9px;
  }
 }
+
+/* Session reference: city labels stay legible when the vector is scaled down. */
+.peak-workstation .peak-session-visual{
+ position:relative;
+ width:100%;
+ aspect-ratio:16 / 9;
+ min-height:115px;
+ margin:8px 0 4px;
+ overflow:hidden;
+ background:rgba(8,15,24,.30);
+ border-radius:8px;
+}
+.peak-workstation .peak-session-map {
+ display:block;
+ position:absolute;
+ inset:0;
+ width:100%;
+ height:100%;
+ object-fit:contain;
+ margin:0;
+ max-height:none;
+}
+.peak-workstation .peak-map-label{
+ position:absolute;
+ padding:3px 5px;
+ border-radius:4px;
+ border:1px solid rgba(178,200,221,.29);
+ background:rgba(12,22,33,.90);
+ color:#e3eaf1;
+ font-size:9px;
+ font-weight:540;
+ letter-spacing:0;
+ white-space:nowrap;
+ transform:translate(-50%,-50%);
+ pointer-events:none;
+ box-shadow:0 2px 4px rgba(0,0,0,.18);
+}
+.peak-workstation .peak-map-label::before{
+ content:"";display:inline-block;
+ width:4px;height:4px;
+ border-radius:50%;
+ background:#c2d6e5;
+ vertical-align:middle;
+ margin-right:4px;
+}
+.peak-workstation .peak-map-london{left:48%;top:36%}
+.peak-workstation .peak-map-london::before{background:#e24f63}
+.peak-workstation .peak-map-newyork{left:28%;top:44%}
+.peak-workstation .peak-map-tokyo{left:82%;top:49%}
+.peak-workstation .peak-map-sydney{left:83%;top:74%}
+@media(max-width:950px){
+ .peak-workstation .peak-map-label{font-size:8px;padding:3px 4px}
+}
