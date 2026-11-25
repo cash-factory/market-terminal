@@ -145,11 +145,16 @@ export default function App() {
   const sessionReference=referenceMarketHours(prefs.symbol,prefs.priceSource,marketClock);
   const instrumentPrecision=priceMetadata(prefs.symbol,prefs.priceSource);
   // Secondary panes require their own verified source. Production does not substitute demo data.
-  const comparisonFeed = usePriceFeed(prefs.secondarySymbol,prefs.secondaryFrame,prefs.secondarySource);
-  const thirdFeed = usePriceFeed(prefs.tertiarySymbol,prefs.tertiaryFrame,prefs.tertiarySource);
-  const fourthFeed = usePriceFeed(prefs.quaternarySymbol,prefs.quaternaryFrame,prefs.quaternarySource);
+  // Independent panes use real exchange connections only while visible.
+  // This preserves the private-group data budget and avoids invisible streams.
+  const comparisonFeed = usePriceFeed(prefs.secondarySymbol,prefs.secondaryFrame,prefs.secondarySource,
+    !replay && prefs.chartLayout!=="single");
+  const thirdFeed = usePriceFeed(prefs.tertiarySymbol,prefs.tertiaryFrame,prefs.tertiarySource,
+    !replay && prefs.chartLayout==="quad");
+  const fourthFeed = usePriceFeed(prefs.quaternarySymbol,prefs.quaternaryFrame,prefs.quaternarySource,
+    !replay && prefs.chartLayout==="quad");
   const overlayFeed=usePriceFeed(prefs.comparisonOverlaySymbol??"EURUSD",prefs.frame,
-    prefs.comparisonOverlaySymbol?prefs.comparisonOverlaySource:"demo");
+    prefs.comparisonOverlaySymbol?prefs.comparisonOverlaySource:"demo",Boolean(prefs.comparisonOverlaySymbol)&&!replay);
   const comparisonPanels = [
     {slot:"secondarySymbol" as const,frameSlot:"secondaryFrame" as const,sourceSlot:"secondarySource" as const,
       symbol:prefs.secondarySymbol,frame:prefs.secondaryFrame,source:prefs.secondarySource,feed:comparisonFeed,number:2},
