@@ -119,10 +119,17 @@
     padding:4px 2px!important;
   }
   .app.studio.peak-workstation .studio-rail-tools>button{
-    width:48px;min-height:38px;gap:2px;
+    width:46px;min-height:39px;height:39px;gap:0;
   }
+  /* Icon-first rail. Every action still has its original title and accessible name. */
   .app.studio.peak-workstation .studio-rail-tools>button>span{
-    font-size:8px;line-height:1;white-space:nowrap;
+    display:none;
+  }
+  .app.studio.peak-workstation .studio-rail-tools>button>svg:first-child{
+    width:20px;height:20px;
+  }
+  .app.studio.peak-workstation .studio-rail-category .studio-rail-chevron{
+    top:14px;right:1px;
   }
   .app.studio.peak-workstation:not(.focus-mode) .studio-chart-column .chart-grid-single .chart-surface{
     height:clamp(435px,calc(100dvh - 211px),1000px);
