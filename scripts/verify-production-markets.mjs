@@ -29,14 +29,13 @@ try{
  await page.keyboard.press("Control+k");
  const search=page.getByRole("combobox",{name:"Search instruments and tools"});
  const options=page.getByRole("listbox",{name:"Market instruments and commands"}).getByRole("option");
- for(const symbol of ["EURUSD","AAPL"]){
+ for(const symbol of ["EURUSD","AAPL","XAUUSD","US100"]){
    await search.fill(symbol);
    assert.equal(await options.count(),0);
  }
- await search.fill("XAUUSD");
- await options.first().click();
+ await page.keyboard.press("Escape");
  await page.locator(".market-source-links summary").click();
- assert.equal(await page.getByRole("navigation",{name:"External chart providers"}).getByRole("link").count(),3);
+ assert.equal(await page.getByRole("navigation",{name:"External chart providers"}).getByRole("link").count(),9);
  assert.equal(issues.length,0,"Browser runtime errors: "+issues.join(" | "));
  console.log("PRODUCTION MARKET SMOKE PASSED: BTC/USDT and ETH/USDT actual market OHLC loaded; unsupported instruments hidden and gold providers available.");
 }finally{await browser.close();}

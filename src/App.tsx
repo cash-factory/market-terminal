@@ -27,7 +27,7 @@ import { validateDrawingSettings } from "./drawing/drawingSettings";
 import {applyToolPreset,presetFromDrawing} from "./drawing/toolPresets";
 import { TOOL_BY_ID } from "./drawing/toolDefinitions";
 import {groupDrawings,ungroupDrawings,styleDrawings,moveDrawingLayers,updateDrawingAndGroup,type DrawingStylePatch} from "./drawing/manage";
-import {availableInstruments, nativeInstruments, ALL_FRAMES, frameSeconds, symbols, ENABLE_TEST_FIXTURES, isRealSpotSymbol, type Frame, type SymbolId} from "./market";
+import {availableInstruments, ALL_FRAMES, frameSeconds, symbols, ENABLE_TEST_FIXTURES, isRealSpotSymbol, type Frame, type SymbolId} from "./market";
 import { usePriceFeed } from "./data/usePriceFeed";
 import {referenceMarketHours,priceMetadata} from "./data/sessionReference";
 import { panelWidthAfterDrag, panelWidthAfterKey } from "./layout";
@@ -951,7 +951,7 @@ export default function App() {
                     notify(symbol?"Comparison overlay selected. Prices are rebased for visual comparison.":"Comparison overlay hidden.");
                   }}>
                   <option value="none">No overlay</option>
-                  {nativeInstruments.map(symbol=><option key={symbol} value={symbol}>{symbols[symbol].label}</option>)}
+                  {availableInstruments.map(symbol=><option key={symbol} value={symbol}>{symbols[symbol].label}</option>)}
                 </select>
               </label>
               {prefs.comparisonOverlaySymbol && isRealSpotSymbol(prefs.comparisonOverlaySymbol)&&
@@ -1171,7 +1171,7 @@ export default function App() {
               <h1>{studio ? <button aria-label="Choose chart instrument" onClick={()=>setSearchOpen(true)}>{symbols[prefs.symbol].label}<Search size={17}/></button> : symbols[prefs.symbol].label} <span className={"demo-pill feed-pill " + (replay?"historical":feed.status)}>{displaySourceLabel}</span></h1>
               <p>{replay?"Paused historical snapshot · Future candles hidden until you advance":prefs.priceSource === "demo" ? (ENABLE_TEST_FIXTURES?"Synthetic test fixtures":"No verified provider configured") : "Direct Binance Spot data · "+symbols[prefs.symbol].label+" · no broker/CFD quotes"}</p>
             </div><div className="quote"><small>{replay?"REPLAY BAR CLOSE":prefs.priceSource === "demo" ? (ENABLE_TEST_FIXTURES?"TEST FIXTURE":"NO DATA") : "BINANCE SPOT LAST"}</small><strong>{quoteText}</strong></div></div>}
-            <MarketSources key={prefs.symbol} symbol={prefs.symbol}/>
+            <MarketSources/>
             <details className="market-session-reference">
               <summary>
                 <span>Market hours reference</span>
@@ -1265,7 +1265,7 @@ export default function App() {
                           update({[panel.slot]:symbol,
                             [panel.sourceSlot]:isRealSpotSymbol(symbol)?(ENABLE_TEST_FIXTURES?panel.source:"binance"):"demo"});
                         }}>
-                        {nativeInstruments.map(symbol=><option key={symbol} value={symbol}>{symbols[symbol].label}</option>)}
+                        {availableInstruments.map(symbol=><option key={symbol} value={symbol}>{symbols[symbol].label}</option>)}
                       </select>
                     </label>
                     <label className="secondary-symbol-select">Frame
@@ -1282,7 +1282,7 @@ export default function App() {
                       </select>
                     </label>
                     <small>{panel.feed.sourceLabel} · {panel.feed.status.toUpperCase()}</small>
-                    <button className="chart-make-primary" disabled={!nativeInstruments.includes(prefs.symbol)}
+                    <button className="chart-make-primary"
                       aria-label={panel.number===2?"Make comparison chart primary":"Make chart "+panel.number+" primary"}
                       title="Swap this chart into the main workspace for complete object management"
                       onClick={()=>{

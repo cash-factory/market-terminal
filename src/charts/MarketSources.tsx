@@ -1,10 +1,10 @@
 import {useState} from "react";
-import {externalProviders, type SymbolId} from "../market";
+import {externalProviders, symbols, type SymbolId} from "../market";
 
 const chartUrl = (symbol: string) =>
   "https://www.tradingview.com/chart/?symbol=" + encodeURIComponent(symbol);
 
-export function MarketSources({symbol}: {symbol: SymbolId}) {
+export function MarketSources() {
   const [custom, setCustom] = useState("");
   const ticker = custom.trim().toUpperCase();
   return <details className="market-session-reference market-source-links">
@@ -12,8 +12,12 @@ export function MarketSources({symbol}: {symbol: SymbolId}) {
     <p>Charts open on TradingView. Prices, trading hours and delays depend on the source.
       External prices stay on TradingView. Terminal alerts and replay use the terminal feed.</p>
     <nav aria-label="External chart providers">
-      {externalProviders[symbol]?.map(([label, id]) =>
-        <a key={id} href={chartUrl(id)} target="_blank" rel="noopener noreferrer">{label}</a>)}
+      {Object.entries(externalProviders).map(([symbol, providers]) =>
+        <section key={symbol}><strong>{symbols[symbol as SymbolId].label}</strong>
+          <ul>{providers.map(([label, id]) => <li key={id}>
+            <a href={chartUrl(id)} target="_blank" rel="noopener noreferrer">{label}</a>
+          </li>)}</ul>
+        </section>)}
     </nav>
     <label>Other TradingView instrument
       <input value={custom} onChange={e=>setCustom(e.target.value)} placeholder="Exchange:symbol" />

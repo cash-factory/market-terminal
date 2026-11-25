@@ -1,4 +1,4 @@
-import { ALL_FRAMES, ENABLE_TEST_FIXTURES, isRealSpotSymbol, availableInstruments, nativeInstruments, type Frame, type SymbolId } from "./market";
+import { ALL_FRAMES, ENABLE_TEST_FIXTURES, isRealSpotSymbol, availableInstruments, type Frame, type SymbolId } from "./market";
 import { clampPanelWidth } from "./layout";
 import { isDrawing, type Drawing, type DrawingTool } from "./drawing/types";
 import { DEFAULT_FAVORITE_TOOLS, parseFavoriteTools } from "./drawing/toolDefinitions";
@@ -138,9 +138,9 @@ export function parseWorkspace(value: unknown): Workspace {
   const raw = isRecord(value.preferences) ? value.preferences : value;
   const symbol = availableInstruments.includes(raw.symbol as SymbolId) ? raw.symbol as SymbolId : defaultWorkspace.symbol;
   const frame = FRAMES.includes(raw.frame as Frame) ? raw.frame as Frame : defaultWorkspace.frame;
-  const secondarySymbol = nativeInstruments.includes(raw.secondarySymbol as SymbolId) ? raw.secondarySymbol as SymbolId : defaultWorkspace.secondarySymbol;
-  const tertiarySymbol = nativeInstruments.includes(raw.tertiarySymbol as SymbolId) ? raw.tertiarySymbol as SymbolId : defaultWorkspace.tertiarySymbol;
-  const quaternarySymbol = nativeInstruments.includes(raw.quaternarySymbol as SymbolId) ? raw.quaternarySymbol as SymbolId : defaultWorkspace.quaternarySymbol;
+  const secondarySymbol = availableInstruments.includes(raw.secondarySymbol as SymbolId) ? raw.secondarySymbol as SymbolId : defaultWorkspace.secondarySymbol;
+  const tertiarySymbol = availableInstruments.includes(raw.tertiarySymbol as SymbolId) ? raw.tertiarySymbol as SymbolId : defaultWorkspace.tertiarySymbol;
+  const quaternarySymbol = availableInstruments.includes(raw.quaternarySymbol as SymbolId) ? raw.quaternarySymbol as SymbolId : defaultWorkspace.quaternarySymbol;
   const accent = ACCENTS.includes(raw.accent as Workspace["accent"]) ? raw.accent as Workspace["accent"] : defaultWorkspace.accent;
   // Upgrade an untouched legacy default watchlist to real available markets.
   // Keep every intentionally customized or pinned watchlist unchanged.
@@ -156,7 +156,7 @@ export function parseWorkspace(value: unknown): Workspace {
     priceSource: isRealSpotSymbol(symbol) && (!ENABLE_TEST_FIXTURES || raw.priceSource === "binance") ? "binance" : "demo",
     chartLayout: raw.chartLayout === "quad" ? "quad" : raw.chartLayout === "dual" ? "dual" : "single",
     chartDisplayStyle: parseChartDisplayStyle(raw.chartDisplayStyle),
-    comparisonOverlaySymbol: nativeInstruments.includes(raw.comparisonOverlaySymbol as SymbolId)
+    comparisonOverlaySymbol: availableInstruments.includes(raw.comparisonOverlaySymbol as SymbolId)
       ? raw.comparisonOverlaySymbol as SymbolId : null,
     comparisonOverlaySource: isRealSpotSymbol(raw.comparisonOverlaySymbol as SymbolId)&&(!ENABLE_TEST_FIXTURES||raw.comparisonOverlaySource==="binance")
       ? "binance" : "demo",

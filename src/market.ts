@@ -32,10 +32,9 @@ export const externalProviders: Partial<Record<SymbolId, [string, string][]>> = 
     ["CME · E-mini Nasdaq-100 futures", "CME_MINI:NQ1!"],
   ],
 };
-export const availableInstruments = (Object.keys(symbols) as SymbolId[]).filter(symbol =>
-  ENABLE_TEST_FIXTURES || isRealSpotSymbol(symbol) || externalProviders[symbol]?.length
-);
-export const nativeInstruments = availableInstruments.filter(symbol => ENABLE_TEST_FIXTURES || isRealSpotSymbol(symbol));
+export const availableInstruments: SymbolId[] = ENABLE_TEST_FIXTURES
+  ? Object.keys(symbols) as SymbolId[]
+  : [...REAL_SPOT_SYMBOLS];
 export const SECOND_FRAMES=["1s","5s","10s","15s","30s","45s"] as const;
 export const MINUTE_FRAMES=["1m","5m","15m","1h","4h","1d"] as const;
 export type Frame=typeof SECOND_FRAMES[number]|typeof MINUTE_FRAMES[number];
