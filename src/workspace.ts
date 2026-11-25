@@ -4,7 +4,7 @@ import { isDrawing, type Drawing, type DrawingTool } from "./drawing/types";
 import { DEFAULT_FAVORITE_TOOLS, parseFavoriteTools } from "./drawing/toolDefinitions";
 import {parseToolPresets,type ToolPresets} from "./drawing/toolPresets";
 export type FavoriteBarLayout={visible:boolean;orientation:"horizontal"|"vertical";collapsed:boolean;x:number;y:number};
-export const DEFAULT_FAVORITE_BAR:FavoriteBarLayout={visible:true,orientation:"horizontal",collapsed:false,x:145,y:175};
+export const DEFAULT_FAVORITE_BAR:FavoriteBarLayout={visible:true,orientation:"horizontal",collapsed:false,x:145,y:258};
 export function parseFavoriteBar(value:unknown):FavoriteBarLayout{
  if(!value||typeof value!=="object"||Array.isArray(value))return {...DEFAULT_FAVORITE_BAR};
  const raw=value as Record<string,unknown>;
@@ -13,7 +13,11 @@ export function parseFavoriteBar(value:unknown):FavoriteBarLayout{
    orientation:raw.orientation==="vertical"?"vertical":"horizontal",
    collapsed:typeof raw.collapsed==="boolean"?raw.collapsed:DEFAULT_FAVORITE_BAR.collapsed,
    x:typeof raw.x==="number"&&Number.isFinite(raw.x)&&raw.x>=0&&raw.x<=10000?raw.x:DEFAULT_FAVORITE_BAR.x,
-   y:typeof raw.y==="number"&&Number.isFinite(raw.y)&&raw.y>=0&&raw.y<=10000?raw.y:DEFAULT_FAVORITE_BAR.y
+   // Move only the original untouched preset away from the chart setup strip.
+   // Preserve deliberate user-positioned layouts and all other saved properties.
+   y:raw.x===145&&raw.y===175&&raw.orientation!=="vertical"
+     ? DEFAULT_FAVORITE_BAR.y
+     : typeof raw.y==="number"&&Number.isFinite(raw.y)&&raw.y>=0&&raw.y<=10000?raw.y:DEFAULT_FAVORITE_BAR.y
  };
 }
 import {parseLevel} from "./levels/model";

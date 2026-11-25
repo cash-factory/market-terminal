@@ -93,15 +93,19 @@ export function ChartCanvas({
       timeScale: { borderColor: dark ? "#293644" : "#dce4eb",timeVisible:true,secondsVisible:isSecondsFrame(frame) },
       rightPriceScale: { borderColor: dark ? "#293644" : "#dce4eb" },
     });
+    // Neutral-up / crimson-down is the selected terminal's visual language.
+    // Price direction remains apparent by candle body/wick shape as well as colour.
+    const up = dark ? "#E7EEF5" : "#253548";
+    const down = dark ? "#E84354" : "#C72F45";
     const s = c.addSeries(CandlestickSeries, {
-      upColor: "#22b98e", downColor: "#e66a77", borderVisible: false,
+      upColor: up, downColor: down, borderVisible: false,
       visible:chartStyle==="candles"||chartStyle==="heikin-ashi",
-      wickUpColor: "#22b98e", wickDownColor: "#e66a77",
+      wickUpColor: up, wickDownColor: down,
       priceFormat: { type: "price", precision: symbols[symbol].precision, minMove: Math.pow(10, -symbols[symbol].precision) },
     });
     displaySeries.current=chartStyle==="ohlc-bars"?
       {style:"ohlc-bars",series:c.addSeries(BarSeries,{
-        upColor:"#22b98e",downColor:"#e66a77",thinBars:true,openVisible:true,
+        upColor:up,downColor:down,thinBars:true,openVisible:true,
         priceFormat:{type:"price",precision:symbols[symbol].precision,
           minMove:Math.pow(10,-symbols[symbol].precision)}
       })}:
@@ -182,7 +186,20 @@ export function ChartCanvas({
       studyLines.current.bb[2].setData(bands.lower);
     }
     if (candles.length > 0 && !fitted.current) {
-      chart.current?.timeScale().fitContent();
+      // A fitted multi-month series makes price action too small to analyse.
+      // Begin with recent candles (TradingView-style), but let the user zoom,
+      // pan, choose 30/90 bars, or explicitly use "Fit all" afterwards.
+      // This is intentionally applied only once, never on incoming data.
+      const chartWidth = host.current?.clientWidth ?? 960;
+      const initialBars = chartWidth < 560 ? 48 : 90;
+      if (candles.length > initialBars) {
+        chart.current?.timeScale().setVisibleRange({
+          from: candles[candles.length - initialBars].time,
+          to: candles[candles.length - 1].time
+        });
+      } else {
+        chart.current?.timeScale().fitContent();
+      }
       fitted.current = true;
     }
   }, [candles, symbol, frame, dark, showSma, source, chartStyle, studies.ema20, studies.bollinger20, parameters]);
