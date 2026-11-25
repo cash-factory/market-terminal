@@ -103,3 +103,17 @@ test("Peak enterprise secondary pages and replay reveal their real controls",asy
   await expect(page.getByRole("region",{name:"Structured replay simulation"})).toBeVisible();
   await page.screenshot({path:"test-results/review/peak-replay-workspace.png",animations:"disabled"});
 });
+
+test("Peak navigation reveals requested contextual panels instead of changing hidden state",async({page})=>{
+  await page.setViewportSize({width:1440,height:900});
+  await page.goto("/market-terminal/");
+  await page.getByRole("button",{name:"Hide watchlist"}).click();
+  await expect(page.getByRole("tabpanel",{name:"Markets"})).toHaveCount(0);
+  await page.locator(".studio-destinations").getByRole("button",{name:"Watchlists"}).click();
+  await expect(page.getByRole("tabpanel",{name:"Markets"})).toBeVisible();
+  await page.locator(".studio-destinations").getByRole("button",{name:"Layout"}).click();
+  await expect(page.getByRole("button",{name:"Chart setup"})).toHaveAttribute("aria-expanded","true");
+  await page.locator(".studio-destinations").getByRole("button",{name:"Overview"}).click();
+  await page.getByRole("button",{name:"Drawing tools"}).click();
+  await expect(page.getByRole("tabpanel",{name:"Objects"})).toBeVisible();
+});
