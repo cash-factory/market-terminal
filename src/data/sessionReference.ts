@@ -1,4 +1,4 @@
-import {isRealSpotSymbol,type SymbolId,symbols} from "../market";
+import {ENABLE_TEST_FIXTURES,isRealSpotSymbol,type SymbolId,symbols} from "../market";
 import type {PriceSource} from "./usePriceFeed";
 
 /** Calendar annotations are reference information, not a quote-status flag.
@@ -109,5 +109,7 @@ export function priceMetadata(symbol:SymbolId,source:PriceSource):PriceMetadata{
   return {displayDecimals,tickSize:null,venueVerified:false,
     note:source==="binance"&&isRealSpotSymbol(symbol)?
       "Display precision only. Obtain current Binance LOT_SIZE/PRICE_FILTER tick size from validated exchangeInfo before quoting execution or sizing.":
-      "No verified market feed configured. Display precision is not a broker tick size or executable price."};
+      ENABLE_TEST_FIXTURES && source==="demo"?
+        "Demonstration display precision only. Broker tick size, pip value and contract specifications are not configured.":
+        "No verified market feed configured. Display precision is not a broker tick size or executable price."};
 }

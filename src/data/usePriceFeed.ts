@@ -170,7 +170,7 @@ export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSourc
     candles: snapshot.key === key ? projected : EMPTY_CANDLES,
     status: current.status,
     sourceLabel: isSecondsFrame(interval) && interval!=="1s" ?
-      "Binance Spot · "+symbols[symbol].label+" · aggregated native 1s klines" : "Binance Spot · "+symbols[symbol].label,
+      "Binance Spot · "+(symbol==="BTCUSDT"?"BTC/USDT":symbols[symbol].label)+" · aggregated native 1s klines" : "Binance Spot · "+(symbol==="BTCUSDT"?"BTC/USDT":symbols[symbol].label),
     message: current.message,
     lastUpdatedMs: current.asOfMs,
     retry: () => setRevision(value => value + 1),
