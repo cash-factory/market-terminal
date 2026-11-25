@@ -393,3 +393,45 @@
  .peak-workstation *, .peak-workstation *::before,.peak-workstation *::after{scroll-behavior:auto!important;animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
  .peak-workstation .peak-hero-ribbon{animation:none;transform:none}
 }
+
+/* Floating favorites and drawing library: functional controls with calm depth. */
+.peak-workstation .favorite-toolbar{
+ background:rgba(25,35,48,.94);border:1px solid rgba(178,196,214,.30);
+ backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+ border-radius:10px;box-shadow:0 13px 39px rgba(0,0,0,.38),0 0 0 1px rgba(255,255,255,.02);
+ padding:5px;z-index:78;
+}
+.peak-workstation.light .favorite-toolbar{background:rgba(247,250,252,.95)}
+.peak-workstation .favorite-toolbar-tool,
+.peak-workstation .favorite-toolbar button{transition:background-color .12s,border-color .12s,color .12s}
+.peak-workstation .favorite-toolbar .favorite-toolbar-tool.active{
+ background:var(--accent-dim);color:var(--text);
+ box-shadow:inset 0 -2px var(--accent);border-color:var(--accent-border);
+}
+.peak-workstation .favorite-toolbar-item-actions button:hover{color:var(--accent)}
+.peak-workstation .studio-rail-root .tool-shelf{
+ background:var(--panel)!important;border:1px solid var(--peak-surface-border)!important;
+ border-radius:12px!important;box-shadow:0 22px 65px rgba(0,0,0,.43)!important;
+}
+.peak-workstation .tool-shelf-head{padding:13px 17px;border-bottom:1px solid var(--border)}
+.peak-workstation .tool-shelf-symbol{width:35px;height:35px;border-radius:7px}
+.peak-workstation .tool-shelf-groups button.active,
+.peak-workstation .tool-shelf-chip.selected{color:var(--text);background:var(--accent-dim);border-color:var(--accent-border)}
+.peak-workstation .tool-shelf-row:hover{background:var(--raised)}
+.peak-workstation .tool-shelf-search{background:#0d1520}
+.peak-workstation.light .tool-shelf-search{background:#f1f5f9}
+.peak-workstation .drawing-dialog{
+ background:var(--panel);border-color:var(--peak-surface-border);
+ border-radius:12px;box-shadow:0 28px 75px rgba(0,0,0,.46);
+}
+.peak-workstation .drawing-dialog-header{border-bottom:1px solid var(--peak-surface-border)}
+.peak-workstation .drawing-dialog-tabs button.active{color:var(--text);border-color:var(--accent)}
+.peak-workstation :is(.favorite-toolbar,.tool-shelf,.drawing-dialog) button:focus-visible{
+ outline:2px solid var(--accent);outline-offset:2px;
+}
+@media(prefers-reduced-transparency:reduce){
+ .peak-workstation .favorite-toolbar{background:var(--panel);backdrop-filter:none;-webkit-backdrop-filter:none}
+}
+@media(prefers-reduced-motion:reduce){
+ .peak-workstation .favorite-toolbar button{transition:none}
+}
