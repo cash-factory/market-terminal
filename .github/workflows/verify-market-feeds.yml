@@ -1,0 +1,22 @@
+name: Verify actual market feeds
+on:
+  pull_request:
+    paths:
+      - 'src/market.ts'
+      - 'src/data/**'
+      - 'src/charts/MarketBoard.tsx'
+      - 'scripts/verify-live-market-apis.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live-feed-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Query five real Binance Spot markets and verify browser CORS
+        run: node scripts/verify-live-market-apis.mjs

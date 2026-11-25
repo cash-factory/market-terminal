@@ -1,4 +1,4 @@
-import { ALL_FRAMES, type SymbolId, type Frame } from "../market";
+import { ALL_FRAMES, symbols, type SymbolId, type Frame } from "../market";
 import { TOOL_BY_ID } from "./toolDefinitions";
 import { isCompleteMultiPointDrawing } from "./multiAnchor";
 import {isPositionSettings,type PositionSettings} from "../analysis/positionMetrics";
@@ -53,7 +53,7 @@ export type Drawing = {
   positionSettings?:PositionSettings;
 };
 
-const validSymbols = new Set<SymbolId>(["EURUSD", "BTCUSDT", "AAPL", "US100"]);
+const validSymbols = new Set<SymbolId>(Object.keys(symbols) as SymbolId[]);
 const validFrames = new Set<Frame>(ALL_FRAMES);
 export function isDrawing(input: unknown): input is Drawing {
   if (!input || typeof input !== "object" || Array.isArray(input)) return false;

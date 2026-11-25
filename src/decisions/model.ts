@@ -1,5 +1,5 @@
 import type { CandlestickData, UTCTimestamp } from "lightweight-charts";
-import {ALL_FRAMES,type Frame,type SymbolId} from "../market";
+import {ALL_FRAMES,symbols,isRealSpotSymbol,type Frame,type SymbolId} from "../market";
 import type { PriceSource, PriceStatus } from "../data/usePriceFeed";
 
 export type DecisionDirection = "bullish" | "bearish" | "wait";
@@ -56,7 +56,7 @@ type CaptureContext = {
   visibleCandles: readonly CandlestickData<UTCTimestamp>[];
 };
 
-const SYMBOLS = ["EURUSD", "BTCUSDT", "AAPL", "US100"] as const;
+const SYMBOLS = Object.keys(symbols) as SymbolId[];
 const FRAMES:readonly Frame[]=ALL_FRAMES;
 const SOURCES = ["demo", "binance"] as const;
 const STATUSES = ["synthetic", "loading", "connecting", "historical", "live", "stale", "error"] as const;
@@ -106,8 +106,8 @@ export function captureDecision(
   if (!Number.isSafeInteger(barTimeMs) || barTimeMs <= 0 || barTimeMs > nowMs) {
     throw new Error("Cannot capture a candle from an unknown or future time.");
   }
-  if (context.source === "binance" && context.symbol !== "BTCUSDT") {
-    throw new Error("Binance Spot provenance is only supported for BTC/USDT.");
+  if (context.source === "binance" && !isRealSpotSymbol(context.symbol)) {
+    throw new Error("Binance Spot provenance is only supported for verified exchange pairs.");
   }
   return {
     id, createdAtMs: nowMs, symbol: context.symbol, frame: context.frame,
@@ -153,7 +153,7 @@ export function parseDecisionRecords(value: unknown): DecisionRecord[] {
         typeof raw.replay !== "boolean" || !recordLike(raw.snapshot) ||
         !DIRECTIONS.includes((recordLike(raw.setup) ? raw.setup.direction : null) as DecisionDirection) ||
         !recordLike(raw.setup)) continue;
-    if (raw.source === "binance" && raw.symbol !== "BTCUSDT") continue;
+    if (raw.source === "binance" && !isRealSpotSymbol(raw.symbol as SymbolId)) continue;
     const snap = raw.snapshot;
     if (!time(snap.barTimeMs) || snap.barTimeMs > raw.createdAtMs ||
         !positive(snap.open) || !positive(snap.high) || !positive(snap.low) ||

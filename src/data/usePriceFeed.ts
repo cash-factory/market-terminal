@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { CandlestickData, UTCTimestamp } from "lightweight-charts";
-import { demoCandles, isSecondsFrame, type Frame, type SymbolId } from "../market";
+import { demoCandles, ENABLE_TEST_FIXTURES, isRealSpotSymbol, isSecondsFrame, symbols, type Frame, type SymbolId, type RealSpotSymbol } from "../market";
 import { aggregateSeconds } from "./seconds";
 import { fetchBinanceSpotCandles } from "./binance";
 import type { Candle } from "./contracts";
@@ -34,17 +34,17 @@ function chartCandles(rows: readonly Candle[]): CandlestickData<UTCTimestamp>[] 
 }
 
 const EMPTY_CANDLES: CandlestickData<UTCTimestamp>[] = [];
-const STREAM_URL = "wss://data-stream.binance.vision:443/ws/btcusdt@kline_";
+const STREAM_URL = "wss://data-stream.binance.vision:443/ws/";
 
 /** Opt-in, browser-side market data: no secrets, no proxy and no synthetic-price fallback. */
-export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSource): PriceFeed {
-  const demo = useMemo(() => demoCandles(symbol, interval), [symbol, interval]);
+export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSource, enabled = true): PriceFeed {
+  const demo = useMemo(() => ENABLE_TEST_FIXTURES ? demoCandles(symbol, interval) : EMPTY_CANDLES, [symbol, interval]);
   const [revision, setRevision] = useState(0);
   const key = symbol + ":" + interval + ":" + mode + ":" + revision;
   const [snapshot, setSnapshot] = useState<FeedSnapshot>({
     key: "", candles: [], status: "loading", message: null, asOfMs: null,
   });
-  const active = mode === "binance" && symbol === "BTCUSDT";
+  const active = enabled && mode === "binance" && isRealSpotSymbol(symbol);
   const nativeFrame:Frame = isSecondsFrame(interval) ? "1s" : interval;
 
   useEffect(() => {
@@ -70,7 +70,7 @@ export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSourc
         return;
       }
       try {
-        socket = new WebSocket(STREAM_URL + nativeFrame);
+        socket = new WebSocket(STREAM_URL + symbol.toLowerCase() + "@kline_" + nativeFrame);
       } catch {
         scheduleRetry("Could not open the Binance WebSocket.");
         return;
@@ -84,7 +84,7 @@ export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSourc
       socket.onmessage = event => {
         let parsed: unknown;
         try { parsed = JSON.parse(String(event.data)); } catch { return; }
-        const candle = parseBinanceStreamCandle(parsed, nativeFrame);
+        const candle = parseBinanceStreamCandle(parsed, nativeFrame, symbol as RealSpotSymbol);
         if (!candle || disposed) return;
         receivedAt = Date.now();
         setSnapshot(old => {
@@ -113,7 +113,7 @@ export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSourc
 
     (async () => {
       try {
-        const batch = await fetchBinanceSpotCandles({ interval:nativeFrame, signal: controller.signal });
+        const batch = await fetchBinanceSpotCandles({ symbol: symbol as RealSpotSymbol, interval:nativeFrame, signal: controller.signal });
         if (disposed) return;
         if (!batch.candles.length) throw new Error("Binance did not return any valid candles.");
         begin("historical", "Historical candles loaded. Connecting live stream…",
@@ -150,9 +150,16 @@ export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSourc
     isSecondsFrame(interval)?
       aggregateSeconds(snapshot.candles,interval as "1s"|"5s"|"10s"|"15s"|"30s"|"45s"):
       snapshot.candles), [snapshot.candles,interval]);
-  if (!active) return {
+  if (!active) return ENABLE_TEST_FIXTURES && mode === "demo" ? {
     candles: demo, status: "synthetic",
     sourceLabel: "Synthetic demonstration candles", message: null,
+    lastUpdatedMs: null, retry: () => setRevision(value => value + 1),
+  } : {
+    candles: EMPTY_CANDLES, status: "error",
+    sourceLabel: "NO VERIFIED PRICE FEED · " + symbols[symbol].label,
+    message: isRealSpotSymbol(symbol)
+      ? "This pair has a real Binance Spot source. Select Binance Spot to load actual exchange candles."
+      : "No verified OHLC provider is configured for " + symbols[symbol].label + ". This chart will not generate or substitute fictional prices.",
     lastUpdatedMs: null, retry: () => setRevision(value => value + 1),
   };
   const current = snapshot.key === key ? snapshot : {
@@ -163,7 +170,7 @@ export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSourc
     candles: snapshot.key === key ? projected : EMPTY_CANDLES,
     status: current.status,
     sourceLabel: isSecondsFrame(interval) && interval!=="1s" ?
-      "Binance Spot · BTC/USDT · aggregated native 1s klines" : "Binance Spot · BTC/USDT",
+      "Binance Spot · "+(symbol==="BTCUSDT"?"BTC/USDT":symbols[symbol].label)+" · aggregated native 1s klines" : "Binance Spot · "+(symbol==="BTCUSDT"?"BTC/USDT":symbols[symbol].label),
     message: current.message,
     lastUpdatedMs: current.asOfMs,
     retry: () => setRevision(value => value + 1),

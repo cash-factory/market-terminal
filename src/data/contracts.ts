@@ -30,7 +30,7 @@ export type InstrumentIdentity = {
   providerId: string;
   providerSymbol: string;
   quoteCurrency: string;
-  tickSize: number;
+  tickSize: number | null;
 };
 
 export type FeedAttribution = {

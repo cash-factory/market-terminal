@@ -1,3 +1,4 @@
+import { REAL_SPOT_SYMBOLS, type RealSpotSymbol } from "../market";
 import {
   type Candle, type CandleBatch, type InstrumentIdentity, type MarketInterval,
   MarketDataError, normalizeCandles
@@ -14,7 +15,7 @@ export const BTC_USDT_SPOT: InstrumentIdentity = {
   providerId: "binance-public",
   providerSymbol: "BTCUSDT",
   quoteCurrency: "USDT",
-  tickSize: 0.01,
+  tickSize: null,
 };
 
 /** Convert an API row to a candle without trusting arbitrary provider response data. */
@@ -35,9 +36,21 @@ export function parseBinanceKlines(value: unknown, nowMs: number = Date.now()): 
   return normalizeCandles(rows);
 }
 
+export function isListedBinanceSpotSymbol(id:string):id is RealSpotSymbol {
+  return REAL_SPOT_SYMBOLS.some(symbol=>symbol===id);
+}
+/** The symbol list is deliberately curated; no arbitrary user value reaches the exchange API. */
+export function binanceSpotInstrument(symbol:RealSpotSymbol):InstrumentIdentity {
+  return symbol === "BTCUSDT" ? BTC_USDT_SPOT : {
+    id:"CRYPTO:BINANCE:"+symbol+":SPOT",
+    assetClass:"crypto",venue:"Binance Spot",providerId:"binance-public",
+    providerSymbol:symbol,quoteCurrency:"USDT",tickSize:null,
+  };
+}
 export interface BinanceFetchOptions {
-  symbol?: "BTCUSDT";
+  symbol?: RealSpotSymbol;
   interval: MarketInterval;
+  limit?: number;
   startTimeMs?: number;
   endTimeMs?: number;
   signal?: AbortSignal;
@@ -45,12 +58,15 @@ export interface BinanceFetchOptions {
 
 /** Fetch a single exchange-limited batch (at most 1,000 candles). Uses no API key. */
 export async function fetchBinanceSpotCandles(options: BinanceFetchOptions): Promise<CandleBatch> {
-  if (options.symbol && options.symbol !== "BTCUSDT") throw new MarketDataError("UNSUPPORTED", "Only BTCUSDT is enabled in the initial Binance adapter.");
+  const symbol=options.symbol ?? "BTCUSDT";
+  if(!isListedBinanceSpotSymbol(symbol))throw new MarketDataError("UNSUPPORTED","Not a supported verified Binance Spot instrument.");
+  if(options.limit !== undefined && (!Number.isSafeInteger(options.limit)||options.limit<1||options.limit>1000))
+    throw new MarketDataError("BAD_DATA","Requested candle limit must be between 1 and 1,000.");
   if(!BINANCE_NATIVE_INTERVALS.has(options.interval))throw new MarketDataError("UNSUPPORTED","This is a derived seconds interval; request Binance native 1s candles and aggregate them locally.");
   const url = new URL(ENDPOINT);
-  url.searchParams.set("symbol", "BTCUSDT");
+  url.searchParams.set("symbol", symbol);
   url.searchParams.set("interval", options.interval);
-  url.searchParams.set("limit", "1000");
+  url.searchParams.set("limit", String(options.limit ?? 1000));
   if (options.startTimeMs !== undefined) {
     if (!Number.isSafeInteger(options.startTimeMs) || options.startTimeMs < 0) throw new MarketDataError("BAD_DATA", "Invalid start time.");
     url.searchParams.set("startTime", String(options.startTimeMs));
@@ -73,13 +89,14 @@ export async function fetchBinanceSpotCandles(options: BinanceFetchOptions): Pro
   let payload: unknown;
   try { payload = await response.json(); } catch { throw new MarketDataError("BAD_DATA", "Provider did not return valid JSON."); }
   const candles = parseBinanceKlines(payload);
+  const instrument=binanceSpotInstrument(symbol);
   return {
-    instrument: BTC_USDT_SPOT,
+    instrument,
     interval: options.interval,
     candles,
     attribution: {
-      providerId: BTC_USDT_SPOT.providerId,
-      venue: BTC_USDT_SPOT.venue,
+      providerId: instrument.providerId,
+      venue: instrument.venue,
       displayName: "Binance Public Spot API",
       status: "historical",
       isRedistributable: false,

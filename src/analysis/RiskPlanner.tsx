@@ -1,6 +1,6 @@
 import { ArrowUpRight, Calculator, Check, Info, RotateCcw, Target, Wallet } from "lucide-react";
 import { calculateRiskPlan, emptyRiskInputs, type RiskPlan, type RiskPlannerInputs } from "./risk";
-import { symbols, type SymbolId } from "../market";
+import { isRealSpotSymbol, symbols, type SymbolId } from "../market";
 import type { Drawing } from "../drawing/types";
 import { defaultPositionTarget } from "./positionDrawing";
 
@@ -48,7 +48,7 @@ export function RiskPlanner({ value, onChange, symbol, quotePrice, sourceLabel,s
     try {plan = calculateRiskPlan(value);}
     catch (cause) {error = cause instanceof Error ? cause.message : "Review the entered numbers.";}
   }
-  const currency = symbol === "BTCUSDT" ? "USDT" : "USD";
+  const currency = isRealSpotSymbol(symbol) ? "USDT" : "USD";
 
   return <div className="content-page risk-screen">
     <div className="risk-intro">
