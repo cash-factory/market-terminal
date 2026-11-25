@@ -1,4 +1,4 @@
-import type { SymbolId } from "../market";
+import { symbols, isRealSpotSymbol, type SymbolId } from "../market";
 import type { PriceSource } from "../data/usePriceFeed";
 
 /** Local in-tab price crossing. This does not constitute background or server monitoring. */
@@ -11,14 +11,14 @@ export type PriceAlert = {
   createdAtMs: number;
   triggeredAtMs: number | null;
 };
-const symbolIds=new Set<SymbolId>(["EURUSD","BTCUSDT","AAPL","US100"]);
+const symbolIds=new Set<SymbolId>(Object.keys(symbols) as SymbolId[]);
 const validSource=new Set<PriceSource>(["demo","binance"]);
 export function isPriceAlert(value:unknown):value is PriceAlert{
   if(!value||typeof value!=="object"||Array.isArray(value))return false;
   const a=value as Partial<PriceAlert>;
   return typeof a.id==="string"&&a.id.length>0&&a.id.length<=128&&
     symbolIds.has(a.symbol as SymbolId)&&validSource.has(a.source as PriceSource)&&
-    (a.source!=="binance"||a.symbol==="BTCUSDT")&&
+    (a.source!=="binance"||isRealSpotSymbol(a.symbol as SymbolId))&&
     (a.direction==="above"||a.direction==="below")&&
     typeof a.price==="number"&&Number.isFinite(a.price)&&a.price>0&&
     typeof a.createdAtMs==="number"&&Number.isSafeInteger(a.createdAtMs)&&a.createdAtMs>=0&&
