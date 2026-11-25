@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { demoCandles, frameSeconds, sma, symbols, type SymbolId, type Frame } from "./market";
+import { demoCandles, frameSeconds, sma, symbols, REAL_SPOT_SYMBOLS, type SymbolId, type Frame } from "./market";
 
 describe("market demonstration fixture", () => {
   it("has valid ordered OHLC candles across markets and timeframes", () => {
@@ -32,9 +32,12 @@ describe("market demonstration fixture", () => {
     expect(average[0].value).toBeCloseTo(expected, 8);
   });
 
-  it("keeps demo markets explicitly labelled as demonstration data", () => {
-    for (const config of Object.values(symbols)) {
-      expect(config.market).toContain("DEMO");
+  it("distinguishes verified venue instruments from provider-required markets", () => {
+    for (const id of REAL_SPOT_SYMBOLS) {
+      expect(symbols[id].market).toContain("BINANCE SPOT");
+    }
+    for (const id of ["EURUSD", "XAUUSD", "AAPL", "US100"] as const) {
+      expect(symbols[id].market).toContain("PROVIDER REQUIRED");
     }
   });
 });
