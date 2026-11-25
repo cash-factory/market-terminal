@@ -1,0 +1,45 @@
+name: Peak visual review
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'public/assets/**'
+      - 'e2e/workstation-visual-finish.spec.ts'
+      - '.github/workflows/peak-visual-review.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  screenshot-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install project dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install Chromium browser
+        run: npx playwright install --with-deps chromium
+      - name: Verify Peak navigation, chart safety, and mobile rendering
+        run: npx playwright test e2e/workstation-visual-finish.spec.ts --workers=1
+      - name: Upload Peak screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: peak-redesign-screenshots
+          path: test-results/review/
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Upload visual failures
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: peak-redesign-playwright-failure
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7

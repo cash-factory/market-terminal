@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSPropert
 import {
   Activity, ArrowDownToLine, Bell, BookOpen, ChartCandlestick, Check,
   ChevronLeft, ChevronRight, Command, Compass, Download, Home, Layers,
-  Menu, Moon, MousePointer2, Plus, RotateCcw, Search, Settings2, Sun, Maximize2, Minimize2,
+  Menu, Moon, MousePointer2, Plus, RotateCcw, Search, Settings2, Sun, Maximize2, Minimize2, Volume2, VolumeX,
   Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Film, Magnet, MoveUpRight, ArrowUpRight, Columns2, Grid2X2, Shapes, Pencil, ArrowUp, ArrowDown, Link2, Unlink2
 } from "lucide-react";
 import { ChartCanvas,type ChartSurface,type ChartRange } from "./ChartCanvas";
@@ -46,6 +46,9 @@ import {defaultStudyParameters,studyParameterBounds,studyParameterKeys,updateStu
 import {createCustomStudy} from "./indicators/formula";
 import { defaultWorkspace, loadWorkspace, parseWorkspace, serializeWorkspace, type Workspace, type Level } from "./workspace";
 import { CommandPalette } from "./commands/CommandPalette";
+import { PeakIcon } from "./presentation/PeakIcon";
+import { PeakOverview } from "./presentation/PeakOverview";
+import { PeakSessionPanel } from "./presentation/PeakSessionPanel";
 
 type Page = "home" | "terminal" | "sizing" | "alerts" | "library" | "settings";
 type Notice = { id: number; message: string; kind: "success" | "info" | "error" };
@@ -78,6 +81,21 @@ export default function App() {
     return ()=>window.clearInterval(handle);
   },[]);
   const [page, setPage] = useState<Page>("terminal");
+  const [peakAtmosphere,setPeakAtmosphere]=useState(()=>{
+    try{return window.localStorage.getItem("peak-atmosphere")!=="off"}catch{return true}
+  });
+  const [peakAudio,setPeakAudio]=useState(false);
+  useEffect(()=>{
+    try{window.localStorage.setItem("peak-atmosphere",peakAtmosphere?"on":"off")}catch{/* Private mode */}
+  },[peakAtmosphere]);
+  const peakSound=(name:"replay-start"|"replay-pause"|"replay-step"|"study-saved")=>{
+    if(!peakAudio)return;
+    try{
+      const player=new Audio(import.meta.env.BASE_URL+"assets/audio/"+name+".wav");
+      player.volume=.19;
+      void player.play().catch(()=>{});
+    }catch{/* Audio is not required for interaction */}
+  };
   const [focusMode,setFocusMode]=useState(false);
   const [panelTab,setPanelTab]=useState<"markets"|"objects"|"context">(prefs.drawings.length ? "objects" : "markets");
   useEffect(()=>{
@@ -434,6 +452,7 @@ export default function App() {
   const startReplay=()=>{
     try{
       setReplay(beginReplay(currentCandles,prefs.symbol,prefs.frame,prefs.priceSource));
+      peakSound("replay-start");
       setDrawMode(false);setDrawingTool(null);
       notify("Historical replay started from a frozen chart snapshot.","info");
     }catch(error){notify(error instanceof Error?error.message:"Not enough bars to replay.","error");}
@@ -755,17 +774,22 @@ export default function App() {
     const timer = window.setTimeout(() => setNotice(current => current?.id === notice.id ? null : current), 4200);
     return () => window.clearTimeout(timer);
   }, [notice]);
-  return <div className={"app " + (studio ? "studio " : "") + (prefs.dark ? "dark" : "light") + " accent-" + prefs.accent + (focusMode && page === "terminal" ? " focus-mode" : "")}>
+  return <div className={"app " + (studio ? "studio peak-workstation " : "") + (prefs.dark ? "dark" : "light") + " accent-" + prefs.accent + (focusMode && page === "terminal" ? " focus-mode" : "") + (!peakAtmosphere ? " peak-no-atmosphere" : "")}>
     <header className="topbar">
       <div className="branding">
-        <span className="logo"><ChartCandlestick size={20}/></span>
-        <span><strong>MARKET<span className="brand-suffix">/TERMINAL</span></strong><small>{studio ? "Analysis workstation" : "Independent trading workspace"}</small></span>
+        {studio ? <img className="peak-logo-lockup" src={import.meta.env.BASE_URL + (prefs.dark ? "assets/brand/lockup-compact-dark.svg" : "assets/brand/lockup-compact-light.svg")} alt="Market Terminal" /> : <>
+          <span className="logo"><ChartCandlestick size={20}/></span>
+          <span><strong>MARKET<span className="brand-suffix">/TERMINAL</span></strong><small>Independent trading workspace</small></span>
+        </>}
       </div>
-      {studio && <nav className="studio-destinations" aria-label="Workstation pages">
-        {menu.map(({id,label})=><button key={id} aria-current={id===page?"page":undefined}
-          onClick={()=>{setPage(id);setDrawMode(false);setDrawingTool(null);}}>{label}</button>)}
-        <button aria-label="Search tools and markets" title="Open Tool Atlas" onClick={()=>setSearchOpen(true)}><Search size={16}/></button>
-        <button aria-label="Help and shortcuts" onClick={()=>setHelpOpen(true)}><BookOpen size={16}/></button>
+      {studio && <nav className="studio-destinations" aria-label="Primary workspace destinations">
+        <button aria-current={page==="home"?"page":undefined} onClick={()=>setPage("home")}><Home size={15}/> Overview</button>
+        <button aria-current={page==="terminal"&&!replay?"page":undefined} onClick={()=>setPage("terminal")}><ChartCandlestick size={15}/> Charts</button>
+        <button aria-pressed={Boolean(replay)} onClick={()=>{setPage("terminal");if(!replay)startReplay()}}><Film size={15}/> Replay</button>
+        <button onClick={()=>{setPage("terminal");if(!replay)startReplay()}}><Ruler size={15}/> Study lab</button>
+        <button onClick={()=>{setPage("terminal");setPanelTab("markets");update({rightPanelOpen:true})}}><Compass size={15}/> Watchlists</button>
+        <button onClick={()=>{setPage("terminal");setToolFamily(null);setMoreToolsOpen(true)}}><Shapes size={15}/> Tools</button>
+        <button onClick={()=>{setPage("terminal");setSetupOpen(true)}}><Grid2X2 size={15}/> Layout</button>
       </nav>}
       <div className="header-center">
         <button className="search-trigger" onClick={() => setSearchOpen(true)}>
@@ -785,19 +809,34 @@ export default function App() {
           <Bell size={18}/>{activeAlertCount>0&&<span className="alert-bell-count">{Math.min(99,activeAlertCount)}</span>}
         </button>
         <button className="icon-button" title="Switch appearance" aria-label="Switch appearance" onClick={() => {update({ dark: !prefs.dark }); notify("Appearance updated.");}}>{prefs.dark ? <Sun size={18}/> : <Moon size={18}/>}</button>
+        {studio && <button className="icon-button peak-audio-toggle" aria-label={peakAudio?"Mute optional interface sounds":"Enable optional interface sounds"}
+          aria-pressed={peakAudio} title={peakAudio?"Mute sound feedback":"Enable subtle sound feedback"}
+          onClick={()=>setPeakAudio(value=>!value)}>{peakAudio?<Volume2 size={17}/>:<VolumeX size={17}/>}</button>}
         <span className="avatar" title="Local workspace">MT</span>
       </div>
     </header>
     <div className={"app-body " + (!prefs.sidebarOpen ? "compact" : "")}>
       <aside className="primary-sidebar" aria-label="Main navigation">
         <div className="sidebar-upper">
-          <div className="sidebar-caption">{prefs.sidebarOpen ? "WORKSPACE" : "•••"}</div>
-          {menu.map(({ id, label, Icon }) => <button key={id}
+          <div className="peak-sidebar-heading">
+            <PeakIcon name="workspace-stack" size={17}/>
+            {prefs.sidebarOpen&&<span>Peak Workspace</span>}
+          </div>
+          <div className="sidebar-caption">{prefs.sidebarOpen ? "WORKSPACES" : "•••"}</div>
+          {menu.map(({ id, label }) => <button key={id}
             className={"nav-item " + (page === id ? "active" : "")}
-            title={label} aria-label={label} aria-current={page === id ? "page" : undefined}
+            title={label} aria-label={studio&&id==="home"?"Market overview":label} aria-current={page === id ? "page" : undefined}
             onClick={() => { setPage(id); setDrawMode(false); setDrawingTool(null); }}>
-            <Icon size={18}/>{prefs.sidebarOpen && <span>{label}</span>}
+            <PeakIcon name={id==="home"?"workspace-grid":id==="terminal"?"workspace-research":id==="sizing"?"chart-measure":id==="alerts"?"ui-alert":id==="library"?"workspace-stack":"ui-panel-glass"} size={18}/>{prefs.sidebarOpen && <span>{label}</span>}
           </button>)}
+          <div className="peak-sidebar-divider"/>
+          <div className="sidebar-caption">{prefs.sidebarOpen?"RESEARCH TOOLS":"·"}</div>
+          <button className={"nav-item "+(replay?"active":"")} title="Historical replay"
+            onClick={()=>{setPage("terminal");if(!replay)startReplay()}}><PeakIcon name="workspace-replay"/>{prefs.sidebarOpen&&<span>Historical replay</span>}</button>
+          <button className="nav-item" title="Drawing library"
+            onClick={()=>{setPage("terminal");setToolFamily(null);setMoreToolsOpen(true)}}><PeakIcon name="drawing-sets"/>{prefs.sidebarOpen&&<span>Drawing library</span>}</button>
+          <button className="nav-item" title="Watchlist"
+            onClick={()=>{setPage("terminal");setPanelTab("markets");update({rightPanelOpen:true})}}><PeakIcon name="favorites-star"/>{prefs.sidebarOpen&&<span>Watchlists</span>}</button>
         </div>
         <div className="sidebar-lower">
           <button className="nav-item" onClick={() => setHelpOpen(true)} title="Help and shortcuts"><BookOpen size={18}/>{prefs.sidebarOpen && <span>Help & shortcuts</span>}</button>
@@ -811,14 +850,19 @@ export default function App() {
       <div className="main-area">
         <div className="page-topline"><span>WORKSPACE <span className="breadcrumb-slash">/</span> {titles[page].toUpperCase()}</span><span className="workspace-context"><span className="context-marker"/> {page === "terminal" ? `${symbols[prefs.symbol].label} · ${prefs.frame.toUpperCase()} · ${prefs.chartLayout.toUpperCase()} VIEW` : "BROWSER-LOCAL WORKSPACE"}</span></div>
         {studio && page === "home" && <main className="studio-overview">
-          <div className="overview-heading"><div><span>Workspace</span><h1>Markets</h1></div>
-            <button className="primary-button" onClick={()=>setPage("terminal")}>Resume {symbols[prefs.symbol].label}<ChevronRight size={16}/></button></div>
-          <MarketBoard frame={prefs.frame} selected={prefs.symbol} onOpen={openDemoMarket}/>
-          <div className="overview-links">
-            <button onClick={()=>{setPage("terminal");setPanelTab("objects");}}><Shapes size={20}/><strong>Drawing tools</strong><span>{prefs.drawings.length} objects</span></button>
-            <button onClick={()=>setPage("alerts")}><Bell size={20}/><strong>Price alerts</strong><span>{activeAlertCount} armed</span></button>
-            <button onClick={()=>setPage("library")}><Layers size={20}/><strong>Workspace</strong><span>{prefs.drawings.length} drawings</span></button>
-          </div>
+          <PeakOverview instrument={symbols[prefs.symbol].label} drawings={prefs.drawings.length}
+            alerts={activeAlertCount} studies={prefs.replayStudies.length}
+            watchlist={prefs.watchlist.length} source={displaySourceLabel}
+            onResume={()=>setPage("terminal")}
+            onReplay={()=>{setPage("terminal");if(!replay)startReplay()}}
+            onDrawings={()=>{setPage("terminal");setPanelTab("objects");update({rightPanelOpen:true})}}
+            onAlerts={()=>setPage("alerts")}
+            onLibrary={()=>setPage("library")}/>
+          <section className="peak-market-board">
+            <div className="peak-section-kicker">OBSERVE, THEN INVESTIGATE</div>
+            <div className="peak-section-heading"><h2>Market board</h2><span>Data sources identified for each instrument</span></div>
+            <MarketBoard frame={prefs.frame} selected={prefs.symbol} onOpen={openDemoMarket}/>
+          </section>
         </main>}
         {!studio && page === "home" && <div className="content-page">
           <div className="hero"><div className="eyebrow">YOUR WORKSPACE AT A GLANCE</div><h1>A clear view of your markets.</h1><p>Get straight back to analysis. Your setup is saved on this device and basic tools don't have usage quotas.</p><button className="primary-button" onClick={() => setPage("terminal")}><ChartCandlestick size={17}/> Open trading terminal <ChevronRight size={16}/></button></div>
@@ -1131,9 +1175,9 @@ export default function App() {
                 Drawings and alerts still use the underlying observed OHLC, not the transformed chart values.
               </div>}
             {replay && <ReplayControls replay={replay}
-              onTogglePlay={()=>setReplay(s=>s?toggleReplayPlayback(s):s)}
-              onStep={()=>setReplay(s=>s?stepReplay({...s,playing:false}):s)}
-              onStepBack={()=>setReplay(s=>s?stepReplay({...s,playing:false},-1):s)}
+              onTogglePlay={()=>{peakSound(replay.playing?"replay-pause":"replay-start");setReplay(s=>s?toggleReplayPlayback(s):s)}}
+              onStep={()=>{peakSound("replay-step");setReplay(s=>s?stepReplay({...s,playing:false}):s)}}
+              onStepBack={()=>{peakSound("replay-step");setReplay(s=>s?stepReplay({...s,playing:false},-1):s)}}
               onSeek={index=>setReplay(s=>s?seekReplay(s,index):s)}
               onSpeed={(speed:ReplaySpeed)=>setReplay(s=>s?setReplaySpeed(s,speed):s)}
               onExit={exitReplay}
@@ -1141,6 +1185,7 @@ export default function App() {
             {replay && <ReplayLab key={[replay.symbol,replay.frame,replay.source,replay.snapshot[0]?.time].join(":")}
               replay={replay} onSave={study=>{
                 setPrefs(old=>({...old,replayStudies:[study,...old.replayStudies.filter(item=>item.id!==study.id)].slice(0,200)}));
+                peakSound("study-saved");
                 notify("Replay study saved to your local workspace.");
               }}/>}
             {studio && <div className="studio-tool-state" role="status">
@@ -1273,6 +1318,7 @@ export default function App() {
               onOpen={openInstrument} onChange={(watchlist,watchlistFavorites)=>{
                 update({watchlist,watchlistFavorites});notify("Watchlist saved locally.");
               }}/>
+            {studio && <PeakSessionPanel/>}
             <div className="panel-head separated"><strong>Price levels</strong><span className="count">{currentLevels.length}</span></div>
             <div className="price-form"><input type="number" min="0" step="any" aria-label="Level price" placeholder={last.toFixed(symbols[prefs.symbol].precision)} value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === "Enter") addLevel(draft.trim() ? Number(draft) : last); }}/><button aria-label="Add price level" title="Add price level" onClick={() => addLevel(draft.trim() ? Number(draft) : last)}><Plus size={17}/></button></div>
             <div className="level-list">{currentLevels.map(level =>
@@ -1444,7 +1490,18 @@ export default function App() {
         {page === "settings" && <div className="content-page preferences-page">
           <div className="section-head first"><div><small>PERSONALIZE</small><h1>Workspace preferences</h1><p>Make the experience yours. Changes are saved automatically in this browser.</p></div></div>
           <div className="setting-section"><h2>Appearance</h2><p>Choose how Market Terminal looks and feels.</p><div className="choice-row"><button className={prefs.dark ? "chosen" : ""} onClick={() => { update({ dark: true }); notify("Dark appearance selected."); }}><Moon size={18}/> Dark {prefs.dark && <Check size={15}/>}</button><button className={!prefs.dark ? "chosen" : ""} onClick={() => { update({ dark: false }); notify("Light appearance selected."); }}><Sun size={18}/> Light {!prefs.dark && <Check size={15}/>}</button></div></div>
-          <div className="setting-section"><h2>Accent color</h2><p>Three carefully balanced palettes for the workstation.</p><div className="choice-row">{(["violet","teal","amber"] as const).map(accent => <button key={accent} className={prefs.accent === accent ? "chosen" : ""} onClick={() => { update({ accent }); notify("Accent color set to " + accent + "."); }}><span className={"accent-dot " + accent}/>{accent[0].toUpperCase() + accent.slice(1)} {prefs.accent === accent && <Check size={15}/>}</button>)}</div></div>
+          <div className="setting-section"><h2>Accent color</h2><p>Crimson is the reference identity; teal and amber remain available for existing personalized setups.</p><div className="choice-row">{(["violet","teal","amber"] as const).map(accent => <button key={accent} className={prefs.accent === accent ? "chosen" : ""} onClick={() => { update({ accent }); notify("Accent color set to " + accent + "."); }}><span className={"accent-dot " + accent}/>{accent==="violet"?"Crimson":accent[0].toUpperCase()+accent.slice(1)} {prefs.accent === accent && <Check size={15}/>}</button>)}</div></div>
+          {studio && <div className="setting-section peak-appearance-options">
+            <h2>Atmosphere & feedback</h2>
+            <p>The cinematic background is optional. The chart remains solid and contrast-safe.</p>
+            <div className="choice-row">
+              <button className={peakAtmosphere?"chosen":""} aria-pressed={peakAtmosphere}
+                onClick={()=>setPeakAtmosphere(v=>!v)}><Layers size={17}/> Scenic background {peakAtmosphere?<Check size={14}/>:null}</button>
+              <button className={peakAudio?"chosen":""} aria-pressed={peakAudio}
+                onClick={()=>setPeakAudio(v=>!v)}>{peakAudio?<Volume2 size={17}/>:<VolumeX size={17}/>} Quiet sound cues {peakAudio?<Check size={14}/>:null}</button>
+            </div>
+            <small>Audio is off by default and responds only to deliberate replay/study actions. Motion honors reduced-motion preferences.</small>
+          </div>}
           <div className="setting-section"><h2>Workspace data</h2><p>Reset all browser-local preferences, drawings and saved data. Export before resetting.</p><button className="danger-button" onClick={() => { if (window.confirm("Permanently reset this browser workspace, including saved drawings and all locally retained data?")) { setPrefs(defaultWorkspace); drawingHistory.current = { past: [], future: [] }; setHistoryVersion(v => v + 1); setDrawMode(false); setDrawingTool(null); notify("Local workspace reset."); } }}><RotateCcw size={16}/> Reset local workspace</button></div>
         </div>}
       </div>
