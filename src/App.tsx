@@ -879,6 +879,19 @@ export default function App() {
         {page === "terminal" && <div className={"terminal-layout " + (prefs.rightPanelOpen ? "" : "panel-closed")}
           style={{"--right-panel-width": prefs.rightPanelWidth + "px"} as CSSProperties}>
           <section className="terminal-center">
+            {studio && <nav className="peak-market-tabs" aria-label="Quick chart markets">
+              {prefs.watchlist.slice(0,7).map(symbol=><button key={symbol} type="button"
+                className={symbol===prefs.symbol?"active":""}
+                aria-current={symbol===prefs.symbol?"page":undefined}
+                title={"Open "+symbols[symbol].label+" chart"}
+                onClick={()=>openInstrument(symbol)}>
+                <span className="peak-market-tab-dot" aria-hidden="true"/>
+                {symbols[symbol].label}
+              </button>)}
+              <button type="button" className="peak-market-tab-add"
+                aria-label="Find another market" title="Find another market"
+                onClick={()=>setSearchOpen(true)}><Plus size={16}/></button>
+            </nav>}
             {studio && <InstrumentHeader key={[prefs.symbol,prefs.frame,prefs.priceSource,Boolean(replay)].join("-")} ref={candleInspector} symbol={prefs.symbol} frame={prefs.frame} candles={viewedCandles}
               source={displaySourceLabel} onSearch={()=>setSearchOpen(true)}/>}
             <div className="studio-header-slot">
