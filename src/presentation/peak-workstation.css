@@ -435,3 +435,17 @@
 @media(prefers-reduced-motion:reduce){
  .peak-workstation .favorite-toolbar button{transition:none}
 }
+
+/* Compact device header: keep search, chart focus and alerts accessible without overflow. */
+@media(max-width:700px){
+ .peak-workstation .topbar{width:100%;min-width:0;max-width:100vw;gap:4px!important}
+ .peak-workstation .branding{flex:0 0 99px;min-width:0;width:99px}
+ .peak-workstation .studio-destinations{flex:1 1 0%;min-width:0;max-width:none;overscroll-behavior-x:contain}
+ .peak-workstation .studio-destinations button{flex:0 0 auto}
+ .peak-workstation .header-actions{flex:0 0 auto;min-width:0;gap:0}
+ .peak-workstation .header-actions .demo-tag{display:none}
+ .peak-workstation .header-actions .avatar{display:none}
+ .peak-workstation .header-actions .focus-toggle{display:grid;place-items:center;width:32px;min-width:32px;padding:0}
+ .peak-workstation .header-actions .focus-toggle span{display:none}
+ .peak-workstation .header-actions .icon-button{width:29px;min-width:29px;padding:0}
+}
