@@ -32,10 +32,12 @@ test("Peak overview works with assets and returns to the same chart",async({page
   await expect(page.locator(".peak-home-hero")).toBeVisible();
   await expect(page.locator(".peak-home-metrics > div")).toHaveCount(4);
   await expect(page.locator(".peak-home-source-note")).toContainText("synthetic");
+  mkdirSync("test-results/review",{recursive:true});
+  await page.screenshot({path:"test-results/review/peak-overview-desktop.png",animations:"disabled"});
   await page.getByRole("button",{name:/Resume /}).click();
   await expect(page.locator(".instrument-header h1")).toContainText(symbol.split(" ")[0]);
   mkdirSync("test-results/review",{recursive:true});
-  await page.screenshot({path:"test-results/review/peak-overview-desktop.png",animations:"disabled"});
+  await page.screenshot({path:"test-results/review/peak-resumed-chart.png",animations:"disabled"});
 });
 
 test("Peak reduced-motion and opt-in sound preferences do not affect core chart controls",async({page})=>{
@@ -70,4 +72,26 @@ test("Peak mobile light mode keeps chart visible without horizontal page overflo
   expect(overflow).toBeLessThanOrEqual(2);
   mkdirSync("test-results/review",{recursive:true});
   await page.screenshot({path:"test-results/review/peak-workstation-mobile-light.png",animations:"disabled"});
+});
+
+test("Peak enterprise secondary pages and replay reveal their real controls",async({page})=>{
+  await page.setViewportSize({width:1440,height:900});
+  await page.goto("/market-terminal/");
+  mkdirSync("test-results/review",{recursive:true});
+  await page.getByRole("button",{name:"Position sizing",exact:true}).first().click();
+  await expect(page.getByRole("region",{name:"Risk planning parameters"})).toBeVisible();
+  await page.screenshot({path:"test-results/review/peak-position-sizing.png",animations:"disabled"});
+  await page.getByRole("button",{name:"Price Alerts",exact:true}).last().click();
+  await expect(page.getByRole("region",{name:"Create a price alert"})).toBeVisible();
+  await page.screenshot({path:"test-results/review/peak-alerts.png",animations:"disabled"});
+  await page.getByRole("button",{name:"Workspace",exact:true}).first().click();
+  await expect(page.getByRole("region",{name:"Saved simulation studies"})).toBeVisible();
+  await page.screenshot({path:"test-results/review/peak-library.png",animations:"disabled"});
+  await page.getByRole("button",{name:"Preferences",exact:true}).first().click();
+  await expect(page.getByText("Atmosphere & feedback")).toBeVisible();
+  await page.screenshot({path:"test-results/review/peak-preferences.png",animations:"disabled"});
+  await page.getByRole("button",{name:"Charts",exact:true}).click();
+  await page.getByRole("button",{name:"Start replay"}).click();
+  await expect(page.getByRole("region",{name:"Structured replay simulation"})).toBeVisible();
+  await page.screenshot({path:"test-results/review/peak-replay-workspace.png",animations:"disabled"});
 });
