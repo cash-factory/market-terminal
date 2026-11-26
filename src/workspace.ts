@@ -30,6 +30,8 @@ import {parseCustomStudies,type CustomStudy} from "./indicators/formula";
 import {parseDecisionRecords,type DecisionRecord} from "./decisions/model";
 import {parseChartDisplayStyle,type ChartDisplayStyle} from "./charts/display";
 import {parseChartProfiles,type ChartProfile} from "./charts/profiles";
+import {parsePriceScalePreset,type PriceScalePreset} from "./charts/priceScale";
+import {defaultWatchlists,parseWatchlists,type WatchlistsState} from "./watchlists/model";
 import {parseWatchlist,parseWatchlistFavorites,DEFAULT_WATCHLIST} from "./watchlist/model";
 import {parseReplayStudies,type SavedReplayStudy} from "./replay/simulation";
 
