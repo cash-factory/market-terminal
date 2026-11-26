@@ -68,7 +68,7 @@ const menu: { id: Page; label: string; Icon: typeof Home }[] = [
   { id: "terminal", label: "Chart workspace", Icon: ChartCandlestick },
   { id: "sizing", label: "Position sizing", Icon: Ruler },
   ...(ENABLE_TEST_FIXTURES ? [
-    { id: "screener" as Page, label: "Synthetic screener", Icon: Search },
+    { id: "screener" as Page, label: "Screener", Icon: Search },
     { id: "strategy" as Page, label: "Strategy Lab", Icon: Activity }
   ] : []),
   { id: "alerts", label: "Price Alerts", Icon: Bell },
@@ -903,12 +903,14 @@ export default function App() {
             {prefs.sidebarOpen&&<span>Peak Workspace</span>}
           </div>
           <div className="sidebar-caption">{prefs.sidebarOpen ? "WORKSPACES" : "•••"}</div>
+          <nav className="peak-workspace-pages" aria-label="Workstation pages">
           {menu.map(({ id, label }) => <button key={id}
             className={"nav-item " + (page === id ? "active" : "")}
             title={label} aria-label={studio&&id==="home"?"Market overview":label} aria-current={page === id ? "page" : undefined}
             onClick={() => { setPage(id); setDrawMode(false); setDrawingTool(null); }}>
             <PeakIcon name={id==="home"?"workspace-grid":id==="terminal"?"workspace-research":id==="sizing"?"chart-measure":id==="alerts"?"ui-alert":id==="library"?"workspace-stack":"ui-panel-glass"} size={18}/>{prefs.sidebarOpen && <span>{label}</span>}
           </button>)}
+          </nav>
           <div className="peak-sidebar-divider"/>
           <div className="sidebar-caption">{prefs.sidebarOpen?(ENABLE_TEST_FIXTURES?"RESEARCH TOOLS":"INSTRUMENTS"):"·"}</div>
           {!ENABLE_TEST_FIXTURES && availableInstruments.map(id=><button className="nav-item" key={id} title={symbols[id].label} onClick={()=>openInstrument(id)}><ChartCandlestick size={16}/>{prefs.sidebarOpen && <span>{symbols[id].label}</span>}</button>)}
