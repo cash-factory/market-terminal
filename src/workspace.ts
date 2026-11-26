@@ -126,7 +126,15 @@ export const defaultWorkspace: Workspace = {
   chartTemplates: [],
   alerts: [],
   decisions: [],
-  watchlists:structuredClone(defaultWatchlists),
+  watchlists:ENABLE_TEST_FIXTURES?structuredClone(defaultWatchlists):{
+    activeId:"markets",
+    lists:[{id:"markets",name:"Markets",sections:[{id:"main",name:"Main",entries:[
+      {symbol:"XAUUSD" as SymbolId,note:"",starred:true},
+      {symbol:"US100" as SymbolId,note:"",starred:false},
+      {symbol:"GBPUSD" as SymbolId,note:"",starred:false},
+      {symbol:"GBPJPY" as SymbolId,note:"",starred:false}
+    ]}]}]
+  },
   favoriteDrawingTools: [...DEFAULT_FAVORITE_TOOLS],
   favoriteBar:{...DEFAULT_FAVORITE_BAR},
   toolPresets:{},
@@ -197,7 +205,7 @@ export function parseWorkspace(value: unknown): Workspace {
     chartTemplates: parseChartTemplates(raw.chartTemplates),
     alerts: Array.isArray(raw.alerts)?raw.alerts.filter(isPriceAlert):[],
     decisions: parseDecisionRecords(raw.decisions),
-    watchlists:parseWatchlists(raw.watchlists),
+    watchlists:raw.watchlists===undefined?structuredClone(defaultWorkspace.watchlists):parseWatchlists(raw.watchlists),
     favoriteDrawingTools: parseFavoriteTools(raw.favoriteDrawingTools),
     favoriteBar:parseFavoriteBar(raw.favoriteBar),
     toolPresets:parseToolPresets(raw.toolPresets),
