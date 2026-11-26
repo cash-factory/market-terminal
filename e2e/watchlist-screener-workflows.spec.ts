@@ -55,7 +55,7 @@ test("screener filters demonstration prices and adds results to active list",asy
   await expect(screener.getByRole("button",{name:"Open screener chart BTCUSDT"})).toHaveCount(0);
   await screener.getByRole("button",{name:"Add AAPL to watchlist"}).click();
   await expect(screener.getByText("Destination:")).toBeVisible();
-  await page.getByRole("navigation",{name:"Workstation pages"}).getByRole("button",{name:"Terminal"}).click();
+  await page.getByRole("navigation",{name:"Workstation pages"}).getByRole("button",{name:"Chart workspace"}).click();
   await expect(page.getByRole("region",{name:"Watchlist workspace"})
     .getByRole("button",{name:"Open AAPL chart"})).toBeVisible();
 });
