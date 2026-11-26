@@ -36,6 +36,8 @@ function chartCandles(rows: readonly Candle[]): CandlestickData<UTCTimestamp>[] 
 
 const EMPTY_CANDLES: CandlestickData<UTCTimestamp>[] = [];
 const STREAM_URL = "wss://data-stream.binance.vision:443/ws/";
+const STREAM_TIMEOUT_MS = 30_000;
+const REPAIR_THROTTLE_MS = 60_000;
 
 /** Opt-in, browser-side market data: no secrets, no proxy and no synthetic-price fallback. */
 export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSource, enabled = true): PriceFeed {
@@ -76,7 +78,7 @@ export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSourc
       publish("stale", "Missing exchange candles detected. Repairing from verified history…");
       void (async () => {
         try {
-          const batch = await fetchBinanceSpotCandles({ interval:nativeFrame, signal: controller.signal });
+          const batch = await fetchBinanceSpotCandles({ symbol: symbol as RealSpotSymbol, interval:nativeFrame, signal: controller.signal });
           if (disposed || !batch.candles.length) return;
           candles = mergeExchangeHistory(candles, batch.candles);
           if (hasCandleGaps(candles, nativeFrame)) {
@@ -118,7 +120,7 @@ export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSourc
       }
       let nextSocket: WebSocket;
       try {
-        socket = new WebSocket(STREAM_URL + symbol.toLowerCase() + "@kline_" + nativeFrame);
+        nextSocket = new WebSocket(STREAM_URL + symbol.toLowerCase() + "@kline_" + nativeFrame);
       } catch {
         scheduleReconnect("Could not open the Binance Spot stream. Retrying with history check…");
         return;
@@ -135,7 +137,7 @@ export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSourc
         let parsed: unknown;
         try { parsed = JSON.parse(String(event.data)); } catch { return; }
         const candle = parseBinanceStreamCandle(parsed, nativeFrame, symbol as RealSpotSymbol);
-        if (!candle || disposed) return;
+        if (!candle || disposed || socket !== nextSocket) return;
         receivedAt = Date.now();
         reconnectAttempts = 0;
         lastUpdatedAt = receivedAt;
