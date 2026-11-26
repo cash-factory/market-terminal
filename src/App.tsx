@@ -44,6 +44,7 @@ import { ReplayControls } from "./replay/ReplayControls";
 import { ReplayLab } from "./replay/ReplayLab";
 import { drawingVisibleInReplay } from "./replay/visibility";
 import { WatchlistPanel } from "./watchlist/WatchlistPanel";
+import {WatchlistPanel as AdvancedWatchlistPanel} from "./watchlists/WatchlistPanel";
 import { RiskPlanner } from "./analysis/RiskPlanner";
 import { beginReplay,stepReplay,seekReplay,toggleReplayPlayback,setReplaySpeed,visibleReplayCandles,type ReplayState,type ReplaySpeed } from "./replay/model";
 import { evaluatePriceAlerts, createPriceAlert, type PriceAlert } from "./alerts/engine";
@@ -1435,10 +1436,9 @@ export default function App() {
                 onClick={()=>setPanelTab("context")}><Activity size={15}/> Context</button>
             </div>
             {panelTab==="markets"&&<div className="workspace-rail-content" id="rail-panel-markets" role="tabpanel" aria-labelledby="rail-tab-markets">
-            <WatchlistPanel items={prefs.watchlist} favorites={prefs.watchlistFavorites} selected={prefs.symbol}
-              onOpen={openInstrument} onChange={(watchlist,watchlistFavorites)=>{
-                update({watchlist,watchlistFavorites});notify("Watchlist saved locally.");
-              }}/>
+            <AdvancedWatchlistPanel state={prefs.watchlists} frame={prefs.frame} selected={prefs.symbol}
+              onOpen={openInstrument} onChange={watchlists=>update({watchlists})}
+              onFeedback={message=>notify(message)}/>
             {studio && <PeakSessionPanel/>}
             <div className="panel-head separated"><strong>Price levels</strong><span className="count">{currentLevels.length}</span></div>
             <div className="price-form"><input type="number" min="0" step="any" aria-label="Level price" placeholder={last > 0 ? last.toFixed(symbols[prefs.symbol].precision) : "Enter price"} value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === "Enter") addLevel(draft.trim() ? Number(draft) : last); }}/><button aria-label="Add price level" title="Add price level" onClick={() => addLevel(draft.trim() ? Number(draft) : last)}><Plus size={17}/></button></div>
