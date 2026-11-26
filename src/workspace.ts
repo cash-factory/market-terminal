@@ -44,6 +44,8 @@ export type Workspace = {
   priceSource: "demo" | "binance";
   chartLayout: "single" | "dual" | "quad";
   chartDisplayStyle: ChartDisplayStyle;
+  priceScaleMode:PriceScalePreset;
+  priceScaleInverted:boolean;
   comparisonOverlaySymbol: SymbolId | null;
   comparisonOverlaySource: "demo" | "binance";
   chartProfiles: ChartProfile[];
@@ -75,6 +77,7 @@ export type Workspace = {
   chartTemplates: ChartTemplate[];
   alerts: PriceAlert[];
   decisions: DecisionRecord[];
+  watchlists:WatchlistsState;
   favoriteDrawingTools: DrawingTool[];
   favoriteBar:FavoriteBarLayout;
   toolPresets:ToolPresets;
@@ -88,6 +91,8 @@ export const defaultWorkspace: Workspace = {
   priceSource: "demo",
   chartLayout: "single",
   chartDisplayStyle: "candles",
+  priceScaleMode:"normal",
+  priceScaleInverted:false,
   comparisonOverlaySymbol: null,
   comparisonOverlaySource: "demo",
   chartProfiles: [],
@@ -119,6 +124,7 @@ export const defaultWorkspace: Workspace = {
   chartTemplates: [],
   alerts: [],
   decisions: [],
+  watchlists:structuredClone(defaultWatchlists),
   favoriteDrawingTools: [...DEFAULT_FAVORITE_TOOLS],
   favoriteBar:{...DEFAULT_FAVORITE_BAR},
   toolPresets:{},
@@ -187,6 +193,7 @@ export function parseWorkspace(value: unknown): Workspace {
     chartTemplates: parseChartTemplates(raw.chartTemplates),
     alerts: Array.isArray(raw.alerts)?raw.alerts.filter(isPriceAlert):[],
     decisions: parseDecisionRecords(raw.decisions),
+    watchlists:parseWatchlists(raw.watchlists),
     favoriteDrawingTools: parseFavoriteTools(raw.favoriteDrawingTools),
     favoriteBar:parseFavoriteBar(raw.favoriteBar),
     toolPresets:parseToolPresets(raw.toolPresets),
