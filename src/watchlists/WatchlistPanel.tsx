@@ -34,7 +34,9 @@ export function WatchlistPanel({state,frame,selected,onChange,onOpen,onFeedback}
     const last=candles.at(-1)!.close;
     return [symbol,{last,change:(last/candles[0].open-1)*100}];
   })) as Record<SymbolId,{last:number;change:number}|null>,[frame]);
-  const available=availableInstruments.filter(symbol=>!containsSymbol(list,symbol));
+  const fixturePriority:SymbolId[]=["EURUSD","BTCUSDT","AAPL","US100"];
+  const candidates=ENABLE_TEST_FIXTURES ? [...fixturePriority,...availableInstruments.filter(id=>!fixturePriority.includes(id))] : availableInstruments;
+  const available=candidates.filter(symbol=>!containsSymbol(list,symbol));
   const nextSymbol=available.includes(pendingSymbol as SymbolId)?pendingSymbol:available[0]??null;
   const change=(next:WatchlistsState,message:string)=>{
     onChange(next);onFeedback(message);
