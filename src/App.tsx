@@ -958,7 +958,14 @@ export default function App() {
           onChange={riskPlanner=>update({riskPlanner})} symbol={prefs.symbol}
           quotePrice={viewedLast} sourceLabel={displaySourceLabel}
           selectedPosition={selectedObject&&currentDrawings.some(d=>d.id===selectedObject.id)?selectedObject:undefined}/>}
-        {page === "terminal" && !ENABLE_TEST_FIXTURES && <ProviderDesk symbol={prefs.symbol} dark={prefs.dark} onSelect={openInstrument}/>}
+        {page === "terminal" && !ENABLE_TEST_FIXTURES && <div className="provider-workspace">
+          <ProviderDesk symbol={prefs.symbol} dark={prefs.dark} onSelect={openInstrument}/>
+          <aside className="provider-watchlist" aria-label="Saved market watchlists">
+            <AdvancedWatchlistPanel state={prefs.watchlists} frame={prefs.frame} selected={prefs.symbol}
+              onOpen={openInstrument} onChange={watchlists=>update({watchlists})}
+              onFeedback={message=>notify(message)}/>
+          </aside>
+        </div>}
         {page === "terminal" && ENABLE_TEST_FIXTURES && <div className={"terminal-layout " + (prefs.rightPanelOpen ? "" : "panel-closed")}
           style={{"--right-panel-width": prefs.rightPanelWidth + "px"} as CSSProperties}>
           <section className="terminal-center">
