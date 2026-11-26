@@ -30,6 +30,8 @@ import {parseCustomStudies,type CustomStudy} from "./indicators/formula";
 import {parseDecisionRecords,type DecisionRecord} from "./decisions/model";
 import {parseChartDisplayStyle,type ChartDisplayStyle} from "./charts/display";
 import {parseChartProfiles,type ChartProfile} from "./charts/profiles";
+import {parsePriceScalePreset,type PriceScalePreset} from "./charts/priceScale";
+import {defaultWatchlists,parseWatchlists,type WatchlistsState} from "./watchlists/model";
 import {parseWatchlist,parseWatchlistFavorites,DEFAULT_WATCHLIST} from "./watchlist/model";
 import {parseReplayStudies,type SavedReplayStudy} from "./replay/simulation";
 
@@ -44,6 +46,8 @@ export type Workspace = {
   priceSource: "demo" | "binance";
   chartLayout: "single" | "dual" | "quad";
   chartDisplayStyle: ChartDisplayStyle;
+  priceScaleMode:PriceScalePreset;
+  priceScaleInverted:boolean;
   comparisonOverlaySymbol: SymbolId | null;
   comparisonOverlaySource: "demo" | "binance";
   chartProfiles: ChartProfile[];
@@ -75,6 +79,7 @@ export type Workspace = {
   chartTemplates: ChartTemplate[];
   alerts: PriceAlert[];
   decisions: DecisionRecord[];
+  watchlists:WatchlistsState;
   favoriteDrawingTools: DrawingTool[];
   favoriteBar:FavoriteBarLayout;
   toolPresets:ToolPresets;
@@ -88,6 +93,8 @@ export const defaultWorkspace: Workspace = {
   priceSource: "demo",
   chartLayout: "single",
   chartDisplayStyle: "candles",
+  priceScaleMode:"normal",
+  priceScaleInverted:false,
   comparisonOverlaySymbol: null,
   comparisonOverlaySource: "demo",
   chartProfiles: [],
@@ -119,6 +126,15 @@ export const defaultWorkspace: Workspace = {
   chartTemplates: [],
   alerts: [],
   decisions: [],
+  watchlists:ENABLE_TEST_FIXTURES?structuredClone(defaultWatchlists):{
+    activeId:"markets",
+    lists:[{id:"markets",name:"Markets",sections:[{id:"main",name:"Main",entries:[
+      {symbol:"XAUUSD" as SymbolId,note:"",starred:true},
+      {symbol:"US100" as SymbolId,note:"",starred:false},
+      {symbol:"GBPUSD" as SymbolId,note:"",starred:false},
+      {symbol:"GBPJPY" as SymbolId,note:"",starred:false}
+    ]}]}]
+  },
   favoriteDrawingTools: [...DEFAULT_FAVORITE_TOOLS],
   favoriteBar:{...DEFAULT_FAVORITE_BAR},
   toolPresets:{},
@@ -156,6 +172,8 @@ export function parseWorkspace(value: unknown): Workspace {
     priceSource: isRealSpotSymbol(symbol) && (!ENABLE_TEST_FIXTURES || raw.priceSource === "binance") ? "binance" : "demo",
     chartLayout: raw.chartLayout === "quad" ? "quad" : raw.chartLayout === "dual" ? "dual" : "single",
     chartDisplayStyle: parseChartDisplayStyle(raw.chartDisplayStyle),
+    priceScaleMode:parsePriceScalePreset(raw.priceScaleMode),
+    priceScaleInverted:raw.priceScaleInverted===true,
     comparisonOverlaySymbol: availableInstruments.includes(raw.comparisonOverlaySymbol as SymbolId)
       ? raw.comparisonOverlaySymbol as SymbolId : null,
     comparisonOverlaySource: isRealSpotSymbol(raw.comparisonOverlaySymbol as SymbolId)&&(!ENABLE_TEST_FIXTURES||raw.comparisonOverlaySource==="binance")
@@ -187,6 +205,7 @@ export function parseWorkspace(value: unknown): Workspace {
     chartTemplates: parseChartTemplates(raw.chartTemplates),
     alerts: Array.isArray(raw.alerts)?raw.alerts.filter(isPriceAlert):[],
     decisions: parseDecisionRecords(raw.decisions),
+    watchlists:raw.watchlists===undefined?structuredClone(defaultWorkspace.watchlists):parseWatchlists(raw.watchlists),
     favoriteDrawingTools: parseFavoriteTools(raw.favoriteDrawingTools),
     favoriteBar:parseFavoriteBar(raw.favoriteBar),
     toolPresets:parseToolPresets(raw.toolPresets),

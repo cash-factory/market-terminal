@@ -4,6 +4,7 @@ import { demoCandles, ENABLE_TEST_FIXTURES, isRealSpotSymbol, isSecondsFrame, sy
 import { aggregateSeconds } from "./seconds";
 import { fetchBinanceSpotCandles } from "./binance";
 import type { Candle } from "./contracts";
+import { hasCandleGaps, mergeExchangeHistory } from "./reconciliation";
 import { mergeStreamCandle, parseBinanceStreamCandle } from "./stream";
 
 export type PriceSource = "demo" | "binance";
@@ -35,6 +36,8 @@ function chartCandles(rows: readonly Candle[]): CandlestickData<UTCTimestamp>[] 
 
 const EMPTY_CANDLES: CandlestickData<UTCTimestamp>[] = [];
 const STREAM_URL = "wss://data-stream.binance.vision:443/ws/";
+const STREAM_TIMEOUT_MS = 30_000;
+const REPAIR_THROTTLE_MS = 60_000;
 
 /** Opt-in, browser-side market data: no secrets, no proxy and no synthetic-price fallback. */
 export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSource, enabled = true): PriceFeed {
@@ -54,82 +57,142 @@ export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSourc
     let socket: WebSocket | null = null;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
     let healthTimer: ReturnType<typeof setInterval> | null = null;
-    let retries = 0;
+    let reconnectAttempts = 0;
     let receivedAt = 0;
-    const begin = (status: PriceStatus, message: string | null, candles: Candle[] = [], asOfMs: number | null = null) => {
-      if (!disposed) setSnapshot({key, status, message, candles, asOfMs});
+    let socketOpenedAt = 0;
+    let lastUpdatedAt: number | null = null;
+    let candles: Candle[] = [];
+    let repairPending = false;
+    let nextRepairAllowedAt = 0;
+
+    const publish = (status: PriceStatus, message: string | null) => {
+      if (!disposed) setSnapshot({ key, candles, status, message, asOfMs: lastUpdatedAt });
     };
-    begin("loading", "Loading Binance Spot candles…");
+    const errorText = (error: unknown) =>
+      error instanceof Error ? error.message : "Exchange data is temporarily unavailable.";
+
+    const repairHistory = () => {
+      if (disposed || repairPending || Date.now() < nextRepairAllowedAt) return;
+      repairPending = true;
+      nextRepairAllowedAt = Date.now() + REPAIR_THROTTLE_MS;
+      publish("stale", "Missing exchange candles detected. Repairing from verified history…");
+      void (async () => {
+        try {
+          const batch = await fetchBinanceSpotCandles({ symbol: symbol as RealSpotSymbol, interval:nativeFrame, signal: controller.signal });
+          if (disposed || !batch.candles.length) return;
+          candles = mergeExchangeHistory(candles, batch.candles);
+          if (hasCandleGaps(candles, nativeFrame)) {
+            publish("stale", "Exchange history still has missing intervals. The chart is not current.");
+            return;
+          }
+          lastUpdatedAt = receivedAt || Date.now();
+          const streaming = socket?.readyState === WebSocket.OPEN &&
+            receivedAt > 0 && Date.now() - receivedAt <= STREAM_TIMEOUT_MS;
+          publish(streaming ? "live" : "historical",
+            streaming ? null : "Exchange candles reconciled. Waiting for the live stream…");
+          nextRepairAllowedAt = 0;
+        } catch (error) {
+          if (!disposed && !controller.signal.aborted) {
+            publish("stale", "Could not repair missing exchange candles: " + errorText(error));
+          }
+        } finally {
+          repairPending = false;
+        }
+      })();
+    };
+
+    const scheduleReconnect = (message: string) => {
+      if (disposed || retryTimer !== null) return;
+      publish(candles.length ? "stale" : "error", message);
+      reconnectAttempts += 1;
+      const delay = Math.min(30_000, 1000 * 2 ** Math.min(5, reconnectAttempts - 1));
+      retryTimer = setTimeout(() => {
+        retryTimer = null;
+        void syncThenConnect();
+      }, delay);
+    };
 
     const connect = () => {
       if (disposed) return;
       if (typeof WebSocket === "undefined") {
-        setSnapshot(old => old.key !== key ? old : {
-          ...old, status: "error", message: "This browser does not support live WebSocket streaming."
-        });
+        publish("error", "This browser does not support live WebSocket streaming.");
         return;
       }
+      let nextSocket: WebSocket;
       try {
-        socket = new WebSocket(STREAM_URL + symbol.toLowerCase() + "@kline_" + nativeFrame);
+        nextSocket = new WebSocket(STREAM_URL + symbol.toLowerCase() + "@kline_" + nativeFrame);
       } catch {
-        scheduleRetry("Could not open the Binance WebSocket.");
+        scheduleReconnect("Could not open the Binance Spot stream. Retrying with history check…");
         return;
       }
-      socket.onopen = () => {
-        retries = 0;
-        if (!disposed) setSnapshot(old =>
-          old.key === key ? {...old, status: "connecting", message: "Connected; waiting for first live candle update…"} : old
-        );
+      socket = nextSocket;
+      nextSocket.onopen = () => {
+        if (disposed || socket !== nextSocket) return;
+        socketOpenedAt = Date.now();
+        receivedAt = 0;
+        publish(hasCandleGaps(candles, nativeFrame) ? "stale" : "connecting",
+          "Stream connected; awaiting a verified market update…");
       };
-      socket.onmessage = event => {
+      nextSocket.onmessage = event => {
         let parsed: unknown;
         try { parsed = JSON.parse(String(event.data)); } catch { return; }
         const candle = parseBinanceStreamCandle(parsed, nativeFrame, symbol as RealSpotSymbol);
-        if (!candle || disposed) return;
+        if (!candle || disposed || socket !== nextSocket) return;
         receivedAt = Date.now();
-        setSnapshot(old => {
-          if (old.key !== key) return old;
-          return {
-            ...old, candles: mergeStreamCandle(old.candles, candle),
-            status: "live", message: null, asOfMs: receivedAt,
-          };
-        });
+        reconnectAttempts = 0;
+        lastUpdatedAt = receivedAt;
+        candles = mergeStreamCandle(candles, candle);
+        if (hasCandleGaps(candles, nativeFrame)) {
+          publish("stale", "Missing exchange candles detected. Reconciliation required.");
+          repairHistory();
+        } else if (repairPending) {
+          publish("stale", "Checking exchange history after a gap…");
+        } else {
+          publish("live", null);
+        }
       };
-      socket.onerror = () => {
-        // The close event performs backoff; avoid misleading generic network errors here.
+      nextSocket.onerror = () => {
+        // A close event handles backoff; avoid reporting an error as a live price.
       };
-      socket.onclose = () => {
-        if (!disposed) scheduleRetry("Live stream disconnected. Reconnecting…");
+      nextSocket.onclose = () => {
+        if (!disposed && socket === nextSocket) {
+          socket = null;
+          scheduleReconnect("Stream disconnected. Rechecking missed candles before reconnecting…");
+        }
       };
-    };
-    const scheduleRetry = (message: string) => {
-      if (disposed || retryTimer !== null) return;
-      setSnapshot(old => old.key === key ? {
-        ...old, status: old.candles.length ? "stale" : "error", message
-      } : old);
-      retries += 1;
-      retryTimer = setTimeout(() => { retryTimer = null; connect(); }, Math.min(30_000, 1000 * 2 ** Math.min(5, retries - 1)));
     };
 
-    (async () => {
+    const syncThenConnect = async () => {
+      if (disposed) return;
+      publish(candles.length ? "stale" : "loading",
+        candles.length ? "Checking exchange candles after a disconnection…" : "Loading Binance Spot candles…");
       try {
         const batch = await fetchBinanceSpotCandles({ symbol: symbol as RealSpotSymbol, interval:nativeFrame, signal: controller.signal });
         if (disposed) return;
-        if (!batch.candles.length) throw new Error("Binance did not return any valid candles.");
-        begin("historical", "Historical candles loaded. Connecting live stream…",
-          batch.candles, batch.attribution.asOfMs);
+        if (!batch.candles.length) throw new Error("Binance returned no valid candles.");
+        candles = mergeExchangeHistory(candles, batch.candles);
+        lastUpdatedAt = batch.attribution.asOfMs;
+        publish(hasCandleGaps(candles, nativeFrame) ? "stale" : "historical",
+          hasCandleGaps(candles, nativeFrame)
+            ? "Some historical candles are missing; live stream will attempt repair."
+            : "Historical exchange candles synchronized. Connecting live stream…");
         connect();
-        healthTimer = setInterval(() => {
-          if (receivedAt && Date.now() - receivedAt > (isSecondsFrame(interval)?8_000:30_000)) {
-            setSnapshot(old => old.key === key && old.status === "live"
-              ? {...old, status: "stale", message: "No live update received for over "+(isSecondsFrame(interval)?"8":"30")+" seconds."} : old);
-          }
-        }, 5_000);
       } catch (error) {
         if (disposed || controller.signal.aborted) return;
-        begin("error", error instanceof Error ? error.message : "Could not retrieve market history.");
+        scheduleReconnect("Exchange history unavailable: " + errorText(error) + " Retrying…");
       }
-    })();
+    };
+
+    publish("loading", "Loading Binance Spot candles…");
+    void syncThenConnect();
+    healthTimer = setInterval(() => {
+      if (socket?.readyState !== WebSocket.OPEN) return;
+      const latestActivity = receivedAt || socketOpenedAt;
+      if (latestActivity && Date.now() - latestActivity > STREAM_TIMEOUT_MS) {
+        // A connected but silent WebSocket must not continue to appear live.
+        socket.close();
+      }
+    }, 5_000);
 
     return () => {
       disposed = true;
@@ -146,8 +209,7 @@ export function usePriceFeed(symbol: SymbolId, interval: Frame, mode: PriceSourc
     };
   }, [key, nativeFrame, interval, active]);
 
-  const projected = useMemo(() => chartCandles(
-    isSecondsFrame(interval)?
+  const projected = useMemo(() => chartCandles(isSecondsFrame(interval)?
       aggregateSeconds(snapshot.candles,interval as "1s"|"5s"|"10s"|"15s"|"30s"|"45s"):
       snapshot.candles), [snapshot.candles,interval]);
   if (!active) return ENABLE_TEST_FIXTURES && mode === "demo" ? {

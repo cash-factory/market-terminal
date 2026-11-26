@@ -1,0 +1,36 @@
+name: Focused browser regression diagnostics
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'e2e/**'
+      - '.github/workflows/focused-regression.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  drawing-and-workflows:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Check drawing library, command palette and data workflows
+        run: |
+          npx playwright test e2e/advanced-drawing-families.spec.ts e2e/binance-reconnect.spec.ts e2e/chart-navigation-export.spec.ts e2e/chart-snapshot.spec.ts e2e/watchlist-screener-workflows.spec.ts e2e/chart-scale-workflows.spec.ts e2e/chart-templates.spec.ts e2e/chart-first-tools.spec.ts e2e/strategy-lab.spec.ts --workers=1 --retries=0 --max-failures=1 --reporter=list
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: focused-browser-traces
+          path: test-results/
+          if-no-files-found: ignore

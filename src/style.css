@@ -871,3 +871,13 @@
 .provider-chart{height:clamp(390px,calc(100dvh - 238px),1100px);min-width:0}
 .provider-chart .tradingview-widget-container,.provider-chart .tradingview-widget-container__widget{height:100%;width:100%}
 .provider-credit{color:var(--accent);align-self:flex-start}
+
+/* Sourced chart + persistent research list; never render fabricated quotes in production. */
+.provider-workspace {display:grid;grid-template-columns:minmax(0,1fr) clamp(264px,23vw,345px);align-items:start;gap:8px;min-width:0;width:100%;padding-right:8px}
+.provider-workspace > .provider-desk {min-width:0;width:100%}
+.provider-watchlist {margin-top:12px;min-width:0;max-height:calc(100dvh - 138px);overflow:auto;padding:12px;background:var(--panel);border:1px solid var(--border);border-radius:8px}
+.provider-watchlist .wl-open:disabled {opacity:.58;cursor:not-allowed}
+@media (max-width:980px) {.provider-workspace {grid-template-columns:minmax(0,1fr);padding:0 8px}.provider-watchlist{margin:0 4px 12px;max-height:none}.provider-workspace .provider-chart{height:clamp(410px,65dvh,830px)}}
+
+.peak-workspace-pages {display:flex;flex-direction:column;gap:3px;min-width:0}
+.peak-workspace-pages .nav-item {width:100%}

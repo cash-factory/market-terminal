@@ -5,10 +5,16 @@ import {
   Activity, ArrowDownToLine, Bell, BookOpen, ChartCandlestick, Check,
   ChevronLeft, ChevronRight, Command, Compass, Download, Home, Layers,
   Menu, Moon, MousePointer2, Plus, RotateCcw, Search, Settings2, Sun, Maximize2, Minimize2, Volume2, VolumeX,
-  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Film, Magnet, MoveUpRight, ArrowUpRight, Columns2, Grid2X2, Shapes, Pencil, ArrowUp, ArrowDown, Link2, Unlink2
+  Trash2, Upload, X, TrendingUp, Square, Ruler, Undo2, Redo2, RefreshCw, WifiOff, PanelRightClose, PanelRightOpen, Lock, Unlock, Eye, EyeOff, Copy, Repeat2, Film, Magnet, MoveUpRight, ArrowUpRight, Columns2, Grid2X2, Shapes, Pencil, ArrowUp, ArrowDown, Link2, Unlink2, CalendarClock, Camera
 } from "lucide-react";
 import { ChartCanvas,type ChartSurface,type ChartRange } from "./ChartCanvas";
 import { MarketBoard } from "./charts/MarketBoard";
+import {nearestObservedBar,ohlcCsv,parseUtcChartDate} from "./charts/navigation";
+import {captureChartPng,snapshotAttribution,snapshotFilename} from "./charts/snapshot";
+
+import { ScreenerPanel } from "./screener/ScreenerPanel";
+import {StrategyLab} from "./strategies/StrategyLab";
+import {activeWatchlist,addSymbol,containsSymbol} from "./watchlists/model";
 import { InstrumentHeader, type CandleInspector } from "./charts/InstrumentHeader";
 import {ChartErrorBoundary} from "./charts/ChartErrorBoundary";
 import {chartStyles,type ChartDisplayStyle} from "./charts/display";
@@ -38,6 +44,7 @@ import { ReplayControls } from "./replay/ReplayControls";
 import { ReplayLab } from "./replay/ReplayLab";
 import { drawingVisibleInReplay } from "./replay/visibility";
 import { WatchlistPanel } from "./watchlist/WatchlistPanel";
+import {WatchlistPanel as AdvancedWatchlistPanel} from "./watchlists/WatchlistPanel";
 import { RiskPlanner } from "./analysis/RiskPlanner";
 import { beginReplay,stepReplay,seekReplay,toggleReplayPlayback,setReplaySpeed,visibleReplayCandles,type ReplayState,type ReplaySpeed } from "./replay/model";
 import { evaluatePriceAlerts, createPriceAlert, type PriceAlert } from "./alerts/engine";
@@ -52,7 +59,7 @@ import { PeakIcon } from "./presentation/PeakIcon";
 import { PeakOverview } from "./presentation/PeakOverview";
 import { PeakSessionPanel } from "./presentation/PeakSessionPanel";
 
-type Page = "home" | "terminal" | "sizing" | "alerts" | "library" | "settings";
+type Page = "home" | "terminal" | "sizing" | "screener" | "strategy" | "alerts" | "library" | "settings";
 type Notice = { id: number; message: string; kind: "success" | "info" | "error" };
 const frames: Frame[] = ALL_FRAMES;
 const studyKeys=Object.keys(defaultStudies) as (keyof StudySettings)[];
@@ -60,13 +67,17 @@ const menu: { id: Page; label: string; Icon: typeof Home }[] = [
   { id: "home", label: "Overview", Icon: Home },
   { id: "terminal", label: "Chart workspace", Icon: ChartCandlestick },
   { id: "sizing", label: "Position sizing", Icon: Ruler },
+  ...(ENABLE_TEST_FIXTURES ? [
+    { id: "screener" as Page, label: "Screener", Icon: Search },
+    { id: "strategy" as Page, label: "Strategy Lab", Icon: Activity }
+  ] : []),
   { id: "alerts", label: "Price Alerts", Icon: Bell },
   { id: "library", label: "Workspace", Icon: Layers },
   { id: "settings", label: "Preferences", Icon: Settings2 },
 ];
 
 const titles: Record<Page, string> = {
-  home: "Market overview", terminal: "Chart workspace", sizing: "Position sizing", alerts:"Price alerts", library: "My workspace", settings: "Preferences"
+  home: "Market overview", terminal: "Chart workspace", sizing: "Position sizing", screener:"Synthetic research screener", strategy:"Strategy laboratory", alerts:"Price alerts", library: "My workspace", settings: "Preferences"
 };
 
 const studio = !new URLSearchParams(window.location.search).has("classic");
@@ -76,6 +87,8 @@ export default function App() {
   const [manageObjects,setManageObjects] = useState(false);
   const [saveFailed,setSaveFailed] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
+  const [dateNavigationOpen,setDateNavigationOpen]=useState(false);
+  const [dateNavigationValue,setDateNavigationValue]=useState("");
   const [prefs, setPrefs] = useState<Workspace>(loadWorkspace);
   const [marketClock,setMarketClock]=useState(()=>Date.now());
   useEffect(()=>{
@@ -248,6 +261,58 @@ export default function App() {
     openInstrument(symbol);
     if(ENABLE_TEST_FIXTURES)update({priceSource:"demo"});
     setReplay(null);
+  };
+  const addToActiveWatchlist=(symbol:SymbolId):boolean=>{
+    if(containsSymbol(activeWatchlist(prefs.watchlists),symbol)){
+      notify(symbols[symbol].label+" already belongs to this watchlist.","info");return false;
+    }
+    update({watchlists:addSymbol(prefs.watchlists,symbol)});
+    notify(symbols[symbol].label+" saved to "+activeWatchlist(prefs.watchlists).name+".");
+    return true;
+  };
+  const openGoToDate=()=>{
+    setDateNavigationValue(viewedCandles.length?
+      new Date(Number(viewedCandles.at(-1)!.time)*1000).toISOString().slice(0,16):"");
+    setDateNavigationOpen(true);
+  };
+  const jumpToDate=()=>{
+    const instant=parseUtcChartDate(dateNavigationValue);
+    if(instant===null){notify("Enter a valid UTC date/time.","error");return;}
+    const index=nearestObservedBar(viewedCandles,instant);
+    const surface=linkedChartRefs.current.primary;
+    if(index===null||!surface){notify("Chart data is not ready for date navigation.","error");return;}
+    surface.chart.timeScale().setVisibleLogicalRange({from:Math.max(0,index-55),to:index+25});
+    setDateNavigationOpen(false);
+    notify("Navigated to observed "+prefs.frame+" candle at "+
+      new Date(Number(viewedCandles[index].time)*1000).toISOString().slice(0,16).replace("T"," ")+" UTC.","info");
+  };
+  const exportCandlesCsv=()=>{
+    if(!viewedCandles.length){notify("No chart candles available.","error");return;}
+    const csv=ohlcCsv(viewedCandles,prefs.symbol,prefs.priceSource,prefs.frame);
+    const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+    const link=document.createElement("a");
+    link.href=url;link.download="market-terminal-"+prefs.symbol+"-"+prefs.priceSource+"-"+prefs.frame+".csv";
+    document.body.appendChild(link);link.click();link.remove();
+    window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+    notify(viewedCandles.length+" source-labelled candles exported.");
+  };
+  const exportChartPng=async()=>{
+    const surface=linkedChartRefs.current.primary;
+    if(!surface){notify("The chart is not ready to capture.","error");return;}
+    try{
+      const overlay=document.querySelector('.technical-chart-stack[data-pane-id="primary"] svg.drawing-overlay');
+      const png=await captureChartPng(surface.chart,overlay instanceof SVGSVGElement?overlay:null,
+        snapshotAttribution(prefs.symbol,prefs.frame,prefs.priceSource)+(replay?"  /  HISTORICAL REPLAY":""),
+        prefs.dark);
+      const url=URL.createObjectURL(png);
+      const link=document.createElement("a");
+      link.href=url;link.download=snapshotFilename(prefs.symbol,prefs.frame,prefs.priceSource);
+      document.body.appendChild(link);link.click();link.remove();
+      window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+      notify("Price chart image saved with source attribution and annotations.");
+    }catch(error){
+      notify(error instanceof Error?error.message:"Could not capture chart image.","error");
+    }
   };
   const addLevel = (price: number) => {
     if (!Number.isFinite(price) || price <= 0) { notify("Enter a valid positive price.", "error"); return; }
@@ -492,6 +557,15 @@ export default function App() {
       case "indicators":setStudyMenuOpen(true);notify("Technical indicators opened.","info");break;
       case "setup":setSetupOpen(true);notify("Chart configuration expanded.","info");break;
       case "replay":replay?exitReplay():startReplay();break;
+      case "goto":openGoToDate();break;
+      case "csv":exportCandlesCsv();break;
+      case "snapshot":void exportChartPng();break;
+      case "scale-log":update({priceScaleMode:"log"});notify("Logarithmic price scale enabled.","info");break;
+      case "scale-percent":update({priceScaleMode:"percent"});notify("Percent price scale enabled.","info");break;
+      case "scale-normal":update({priceScaleMode:"normal"});notify("Absolute price scale enabled.","info");break;
+      case "scale-indexed":update({priceScaleMode:"indexed"});notify("Indexed price scale enabled.","info");break;
+      case "scale-invert":update({priceScaleInverted:!prefs.priceScaleInverted});
+        notify("Price-scale direction updated.","info");break;
       case "focus":setFocusMode(current=>!current);notify("Chart focus toggled.","info");break;
       case "single":case "dual":case "quad":{
         const layout=id.slice(6) as Workspace["chartLayout"];
@@ -829,12 +903,14 @@ export default function App() {
             {prefs.sidebarOpen&&<span>Peak Workspace</span>}
           </div>
           <div className="sidebar-caption">{prefs.sidebarOpen ? "WORKSPACES" : "•••"}</div>
+          <nav className="peak-workspace-pages" aria-label="Workstation pages">
           {menu.map(({ id, label }) => <button key={id}
             className={"nav-item " + (page === id ? "active" : "")}
             title={label} aria-label={studio&&id==="home"?"Market overview":label} aria-current={page === id ? "page" : undefined}
             onClick={() => { setPage(id); setDrawMode(false); setDrawingTool(null); }}>
             <PeakIcon name={id==="home"?"workspace-grid":id==="terminal"?"workspace-research":id==="sizing"?"chart-measure":id==="alerts"?"ui-alert":id==="library"?"workspace-stack":"ui-panel-glass"} size={18}/>{prefs.sidebarOpen && <span>{label}</span>}
           </button>)}
+          </nav>
           <div className="peak-sidebar-divider"/>
           <div className="sidebar-caption">{prefs.sidebarOpen?(ENABLE_TEST_FIXTURES?"RESEARCH TOOLS":"INSTRUMENTS"):"·"}</div>
           {!ENABLE_TEST_FIXTURES && availableInstruments.map(id=><button className="nav-item" key={id} title={symbols[id].label} onClick={()=>openInstrument(id)}><ChartCandlestick size={16}/>{prefs.sidebarOpen && <span>{symbols[id].label}</span>}</button>)}
@@ -884,7 +960,14 @@ export default function App() {
           onChange={riskPlanner=>update({riskPlanner})} symbol={prefs.symbol}
           quotePrice={viewedLast} sourceLabel={displaySourceLabel}
           selectedPosition={selectedObject&&currentDrawings.some(d=>d.id===selectedObject.id)?selectedObject:undefined}/>}
-        {page === "terminal" && !ENABLE_TEST_FIXTURES && <ProviderDesk symbol={prefs.symbol} dark={prefs.dark} onSelect={openInstrument}/>}
+        {page === "terminal" && !ENABLE_TEST_FIXTURES && <div className="provider-workspace">
+          <ProviderDesk symbol={prefs.symbol} dark={prefs.dark} onSelect={openInstrument}/>
+          <aside className="provider-watchlist" aria-label="Saved market watchlists">
+            <AdvancedWatchlistPanel state={prefs.watchlists} frame={prefs.frame} selected={prefs.symbol}
+              onOpen={openInstrument} onChange={watchlists=>update({watchlists})}
+              onFeedback={message=>notify(message)}/>
+          </aside>
+        </div>}
         {page === "terminal" && ENABLE_TEST_FIXTURES && <div className={"terminal-layout " + (prefs.rightPanelOpen ? "" : "panel-closed")}
           style={{"--right-panel-width": prefs.rightPanelWidth + "px"} as CSSProperties}>
           <section className="terminal-center">
@@ -909,6 +992,13 @@ export default function App() {
               <button className="symbol-button" onClick={() => setSearchOpen(true)}><span>{symbols[prefs.symbol].label}</span><Search size={15}/></button>
               <TimeframePicker value={prefs.frame} source={prefs.priceSource}
                 onSelect={frame=>{update({frame});notify("Chart interval changed to "+frame+".","info");}}/>
+              <button type="button" className="compact-action chart-goto" aria-label="Go to date"
+                onClick={openGoToDate} title="Go to an observed UTC candle"><CalendarClock size={15}/> Go to</button>
+              <button type="button" className="compact-action chart-csv" aria-label="Export displayed candles as CSV"
+                onClick={exportCandlesCsv} title="Export the visible source and replay prefix to CSV"><Download size={15}/> CSV</button>
+              <button type="button" className="compact-action chart-snapshot" aria-label="Export chart PNG"
+                onClick={()=>{void exportChartPng();}} title="Save price chart and visible drawing annotations as PNG">
+                <Camera size={15}/> Snapshot</button>
               <span className="tool-divider"/>
               <button className={"compact-action "+(replay?"active":"")} aria-label={replay?"Exit replay":"Start replay"}
                 disabled={!replay&&currentCandles.length<40}
@@ -971,6 +1061,18 @@ export default function App() {
                 onSave={saveFullChartProfile}
                 onApply={applyFullChartProfile}
                 onDelete={deleteFullChartProfile}/>
+              <label className="chart-style-switch">Price scale
+                <select aria-label="Chart price scale mode" value={prefs.priceScaleMode}
+                  onChange={e=>{update({priceScaleMode:e.target.value as Workspace["priceScaleMode"]});
+                    notify("Chart price-scale mode updated.","info");}}>
+                  <option value="normal">Absolute</option><option value="log">Logarithmic</option>
+                  <option value="percent">Percentage</option><option value="indexed">Indexed 100</option>
+                </select>
+              </label>
+              <button type="button" className={"compact-action "+(prefs.priceScaleInverted?"active":"")}
+                aria-label="Invert chart price scale" aria-pressed={prefs.priceScaleInverted}
+                onClick={()=>{update({priceScaleInverted:!prefs.priceScaleInverted});notify("Price scale inverted state updated.","info");}}>
+                <Repeat2 size={14}/> Invert scale</button>
               <label className="chart-style-switch">Chart style
                 <select aria-label="Chart display style" value={prefs.chartDisplayStyle}
                   onChange={e=>{
@@ -1242,7 +1344,8 @@ export default function App() {
                 </div>}
                 <ChartErrorBoundary title="Primary chart"
                   resetKey={prefs.symbol+":"+prefs.frame+":"+prefs.priceSource+":"+prefs.chartDisplayStyle}>
-                  <ChartCanvas chartStyle={prefs.chartDisplayStyle}
+                  <ChartCanvas chartStyle={prefs.chartDisplayStyle} priceScaleMode={prefs.priceScaleMode}
+                  priceScaleInverted={prefs.priceScaleInverted}
                   comparisonCandles={prefs.comparisonOverlaySymbol?overlayFeed.candles:undefined}
                   comparisonLabel={prefs.comparisonOverlaySymbol?
                     symbols[prefs.comparisonOverlaySymbol].label+" · "+overlayFeed.sourceLabel+
@@ -1301,7 +1404,8 @@ export default function App() {
                   </div>
                   <ChartErrorBoundary title={"Chart "+panel.number}
                     resetKey={panel.symbol+":"+panel.frame+":"+panel.source+":"+prefs.chartDisplayStyle}>
-                  <ChartCanvas chartStyle={prefs.chartDisplayStyle} paneId={panel.slot} onSurfaceReady={registerChartSurface}
+                  <ChartCanvas chartStyle={prefs.chartDisplayStyle} priceScaleMode={prefs.priceScaleMode}
+                    priceScaleInverted={prefs.priceScaleInverted} paneId={panel.slot} onSurfaceReady={registerChartSurface}
                     onRangeChanged={onChartRangeChanged} onCrosshairChanged={onChartCrosshairChanged}
                     key={"comparison-"+panel.slot+"-"+panel.symbol+"-"+panel.frame+"-"+panel.source}
                     symbol={panel.symbol} frame={panel.frame}
@@ -1341,10 +1445,9 @@ export default function App() {
                 onClick={()=>setPanelTab("context")}><Activity size={15}/> Context</button>
             </div>
             {panelTab==="markets"&&<div className="workspace-rail-content" id="rail-panel-markets" role="tabpanel" aria-labelledby="rail-tab-markets">
-            <WatchlistPanel items={prefs.watchlist} favorites={prefs.watchlistFavorites} selected={prefs.symbol}
-              onOpen={openInstrument} onChange={(watchlist,watchlistFavorites)=>{
-                update({watchlist,watchlistFavorites});notify("Watchlist saved locally.");
-              }}/>
+            <AdvancedWatchlistPanel state={prefs.watchlists} frame={prefs.frame} selected={prefs.symbol}
+              onOpen={openInstrument} onChange={watchlists=>update({watchlists})}
+              onFeedback={message=>notify(message)}/>
             {studio && <PeakSessionPanel/>}
             <div className="panel-head separated"><strong>Price levels</strong><span className="count">{currentLevels.length}</span></div>
             <div className="price-form"><input type="number" min="0" step="any" aria-label="Level price" placeholder={last > 0 ? last.toFixed(symbols[prefs.symbol].precision) : "Enter price"} value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === "Enter") addLevel(draft.trim() ? Number(draft) : last); }}/><button aria-label="Add price level" title="Add price level" onClick={() => addLevel(draft.trim() ? Number(draft) : last)}><Plus size={17}/></button></div>
@@ -1486,6 +1589,13 @@ export default function App() {
               onShowObjects={()=>setPanelTab("objects")}/>}
           </aside>}
         </div>}
+        {page === "strategy" && <StrategyLab symbol={prefs.symbol} frame={prefs.frame}
+          source={prefs.priceSource} status={replay?"historical":feed.status}
+          replayMode={replay!==null} candles={viewedCandles}
+          onBack={()=>setPage("terminal")}/>}
+        {page === "screener" && <ScreenerPanel frame={prefs.frame}
+          activeListName={activeWatchlist(prefs.watchlists).name}
+          onOpen={openDemoMarket} onAddToWatchlist={addToActiveWatchlist}/>}
         {page === "alerts" && <AlertsCenter
           alerts={prefs.alerts} symbol={prefs.symbol} source={prefs.priceSource}
           sourceLabel={feed.sourceLabel} status={feed.status} currentPrice={last}
