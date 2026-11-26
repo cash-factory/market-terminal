@@ -11,7 +11,7 @@ import { ChartCanvas,type ChartSurface,type ChartRange } from "./ChartCanvas";
 import { MarketBoard } from "./charts/MarketBoard";
 import {nearestObservedBar,ohlcCsv,parseUtcChartDate} from "./charts/navigation";
 import {captureChartPng,snapshotAttribution,snapshotFilename} from "./charts/snapshot";
-import { WatchlistPanel } from "./watchlists/WatchlistPanel";
+
 import { ScreenerPanel } from "./screener/ScreenerPanel";
 import {StrategyLab} from "./strategies/StrategyLab";
 import {activeWatchlist,addSymbol,containsSymbol} from "./watchlists/model";
@@ -58,7 +58,7 @@ import { PeakIcon } from "./presentation/PeakIcon";
 import { PeakOverview } from "./presentation/PeakOverview";
 import { PeakSessionPanel } from "./presentation/PeakSessionPanel";
 
-type Page = "home" | "terminal" | "sizing" | "alerts" | "library" | "settings";
+type Page = "home" | "terminal" | "sizing" | "screener" | "strategy" | "alerts" | "library" | "settings";
 type Notice = { id: number; message: string; kind: "success" | "info" | "error" };
 const frames: Frame[] = ALL_FRAMES;
 const studyKeys=Object.keys(defaultStudies) as (keyof StudySettings)[];
@@ -66,13 +66,17 @@ const menu: { id: Page; label: string; Icon: typeof Home }[] = [
   { id: "home", label: "Overview", Icon: Home },
   { id: "terminal", label: "Chart workspace", Icon: ChartCandlestick },
   { id: "sizing", label: "Position sizing", Icon: Ruler },
+  ...(ENABLE_TEST_FIXTURES ? [
+    { id: "screener" as Page, label: "Synthetic screener", Icon: Search },
+    { id: "strategy" as Page, label: "Strategy Lab", Icon: Activity }
+  ] : []),
   { id: "alerts", label: "Price Alerts", Icon: Bell },
   { id: "library", label: "Workspace", Icon: Layers },
   { id: "settings", label: "Preferences", Icon: Settings2 },
 ];
 
 const titles: Record<Page, string> = {
-  home: "Market overview", terminal: "Chart workspace", sizing: "Position sizing", alerts:"Price alerts", library: "My workspace", settings: "Preferences"
+  home: "Market overview", terminal: "Chart workspace", sizing: "Position sizing", screener:"Synthetic research screener", strategy:"Strategy laboratory", alerts:"Price alerts", library: "My workspace", settings: "Preferences"
 };
 
 const studio = !new URLSearchParams(window.location.search).has("classic");
