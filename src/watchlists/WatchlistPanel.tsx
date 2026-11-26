@@ -1,7 +1,7 @@
 import {useMemo,useState} from "react";
 import {ArrowDown,ArrowUp,Check,ChevronDown,Copy,Edit3,FolderPlus,ListPlus,
   Plus,Search,Star,Trash2,X} from "lucide-react";
-import {demoCandles,symbols,type Frame,type SymbolId} from "../market";
+import {demoCandles,ENABLE_TEST_FIXTURES,availableInstruments,symbols,type Frame,type SymbolId} from "../market";
 import {
   activeWatchlist,addSymbol,containsSymbol,createSection,createWatchlist,
   deleteSection,deleteWatchlist,duplicateWatchlist,moveSymbol,removeSymbol,
@@ -29,11 +29,12 @@ export function WatchlistPanel({state,frame,selected,onChange,onOpen,onFeedback}
   const [sortMode,setSortMode]=useState<SortMode>("manual");
 
   const values=useMemo(()=>Object.fromEntries((Object.keys(symbols) as SymbolId[]).map(symbol=>{
+    if (!ENABLE_TEST_FIXTURES) return [symbol,null];
     const candles=demoCandles(symbol,frame).slice(-24);
     const last=candles.at(-1)!.close;
     return [symbol,{last,change:(last/candles[0].open-1)*100}];
-  })) as Record<SymbolId,{last:number;change:number}>,[frame]);
-  const available=(Object.keys(symbols) as SymbolId[]).filter(symbol=>!containsSymbol(list,symbol));
+  })) as Record<SymbolId,{last:number;change:number}|null>,[frame]);
+  const available=availableInstruments.filter(symbol=>!containsSymbol(list,symbol));
   const nextSymbol=available.includes(pendingSymbol as SymbolId)?pendingSymbol:available[0]??null;
   const change=(next:WatchlistsState,message:string)=>{
     onChange(next);onFeedback(message);
@@ -45,13 +46,13 @@ export function WatchlistPanel({state,frame,selected,onChange,onOpen,onFeedback}
   const sortEntries=(entries:typeof list.sections[number]["entries"])=>{
     const rows=[...entries];
     if(sortMode==="name")rows.sort((a,b)=>a.symbol.localeCompare(b.symbol));
-    if(sortMode==="change")rows.sort((a,b)=>values[b.symbol].change-values[a.symbol].change);
+    if(sortMode==="change"&&ENABLE_TEST_FIXTURES)rows.sort((a,b)=>(values[b.symbol]?.change??0)-(values[a.symbol]?.change??0));
     return rows.filter(entry=>[entry.symbol,symbols[entry.symbol].label,entry.note]
       .join(" ").toLowerCase().includes(query.trim().toLowerCase()));
   };
   return <section className="wl-root" aria-label="Watchlist workspace">
     <header className="wl-heading">
-      <div><strong>Watchlists</strong><span>Synthetic quotes · {frame} · 24 bars</span></div>
+      <div><strong>Watchlists</strong><span>{ENABLE_TEST_FIXTURES?`Synthetic quotes · ${frame} · 24 bars`:"Saved locally · provider charts"}</span></div>
       <button type="button" aria-label="Manage watchlists" aria-expanded={manage} title="Manage watchlists"
         onClick={()=>{setManage(v=>!v);setRenameValue(list.name);}}><Edit3 size={15}/></button>
     </header>
@@ -100,7 +101,7 @@ export function WatchlistPanel({state,frame,selected,onChange,onOpen,onFeedback}
         onChange={e=>setSortMode(e.target.value as SortMode)}>
         <option value="manual">Custom</option>
         <option value="name">Name</option>
-        <option value="change">24-bar move</option>
+        {ENABLE_TEST_FIXTURES&&<option value="change">24-bar move</option>}
       </select></label>
     </div>
     <div className="wl-sections">
@@ -138,10 +139,13 @@ export function WatchlistPanel({state,frame,selected,onChange,onOpen,onFeedback}
                   <Star size={14} fill={entry.starred?"currentColor":"none"}/>
                 </button>
                 <button type="button" className="wl-open" aria-label={"Open "+entry.symbol+" chart"}
+                  disabled={!availableInstruments.includes(entry.symbol)}
                   onClick={()=>onOpen(entry.symbol)}><strong>{symbols[entry.symbol].label}</strong>
-                  <small>{symbols[entry.symbol].market.split(" · ")[0]} · DEMO</small></button>
-                <div className="wl-quote"><strong>{quote.last.toFixed(precision)}</strong>
-                  <span className={quote.change>=0?"quote-up":"quote-down"}>{quote.change>=0?"+":""}{quote.change.toFixed(2)}%</span></div>
+                  <small>{ENABLE_TEST_FIXTURES ? symbols[entry.symbol].market.split(" · ")[0]+" · DEMO" :
+                    availableInstruments.includes(entry.symbol) ? "Provider chart available" : "No configured chart feed"}</small></button>
+                <div className="wl-quote">{quote ? <><strong>{quote.last.toFixed(precision)}</strong>
+                  <span className={quote.change>=0?"quote-up":"quote-down"}>{quote.change>=0?"+":""}{quote.change.toFixed(2)}%</span></>
+                  : <small>Quote on chart</small>}</div>
               </div>
               <div className="wl-item-actions">
                 <button type="button" aria-label={"Edit note for "+entry.symbol}
@@ -192,6 +196,6 @@ export function WatchlistPanel({state,frame,selected,onChange,onOpen,onFeedback}
         change(createSection(state,newSection),"Section created.");setNewSection("");
       }}><FolderPlus size={15}/></button>
     </div>
-    <p className="wl-disclaimer">Watchlist lists and notes persist locally. All prices here are synthetic illustrations, never exchange quotes.</p>
+    <p className="wl-disclaimer">{ENABLE_TEST_FIXTURES ? "Watchlist lists and notes persist locally. All prices here are synthetic illustrations, never exchange quotes." : "Watchlists, favorites and notes stay on this device. Prices are shown only inside sourced provider charts; this list does not invent quotes."}</p>
   </section>;
 }
