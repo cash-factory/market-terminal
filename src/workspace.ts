@@ -164,6 +164,8 @@ export function parseWorkspace(value: unknown): Workspace {
     priceSource: isRealSpotSymbol(symbol) && (!ENABLE_TEST_FIXTURES || raw.priceSource === "binance") ? "binance" : "demo",
     chartLayout: raw.chartLayout === "quad" ? "quad" : raw.chartLayout === "dual" ? "dual" : "single",
     chartDisplayStyle: parseChartDisplayStyle(raw.chartDisplayStyle),
+    priceScaleMode:parsePriceScalePreset(raw.priceScaleMode),
+    priceScaleInverted:raw.priceScaleInverted===true,
     comparisonOverlaySymbol: availableInstruments.includes(raw.comparisonOverlaySymbol as SymbolId)
       ? raw.comparisonOverlaySymbol as SymbolId : null,
     comparisonOverlaySource: isRealSpotSymbol(raw.comparisonOverlaySymbol as SymbolId)&&(!ENABLE_TEST_FIXTURES||raw.comparisonOverlaySource==="binance")
