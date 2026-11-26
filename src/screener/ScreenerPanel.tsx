@@ -20,7 +20,7 @@ export function ScreenerPanel({frame,activeListName,onOpen,onAddToWatchlist}:Pro
     <header className="screener-heading">
       <div><span className="sc-eyebrow">MARKET RESEARCH / LOCAL-FIRST</span>
         <h1>Market screener</h1><p>Build filters and move discoveries into your watchlists.
-          This preview screens four <strong>synthetic</strong> instruments, not live prices.</p></div>
+          This preview screens {snapshots.length} <strong>synthetic</strong> instrument fixtures, not live prices.</p></div>
       <span className="sc-source"><span/> DEMONSTRATION DATA</span>
     </header>
     <section className="screener-workspace" aria-label="Screener filters">
