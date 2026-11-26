@@ -1,5 +1,6 @@
 import {ArrowRight,ChartCandlestick,Film} from "lucide-react";
 import {PeakIcon} from "./PeakIcon";
+import {ENABLE_TEST_FIXTURES} from "../market";
 type Props={
   instrument:string;
   drawings:number;
@@ -50,6 +51,8 @@ export function PeakOverview({instrument,drawings,alerts,studies,watchlist,sourc
         </button>)}
       </div>
     </section>
-    <section className="peak-home-source-note"><PeakIcon name="ui-panel-glass" size={18}/><p>Crypto charts identify their exchange feed and connection status. Markets without a configured provider show no prices. Replay results are hypothetical.</p></section>
+    <section className="peak-home-source-note"><PeakIcon name="ui-panel-glass" size={18}/><p>{ENABLE_TEST_FIXTURES
+      ? "Synthetic demonstration candles are not actual exchange prices. Historical replay and strategy results are hypothetical."
+      : "Charts identify their external price provider. Markets without a configured provider show no prices. Native replay requires an independently sourced feed."}</p></section>
   </>;
 }
