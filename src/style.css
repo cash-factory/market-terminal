@@ -881,3 +881,44 @@
 
 .peak-workspace-pages {display:flex;flex-direction:column;gap:3px;min-width:0}
 .peak-workspace-pages .nav-item {width:100%}
+
+
+/* Provider-hosted drawing workspace. The TradingView iframe owns price/time
+   coordinates; never misalign a separate local drawing canvas over it. */
+.provider-desk-navigation{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.provider-desk-navigation nav{flex:1;min-width:220px}
+.provider-desk-navigation header{flex:0 1 auto;gap:13px}
+.provider-drawing-tools{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:11px 13px;background:var(--panel);border:1px solid var(--border);border-radius:9px}
+.provider-drawing-heading{display:flex;gap:11px;align-items:center;min-width:0}
+.provider-drawing-heading>div{display:flex;flex-direction:column;gap:4px}
+.provider-drawing-heading strong{font-size:12px;font-weight:680;color:var(--text)}
+.provider-drawing-heading small{font-size:10px;color:var(--muted)}
+.provider-drawing-glyph{width:34px;height:34px;border-radius:7px;background:var(--accent-dim);border:1px solid var(--accent-border);color:var(--accent);display:grid;place-items:center;flex-shrink:0}
+.provider-drawing-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}
+.provider-drawing-tools .provider-drawing-actions button,.provider-draw-external{min-height:35px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:8px 11px;border:1px solid var(--border);border-radius:7px;color:var(--soft);background:var(--raised);font-size:11px;font-weight:550;white-space:nowrap;text-decoration:none}
+.provider-drawing-tools .provider-drawing-actions button:hover,.provider-draw-external:hover{border-color:var(--accent-border);color:var(--text)}
+.provider-drawing-tools .provider-drawing-actions .provider-draw-primary{color:#0b141d;background:var(--accent);border-color:var(--accent);font-weight:750}
+.provider-drawing-tools .provider-drawing-actions .provider-draw-primary:hover{filter:brightness(1.07);color:#0b141d}
+.provider-draw-external{color:var(--accent)}
+.provider-drawing-guide{background:var(--raised);border:1px solid var(--accent-border);border-radius:8px;padding:15px 17px}
+.provider-drawing-guide strong{font-size:12px}
+.provider-drawing-guide p{font-size:11px;line-height:1.65;color:var(--soft);max-width:900px;margin:8px 0 0}
+.provider-drawing-guide b{color:var(--text)}
+.provider-drawing-error{color:var(--negative);font-size:12px}
+.provider-credit{display:inline-flex;align-items:center;gap:5px;font-size:10px;line-height:1.5}
+.provider-desk.provider-drawing-focus{position:fixed;inset:0;z-index:1000;min-width:0;width:100vw;height:100dvh;margin:0;padding:14px clamp(10px,2vw,28px);background:var(--bg);overflow-y:auto;overscroll-behavior:contain}
+.provider-desk.provider-drawing-focus .provider-drawing-tools{border-color:var(--accent-border)}
+.provider-desk.provider-drawing-focus .provider-chart{height:calc(100dvh - 178px);min-height:350px;max-height:none}
+.provider-desk.provider-drawing-focus:has(.provider-drawing-guide) .provider-chart{height:calc(100dvh - 300px)}
+@media(max-width:920px){
+ .provider-desk-navigation{align-items:flex-start;flex-direction:column}
+ .provider-drawing-tools{align-items:stretch}
+ .provider-drawing-actions{justify-content:flex-start}
+ .provider-desk.provider-drawing-focus .provider-chart{height:calc(100dvh - 245px)}
+}
+@media(max-width:620px){
+ .provider-drawing-tools .provider-drawing-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}
+ .provider-drawing-tools .provider-drawing-actions .provider-draw-primary{grid-column:1/-1}
+ .provider-draw-external{grid-column:1/-1}
+ .provider-desk.provider-drawing-focus .provider-chart{height:calc(100dvh - 280px);min-height:330px}
+}
