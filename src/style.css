@@ -878,3 +878,6 @@
 .provider-watchlist {margin-top:12px;min-width:0;max-height:calc(100dvh - 138px);overflow:auto;padding:12px;background:var(--panel);border:1px solid var(--border);border-radius:8px}
 .provider-watchlist .wl-open:disabled {opacity:.58;cursor:not-allowed}
 @media (max-width:980px) {.provider-workspace {grid-template-columns:minmax(0,1fr);padding:0 8px}.provider-watchlist{margin:0 4px 12px;max-height:none}.provider-workspace .provider-chart{height:clamp(410px,65dvh,830px)}}
+
+.peak-workspace-pages {display:flex;flex-direction:column;gap:3px;min-width:0}
+.peak-workspace-pages .nav-item {width:100%}
