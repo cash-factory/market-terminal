@@ -48,6 +48,8 @@ Binance history and WebSocket updates may be unavailable depending on the viewer
 
 ## Run locally
 
+Requires Node.js 22 or another supported Node.js version for the installed toolchain.
+
 ```bash
 npm install
 npm test
