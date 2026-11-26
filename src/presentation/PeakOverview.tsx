@@ -52,7 +52,7 @@ export function PeakOverview({instrument,drawings,alerts,studies,watchlist,sourc
       </div>
     </section>
     <section className="peak-home-source-note"><PeakIcon name="ui-panel-glass" size={18}/><p>{ENABLE_TEST_FIXTURES
-      ? "Synthetic demonstration candles are not actual exchange prices. Historical replay and strategy results are hypothetical."
+      ? "Research uses synthetic demonstration candles rather than actual exchange prices. Historical replay and strategy results are hypothetical."
       : "Charts identify their external price provider. Markets without a configured provider show no prices. Native replay requires an independently sourced feed."}</p></section>
   </>;
 }

@@ -21,5 +21,35 @@ try {
    await page.screenshot({path:"test-results/production-real/"+id+".png"});
    console.log(id+" rendered provider OHLC");
  }
+ const draw=page.getByRole("button",{name:"Open drawing workspace"});
+ assert.equal(await draw.isVisible(),true);
+ const sourceBefore=await page.locator(".provider-chart iframe").getAttribute("src");
+ const dockedSize=await page.locator(".provider-chart iframe").boundingBox();
+ assert(dockedSize&&dockedSize.width>300,"The docked provider chart must be visible");
+ await page.locator(".provider-chart iframe").evaluate(element=>element.dataset.drawingSession="preserved");
+ await draw.click();
+ assert.equal(await page.getByRole("button",{name:"Exit drawing workspace"}).getAttribute("aria-pressed"),"true");
+ assert.equal(await page.locator(".provider-drawing-focus").count(),1);
+ const expandedSize=await page.locator(".provider-chart iframe").boundingBox();
+ assert(expandedSize&&expandedSize.width>dockedSize.width+150,
+   "Drawing focus should provide meaningful chart space, not just change a label");
+ assert.equal(await page.locator(".provider-chart iframe").getAttribute("src"),sourceBefore);
+ assert.equal(await page.locator(".provider-chart iframe").getAttribute("data-drawing-session"),"preserved");
+ await page.getByRole("button",{name:"How it works"}).click();
+ assert.equal(await page.getByText(/An embedded TradingView drawing is not stored/).isVisible(),true);
+ console.log("Drawing mode preserves provider chart node and explains storage boundaries");
+ const chart=page.frameLocator(".provider-chart iframe");
+ const providerControls=await chart.locator("body").evaluate(root=>
+   Array.from(root.querySelectorAll("[title],[aria-label]")).map(element=>
+     element.getAttribute("aria-label")||element.getAttribute("title")||"")
+      .filter(value=>/draw|trend|line|fibonacci|brush|shape|rectangle|toolbar/i.test(value))
+      .slice(0,40));
+ console.log("Provider-side drawing control labels: "+JSON.stringify(providerControls));
+ assert(providerControls.includes("Trendline"),"Live provider chart must expose trendline drawing tool");
+ assert(providerControls.some(value=>/Fibonacci/.test(value)),
+   "Live provider chart must expose the Fibonacci drawing tool group");
+ await page.getByRole("button",{name:"Exit drawing workspace"}).click();
+ assert.equal(await page.getByRole("button",{name:"Open drawing workspace"}).getAttribute("aria-pressed"),"false");
+ assert.equal(await page.locator(".provider-chart iframe").getAttribute("data-drawing-session"),"preserved");
  assert.deepEqual(cryptoRequests,[]);
 } finally {await browser.close()}
