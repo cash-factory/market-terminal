@@ -1,0 +1,32 @@
+name: Temporary pending-work integration
+on:
+  push:
+    branches: [integration/pending-work-20261126]
+    paths: [.github/workflows/integrate-pending-work.yml]
+permissions:
+  contents: write
+jobs:
+  reconcile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Merge pending features on isolated review branch
+        run: |
+          set -eu
+          git config user.name "Market Terminal integration"
+          git config user.email "integration@users.noreply.github.com"
+          git fetch origin             refs/heads/feature/watchlists-screener-chart-workflows-20261123             refs/heads/feat/feed-gap-recovery-and-provenance
+          git merge --no-ff --no-edit -X ours origin/feature/watchlists-screener-chart-workflows-20261123
+          git merge --no-ff --no-edit -X ours origin/feat/feed-gap-recovery-and-provenance
+          git rm .github/workflows/integrate-pending-work.yml
+          git commit -m "Remove temporary integration workflow after reconciliation"
+          git push origin HEAD:refs/heads/integration/pending-work-20261126
+      - name: Install and validate integrated application
+        run: |
+          npm ci --no-audit --no-fund
+          npm test
+          npm run build
